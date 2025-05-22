@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New Album</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="navbar">
+    <!-- Навигация как в других страницах -->
+</nav>
+
+<main class="form-container">
+    <h1>Add New Album</h1>
+
+    <form id="albumForm">
+        <div class="form-group">
+            <label>Title*</label>
+            <input type="text" id="title" required>
+        </div>
+
+        <div class="form-group">
+            <label>Artist*</label>
+            <input type="text" id="artist" required>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Release Year</label>
+                <input type="number" id="release_year" min="1900">
+            </div>
+
+            <div class="form-group">
+                <label>Genre</label>
+                <input type="text" id="genre">
+            </div>
+
+            <div class="form-group">
+                <label>Label</label>
+                <input type="text" id="label">
+            </div>
+
+            <div class="form-group">
+                <label>Language</label>
+                <input type="text" id="language">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Album Type</label>
+            <select id="type">
+                <option value="">Select type</option>
+                <option value="Studio">Studio</option>
+                <option value="Live">Live</option>
+                <option value="Compilation">Compilation</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn submit-btn">Add Album</button>
+    </form>
+
+    <div id="message" class="hidden"></div>
+</main>
+
+<script>
+    document.getElementById('albumForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const albumData = {
+            title: document.getElementById('title').value,
+            artist: document.getElementById('artist').value,
+            release_year: document.getElementById('release_year').value || null,
+            genre: document.getElementById('genre').value || null,
+            label: document.getElementById('label').value || null,
+            language: document.getElementById('language').value || null,
+            type: document.getElementById('type').value || null
+        };
+
+        try {
+            const response = await fetch('/api/albums', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(albumData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showMessage('Album added successfully!', 'success');
+                document.getElementById('albumForm').reset();
+            } else {
+                showMessage(result.error || 'Error adding album', 'error');
+            }
+        } catch (error) {
+            showMessage('Network error: ' + error.message, 'error');
+        }
+    });
+
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = text;
+        messageDiv.className = type;
+        messageDiv.classList.remove('hidden');
+
+        setTimeout(() => {
+            messageDiv.classList.add('hidden');
+        }, 3000);
+    }
+</script>
+</body>
+</html>

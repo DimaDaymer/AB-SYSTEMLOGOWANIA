@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doolittle - Pixies | MelodyRater</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #1f1f1f;
+      color: white;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 600px;
+      background-image: url('https://m.media-amazon.com/images/I/81D+wuLfeIL.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px) brightness(0.5);
+      z-index: -1;
+
+      /* плавный переход в прозрачность */
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #1c1c1c, #2e2e2e);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1200px;
+      gap: 20px;
+    }
+
+    .left-panel {
+      width: 300px;
+    }
+
+    .album-cover img {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .tracklist {
+      background-color: #111;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .track {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .album-info {
+      flex: 1;
+      background-color: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    .album-title {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .album-meta span {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.95rem;
+    }
+
+    .tabs {
+      margin-top: 20px;
+    }
+
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #444;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      border-color: #00ffcc;
+      color: #00ffcc;
+    }
+
+    .tab-content {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    ol li {
+      margin: 8px 0;
+    }
+
+    .right {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .user-actions div {
+      background: #2a2a2a;
+      padding: 10px;
+      margin-bottom: 5px;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .rating-stars {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: flex-start;
+      font-size: 2rem;
+      position: relative;
+    }
+
+    .rating-stars input {
+      display: none;
+    }
+
+    .rating-stars label {
+      color: #444;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    /* при наведении */
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label {
+      color: greenyellow;
+    }
+
+    /* при выборе */
+    .rating-stars input:checked ~ label {
+      color: greenyellow;
+    }
+
+
+
+    /* Half-star support */
+    .rating-stars label.half::before {
+      content: '★';
+      width: 50%;
+      overflow: hidden;
+      position: absolute;
+      color: gold;
+      z-index: 1;
+    }
+
+
+    .histogram {
+      margin-top: 10px;
+    }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .bar span {
+      width: 60px;
+      font-size: 0.85rem;
+    }
+
+    .bar-line {
+      height: 10px;
+      background-color: #00ffcc;
+      border-radius: 3px;
+      flex-grow: 1;
+      position: relative;
+    }
+
+    .bar-line::after {
+      content: attr(data-count);
+      position: absolute;
+      right: 5px;
+      font-size: 0.7rem;
+      top: -18px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="left-panel">
+    <div class="album-cover">
+      <img src="https://m.media-amazon.com/images/I/81D+wuLfeIL.jpg" alt="Doolittle cover" />
+    </div>
+    <div class="tracklist">
+      <h3>Track List</h3>
+      <div class="track"><span>1. Debaser</span> <span>2:52</span></div>
+      <div class="track"><span>2. Tame</span> <span>1:55</span></div>
+      <div class="track"><span>3. Wave of Mutilation</span> <span>2:04</span></div>
+      <div class="track"><span>4. I Bleed</span> <span>2:34</span></div>
+      <div class="track"><span>5. Here Comes Your Man</span> <span>3:21</span></div>
+      <div class="track"><span>6. Dead</span> <span>2:21</span></div>
+      <div class="track"><span>7. Monkey Gone to Heaven</span> <span>2:56</span></div>
+      <div class="track"><span>8. Mr. Grieves</span> <span>2:05</span></div>
+      <div class="track"><span>9. Crackity Jones</span> <span>1:24</span></div>
+      <div class="track"><span>10. La La Love You</span> <span>2:43</span></div>
+      <div class="track"><span>11. No. 13 Baby</span> <span>3:51</span></div>
+      <div class="track"><span>12. There Goes My Gun</span> <span>1:49</span></div>
+      <div class="track"><span>13. Hey</span> <span>3:31</span></div>
+      <div class="track"><span>14. Silver</span> <span>2:31</span></div>
+      <div class="track"><span>15. Gouge Away</span> <span>2:45</span></div>
+      <p style="margin-top:10px; font-size: 13px; color:#ccc;">Total length: 38:36</p>
+    </div>
+  </div>
+
+  <div class="album-info">
+    <h1 class="album-title">Doolittle</h1>
+    <div class="album-meta">
+      <span><strong>Artist:</strong> Pixies</span>
+      <span><strong>Type:</strong> LP</span>
+      <span><strong>Release Date:</strong> 17 April, 1989</span>
+      <span><strong>Genres:</strong> Indie Rock, Alternative Rock, Surf Rock, Noise Pop</span>
+      <span><strong>Label:</strong> 4AD</span>
+      <span><strong>Language:</strong> English</span>
+    </div>
+    <div class="tabs">
+      <div class="tab-header">
+        <div class="tab active" data-tab="rating">Track Rating</div>
+        <div class="tab" data-tab="credits">Credits</div>
+        <div class="tab" data-tab="catalog">Catalog</div>
+        <div class="tab" data-tab="tags">Tags</div>
+      </div>
+      <div class="tab-content active" id="rating">
+        <ol>
+          <li>Debaser ★★★★★</li>
+          <li>Tame ★★★★☆</li>
+          <li>Wave of Mutilation ★★★★★</li>
+          <li>I Bleed ★★★☆☆</li>
+          <li>Here Comes Your Man ★★★★☆</li>
+          <li>Dead ★★★☆☆</li>
+          <li>Monkey Gone to Heaven ★★★★★</li>
+          <li>Mr. Grieves ★★★☆☆</li>
+          <li>Crackity Jones ★★☆☆☆</li>
+          <li>La La Love You ★★★☆☆</li>
+          <li>No. 13 Baby ★★★★★</li>
+          <li>There Goes My Gun ★★☆☆☆</li>
+          <li>Hey ★★★★★</li>
+          <li>Silver ★★☆☆☆</li>
+          <li>Gouge Away ★★★★★</li>
+        </ol>
+      </div>
+      <div class="tab-content" id="credits"><p>Credits content goes here.</p></div>
+      <div class="tab-content" id="catalog"><p>Catalog info here.</p></div>
+      <div class="tab-content" id="tags"><p>Tags section.</p></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="user-actions">
+      <div>🎧 Listen</div>
+      <div>❤️ Wishlist</div>
+      <div>⭐ Like</div>
+      <div>➕ Add to List</div>
+      <div>🏷️ Tag</div>
+      <div>🔁 Recommend</div>
+      <div>✍️ Write a review</div>
+      <div>📝 Edit a review</div>
+    </div>
+
+    <div class="rating-stars">
+      <input type="radio" name="album-rating" id="star5" value="5"><label for="star5">★</label>
+      <input type="radio" name="album-rating" id="star4-5" value="4.5"><label for="star4-5">★</label>
+      <input type="radio" name="album-rating" id="star4" value="4"><label for="star4">★</label>
+      <input type="radio" name="album-rating" id="star3-5" value="3.5"><label for="star3-5">★</label>
+      <input type="radio" name="album-rating" id="star3" value="3"><label for="star3">★</label>
+      <input type="radio" name="album-rating" id="star2-5" value="2.5"><label for="star2-5">★</label>
+      <input type="radio" name="album-rating" id="star2" value="2"><label for="star2">★</label>
+      <input type="radio" name="album-rating" id="star1-5" value="1.5"><label for="star1-5">★</label>
+      <input type="radio" name="album-rating" id="star1" value="1"><label for="star1">★</label>
+      <input type="radio" name="album-rating" id="star0-5" value="0.5"><label for="star0-5">★</label>
+    </div>
+    <div class="histogram">
+      <div class="bar"><span>5.0★</span><div class="bar-line" style="width: 70%" data-count="25,832 ratings"></div></div>
+      <div class="bar"><span>4.5★</span><div class="bar-line" style="width: 80%" data-count="20,000 ratings"></div></div>
+      <div class="bar"><span>4.0★</span><div class="bar-line" style="width: 60%" data-count="15,498 ratings"></div></div>
+      <div class="bar"><span>3.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
+      <div class="bar"><span>3.0★</span><div class="bar-line" style="width: 35%" data-count="6,234 ratings"></div></div>
+      <div class="bar"><span>2.5★</span><div class="bar-line" style="width: 80%" data-count="20,000 ratings"></div></div>
+      <div class="bar"><span>2.0★</span><div class="bar-line" style="width: 60%" data-count="15,498 ratings"></div></div>
+      <div class="bar"><span>1.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
+      <div class="bar"><span>1.0★</span><div class="bar-line" style="width: 35%" data-count="6,234 ratings"></div></div>
+      <div class="bar"><span>0.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
+    </div>
+  </div>
+</div>
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>User Profile | MelodyRater</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #1f1f1f, #2e2e2e);
+            color: white;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1300px;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .left-panel {
+            width: 300px;
+        }
+
+        .avatar img {
+            width: 100%;
+            border-radius: 8px;
+            background-color: #333;
+        }
+
+        .user-info {
+            background-color: #1a1a1a;
+            padding: 20px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .user-info h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .user-info span {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+
+        .edit-button {
+            margin-top: 10px;
+            background: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+        }
+
+        .tab-panel {
+            flex: 1;
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            border-color: #00ffcc;
+            color: #00ffcc;
+        }
+
+        .tab-content {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .album-entry {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .album-entry span {
+            font-size: 0.9rem;
+        }
+
+        .right {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .notifications, .user-stats, .user-lists {
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .notifications h3, .user-stats h3, .user-lists h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .notifications div, .user-lists div {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+
+        .stat-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .user-lists div {
+            cursor: pointer;
+        }
+        .avatar input[type="file"] {
+            display: none;
+        }
+
+        .avatar label {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+            color: #00ffcc;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="left-panel">
+        <div class="avatar">
+            <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
+            <label for="avatarUpload">Change Avatar</label>
+            <input type="file" id="avatarUpload" accept="image/*" />
+        </div>
+        <div class="user-info">
+            <h1 id="nickname">Nickname</h1>
+            <span><strong>Username:</strong> <span id="username">user</span></span>
+            <span id="age-container" style="display:none;"><strong>Age:</strong> <span id="age"></span></span>
+            <span id="location-container" style="display:none;"><strong>Location:</strong> <span id="location"></span></span>
+            <span id="description-container" style="display:none;"><strong>Description:</strong> <span id="description"></span></span>
+            <span id="gender-container" style="display:none;"><strong>Gender:</strong> <span id="gender"></span></span>
+            <span id="email-container" style="display:none;"><strong>Email:</strong> <span id="email"></span></span>
+            <span id="music-container" style="display:none;"><strong>Favorite Music:</strong> <span id="music"></span></span>
+            <span id="movies-container" style="display:none;"><strong>Favorite Movies:</strong> <span id="movies"></span></span>
+
+            <button onclick="window.location.href='edit-profile.html'"
+                    style="margin-top:10px;background:#333;border:none;padding:10px;border-radius:6px;color:white;cursor:pointer;">
+                Edit Profile
+            </button>
+        </div>
+    </div>
+
+
+    <div class="tab-panel">
+        <div class="tab-header">
+            <div class="tab active" data-tab="recent">Recent</div>
+            <div class="tab" data-tab="albums">Albums</div>
+            <div class="tab" data-tab="liked">Liked</div>
+            <div class="tab" data-tab="wishlist">Wishlist</div>
+            <div class="tab" data-tab="tags">Tags</div>
+            <div class="tab" data-tab="trackratings">Track Ratings</div>
+        </div>
+        <div class="tab-content active" id="recent">
+            <div class="album-entry"><span>Pixies – Doolittle (1989)</span><span>★★★★★</span></div>
+            <div class="album-entry"><span>Radiohead – OK Computer (1997)</span><span>★★★★☆</span></div>
+        </div>
+        <div class="tab-content" id="albums"><p>Albums tab content.</p></div>
+        <div class="tab-content" id="liked"><p>Liked tab content.</p></div>
+        <div class="tab-content" id="wishlist"><p>Wishlist tab content.</p></div>
+        <div class="tab-content" id="tags"><p>Tags tab content.</p></div>
+        <div class="tab-content" id="trackratings"><p>Track ratings tab content.</p></div>
+    </div>
+
+    <div class="right">
+        <div class="notifications">
+            <h3>Notifications</h3>
+            <div>User followed you</div>
+            <div>New album by Lorem Impact</div>
+            <div>Example notification</div>
+        </div>
+
+        <div class="user-stats">
+            <h3>User Statistics</h3>
+            <div class="stat-bar">
+                <span>❤️ Likes:</span><span>123</span>
+            </div>
+            <div class="stat-bar">
+                <span>🎧 Plays:</span><span>792</span>
+            </div>
+            <div class="stat-bar">
+                <span>📋 Lists:</span><span>9</span>
+            </div>
+        </div>
+
+        <div class="user-lists">
+            <h3>User Lists</h3>
+            <div>80s Best Music List</div>
+            <div>myfavalbums</div>
+            <div>good music</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Вкладки
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // Загрузка профиля
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('token');
+        const username = localStorage.getItem('username');
+
+        if (!token || !username) {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/user/profile?username=${username}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await res.json();
+
+            document.getElementById('nickname').textContent = data.nickname || username;
+            document.getElementById('username').textContent = data.username || username;
+
+            if (data.age) {
+                document.getElementById('age').textContent = data.age;
+                document.getElementById('age-container').style.display = 'block';
+            }
+
+            if (data.location) {
+                document.getElementById('location').textContent = data.location;
+                document.getElementById('location-container').style.display = 'block';
+            }
+
+            if (data.description) {
+                document.getElementById('description').textContent = data.description;
+                document.getElementById('description-container').style.display = 'block';
+            }
+
+            if (data.gender) {
+                document.getElementById('gender').textContent = data.gender;
+                document.getElementById('gender-container').style.display = 'block';
+            }
+
+            if (data.contact_email) {
+                document.getElementById('email').textContent = data.contact_email;
+                document.getElementById('email-container').style.display = 'block';
+            }
+
+            if (data.music) {
+                document.getElementById('music').textContent = data.music;
+                document.getElementById('music-container').style.display = 'block';
+            }
+
+            if (data.movies) {
+                document.getElementById('movies').textContent = data.movies;
+                document.getElementById('movies-container').style.display = 'block';
+            }
+
+            // ✅ Отображение аватара
+            if (data.profile_pic) {
+                const avatarUrl = data.profile_pic + `?${Date.now()}`; // кэш обход
+                document.getElementById('avatar-img').src = avatarUrl;
+                localStorage.setItem('userAvatar', avatarUrl);
+            } else {
+                const savedAvatar = localStorage.getItem('userAvatar');
+                if (savedAvatar) {
+                    document.getElementById('avatar-img').src = savedAvatar;
+                }
+            }
+
+        } catch (err) {
+            console.error('Error loading profile:', err);
+            window.location.href = '/login.html';
+        }
+    });
+
+    // Загрузка новой аватарки
+    document.getElementById('avatarUpload').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('avatar', file); // имя должно быть 'avatar'
+
+        try {
+            const res = await fetch('/user/avatar', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const result = await res.json();
+            console.log('✅ Загрузка успешна:', result);
+
+            if (result.success && result.url) {
+                const avatarUrl = result.url + `?${Date.now()}`;
+                document.getElementById('avatar-img').src = avatarUrl;
+                localStorage.setItem('userAvatar', avatarUrl);
+            } else {
+                alert('Ошибка загрузки аватарки.');
+            }
+        } catch (err) {
+            console.error('Upload error:', err);
+        }
+    });
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MelodyRater</title>
+    <style>
+        .navbar { /* Стили навигации */ }
+        .album-card { /* Стили карточек */ }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <a href="/albums">Albums</a>
+    <a href="/genres">Genres</a>
+    <input type="search" placeholder="Search...">
+    <div class="user-menu">
+        <button class="profile-button">☰</button>
+        <div class="dropdown-content">
+            <a href="/profile">Profile</a>
+            <a href="/notifications">Notifications</a>
+        </div>
+    </div>
+</nav>
+
+<div id="content">
+    <h1>Popular Albums</h1>
+    <div class="filters">
+        <select id="genreFilter">
+            <option value="">All Genres</option>
+        </select>
+        <input type="number" id="minRating" placeholder="Min rating">
+    </div>
+    <div id="albums" class="album-grid"></div>
+</div>
+
+<script>
+    async function loadAlbums() {
+        const params = new URLSearchParams({
+            genre: document.getElementById('genreFilter').value,
+            minRating: document.getElementById('minRating').value
+        });
+
+        const response = await fetch(`/api/albums?${params}`);
+        const albums = await response.json();
+
+        const grid = document.getElementById('albums');
+        grid.innerHTML = albums.map(album => `
+        <div class="album-card">
+          <img src="${album.cover_art}" alt="${album.title}">
+          <h3>${album.title}</h3>
+          <p>${album.artist} (${album.release_year})</p>
+          <div class="rating">⭐ ${album.average_rating}</div>
+        </div>
+      `).join('');
+    }
+
+    // Инициализация фильтров
+    window.onload = async () => {
+        const genreResponse = await fetch('/api/genres');
+        const genres = await genreResponse.json();
+
+        const genreSelect = document.getElementById('genreFilter');
+        genres.forEach(genre => {
+            const option = document.createElement('option');
+            option.value = genre.id;
+            option.textContent = genre.name;
+            genreSelect.appendChild(option);
+        });
+
+        loadAlbums();
+    };
+
+    // Обновление при изменении фильтров
+    document.getElementById('genreFilter').addEventListener('change', loadAlbums);
+    document.getElementById('minRating').addEventListener('input', loadAlbums);
+</script>
+</body>
+</html>
