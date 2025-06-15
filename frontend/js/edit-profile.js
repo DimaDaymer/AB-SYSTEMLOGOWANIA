@@ -1,3 +1,5 @@
+// frontend/js/edit-profile.js
+
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');

@@ -1,30 +1,96 @@
+<!-- */frontend/edit-profile.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Edit Profile</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        form label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        form input,
+        form select,
+        form textarea,
+        form button {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        form textarea {
+            resize: vertical;
+            height: 100px;
+        }
+
+        form button {
+            margin-top: 20px;
+        }
+
+        .success {
+            margin-top: 15px;
+            color: green;
+        }
+
+        a {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <div class="auth-container">
     <h2>Edit Profile</h2>
     <form id="editProfileForm">
+        <label for="firstName">First Name</label>
         <input type="text" id="firstName" placeholder="First Name">
+
+        <label for="lastName">Last Name</label>
         <input type="text" id="lastName" placeholder="Last Name">
+
+        <label for="birthDate">Birth Date</label>
         <input type="date" id="birthDate" placeholder="Birth Date">
+
+        <label for="gender">Gender</label>
         <select id="gender">
-            <option value="">Gender</option>
+            <option value="">Select Gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>
         </select>
+
+        <label for="location">City</label>
         <input type="text" id="location" placeholder="City">
+
+        <label for="country">Country</label>
         <input type="text" id="country" placeholder="Country">
+
+        <label for="social">Social Media Link</label>
         <input type="text" id="social" placeholder="Social Media Link">
+
+        <label for="contactEmail">Contact Email</label>
         <input type="email" id="contactEmail" placeholder="Contact Email">
+
+        <label for="description">About Me</label>
         <textarea id="description" placeholder="About Me"></textarea>
+
+        <label for="music">Favorite Music (optional)</label>
         <input type="text" id="music" placeholder="Favorite Music (optional)">
+
+        <label for="movies">Favorite Movies (optional)</label>
         <input type="text" id="movies" placeholder="Favorite Movies (optional)">
+
         <button type="submit">Save Changes</button>
     </form>
     <div id="updateMessage" class="success"></div>

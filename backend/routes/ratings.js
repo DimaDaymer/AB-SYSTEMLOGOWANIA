@@ -1,6 +1,8 @@
+//backend/routes/ratings.js
+
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { pool } = require('../db'); // Деструктуризация pool
 const authenticate = require('../authMiddleware');
 
 // Отправка оценки

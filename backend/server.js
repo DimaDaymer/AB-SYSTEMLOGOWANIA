@@ -1,3 +1,4 @@
+//backend/server.js
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -44,6 +45,10 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
+// backend/server.js
+app.get('/new_releases.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/new_releases.html'));
+});
 
 // Добавить явное указание для папки js
 app.use(express.static(path.join(__dirname, '../frontend')));

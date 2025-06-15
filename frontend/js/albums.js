@@ -1,4 +1,4 @@
-// frontend/albums.js
+// frontend/js/albums.js
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const albumId = urlParams.get('id');
