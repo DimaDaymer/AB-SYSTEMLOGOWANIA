@@ -1,11 +1,10 @@
-<!-- */frontend/albums.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Doolittle - Pixies | MelodyRater</title>
+  <title>Album Details | MelodyRater</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
@@ -15,96 +14,127 @@
       position: relative;
     }
 
-    body::before {
-      content: "";
+    #dynamic-background {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 600px;
-      background-image: url('https://m.media-amazon.com/images/I/81D+wuLfeIL.jpg');
       background-size: cover;
       background-position: center;
       filter: blur(20px) brightness(0.5);
       z-index: -1;
-
-      /* плавный переход в прозрачность */
       mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
       -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(180deg, #1c1c1c, #2e2e2e);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: start;
-      padding: 20px;
     }
 
     .container {
       display: flex;
       max-width: 1200px;
-      gap: 20px;
+      gap: 30px;
+      margin: 40px auto;
+      padding: 0 20px;
     }
 
     .left-panel {
       width: 300px;
+      flex-shrink: 0;
     }
 
     .album-cover img {
       width: 100%;
       border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     }
 
     .tracklist {
-      background-color: #111;
-      padding: 15px;
-      margin-top: 15px;
+      background-color: #1a1a1a;
+      padding: 15px 20px;
+      margin-top: 20px;
       border-radius: 8px;
       font-size: 14px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .tracklist h3 {
+      margin-top: 0;
+      color: #ccc;
+      font-size: 1rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .track {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .track span:first-child {
+      color: #eee;
+    }
+
+    .track span:last-child {
+      color: #bbb;
+    }
+
+    #total-length {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #aaa;
+      border-top: 1px solid #333;
+      padding-top: 10px;
     }
 
     .album-info {
       flex: 1;
       background-color: #1a1a1a;
-      padding: 20px;
+      padding: 25px;
       border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .album-title {
-      font-size: 2rem;
+      font-size: 2.5rem;
       margin-bottom: 10px;
+      font-weight: 700;
+      color: #eee;
     }
 
     .album-meta span {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 7px;
       font-size: 0.95rem;
+      color: #bbb;
+    }
+
+    .album-meta strong {
+      color: #ddd;
     }
 
     .tabs {
-      margin-top: 20px;
+      margin-top: 30px;
     }
 
     .tab-header {
       display: flex;
       border-bottom: 1px solid #444;
+      margin-bottom: 15px;
     }
 
     .tab {
       padding: 10px 20px;
       cursor: pointer;
-      font-weight: bold;
+      font-weight: 600;
       border-bottom: 3px solid transparent;
+      color: #aaa;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .tab:hover {
+      color: #fff;
     }
 
     .tab.active {
@@ -121,32 +151,138 @@
       display: block;
     }
 
-    ol li {
-      margin: 8px 0;
+    #rating ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #rating li {
+      margin: 10px 0;
+      color: #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #rating li span {
+      flex-grow: 1;
+    }
+
+    #rating li .stars {
+      color: greenyellow;
+      font-size: 1.1em;
+      margin-left: 10px;
     }
 
     .right {
       width: 300px;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
 
+    .user-actions {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
     .user-actions div {
       background: #2a2a2a;
       padding: 10px;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       border-radius: 6px;
       text-align: center;
       cursor: pointer;
+      font-weight: 600;
+      color: #ddd;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .user-actions div:last-child {
+      margin-bottom: 0;
+    }
+
+    .user-actions div:hover {
+      background: #3a3a3a;
+      color: #fff;
+    }
+
+    .user-actions div.active {
+      background: #00ffcc;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+
+    .score-block {
+      background-color: #1a1a1a;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .score-block h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #eee;
+      font-size: 1.1rem;
+    }
+
+    .score-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: greenyellow;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .score-value .star-display {
+      font-size: 1.8rem;
+      color: greenyellow;
+      margin-left: 10px;
+    }
+
+    .score-ratings {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 15px;
+    }
+
+    .media-links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      border-top: 1px solid #333;
+      padding-top: 15px;
+    }
+
+    .media-links img {
+      width: 30px;
+      height: 30px;
+      filter: invert(1);
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .media-links img:hover {
+      opacity: 1;
     }
 
     .rating-stars {
       display: flex;
       flex-direction: row-reverse;
-      justify-content: flex-start;
-      font-size: 2rem;
+      justify-content: flex-end;
+      font-size: 2.5rem;
       position: relative;
+      background-color: #1a1a1a;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .rating-stars input {
@@ -159,99 +295,130 @@
       transition: color 0.2s;
     }
 
-    /* при наведении */
     .rating-stars label:hover,
     .rating-stars label:hover ~ label {
-      color: greenyellow;
-    }
-
-    /* при выборе */
-    .rating-stars input:checked ~ label {
-      color: greenyellow;
-    }
-
-
-
-    /* Half-star support */
-    .rating-stars label.half::before {
-      content: '★';
-      width: 50%;
-      overflow: hidden;
-      position: absolute;
       color: gold;
-      z-index: 1;
     }
 
+    .rating-stars input:checked ~ label {
+      color: gold;
+    }
 
     .histogram {
-      margin-top: 10px;
+      background-color: #1a1a1a;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .bar {
       display: flex;
       align-items: center;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
     }
 
     .bar span {
-      width: 60px;
-      font-size: 0.85rem;
+      width: 55px;
+      font-size: 0.9rem;
+      color: #ccc;
+      flex-shrink: 0;
     }
 
     .bar-line {
-      height: 10px;
+      height: 12px;
       background-color: #00ffcc;
-      border-radius: 3px;
+      border-radius: 6px;
       flex-grow: 1;
       position: relative;
+      margin-left: 10px;
+      background-image: linear-gradient(to right, #00ffcc, #00cc99);
     }
 
     .bar-line::after {
       content: attr(data-count);
       position: absolute;
-      right: 5px;
-      font-size: 0.7rem;
-      top: -18px;
-      color: #ccc;
+      right: 8px;
+      font-size: 0.75rem;
+      color: #1f1f1f;
+      line-height: 12px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .left-panel, .album-info, .right {
+        width: 90%;
+        max-width: 600px;
+      }
+
+      .left-panel {
+        order: 1;
+      }
+
+      .album-info {
+        order: 2;
+      }
+
+      .right {
+        order: 3;
+      }
+
+      .album-title {
+        font-size: 2rem;
+      }
+    }
+
+    .user-actions div {
+      transition: all 0.3s ease;
+    }
+
+    .user-actions div.active {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+    }
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px auto;
+        padding: 0 10px;
+      }
+
+      .album-title {
+        font-size: 1.8rem;
+      }
+
+      .rating-stars {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
 <body>
+<div id="dynamic-background"></div>
 <div class="container">
   <div class="left-panel">
     <div class="album-cover">
-      <img src="https://m.media-amazon.com/images/I/81D+wuLfeIL.jpg" alt="Doolittle cover" />
+      <img id="album-cover" src="" alt="Album cover">
     </div>
     <div class="tracklist">
       <h3>Track List</h3>
-      <div class="track"><span>1. Debaser</span> <span>2:52</span></div>
-      <div class="track"><span>2. Tame</span> <span>1:55</span></div>
-      <div class="track"><span>3. Wave of Mutilation</span> <span>2:04</span></div>
-      <div class="track"><span>4. I Bleed</span> <span>2:34</span></div>
-      <div class="track"><span>5. Here Comes Your Man</span> <span>3:21</span></div>
-      <div class="track"><span>6. Dead</span> <span>2:21</span></div>
-      <div class="track"><span>7. Monkey Gone to Heaven</span> <span>2:56</span></div>
-      <div class="track"><span>8. Mr. Grieves</span> <span>2:05</span></div>
-      <div class="track"><span>9. Crackity Jones</span> <span>1:24</span></div>
-      <div class="track"><span>10. La La Love You</span> <span>2:43</span></div>
-      <div class="track"><span>11. No. 13 Baby</span> <span>3:51</span></div>
-      <div class="track"><span>12. There Goes My Gun</span> <span>1:49</span></div>
-      <div class="track"><span>13. Hey</span> <span>3:31</span></div>
-      <div class="track"><span>14. Silver</span> <span>2:31</span></div>
-      <div class="track"><span>15. Gouge Away</span> <span>2:45</span></div>
-      <p style="margin-top:10px; font-size: 13px; color:#ccc;">Total length: 38:36</p>
+      <div id="tracks-container"></div>
+      <p id="total-length" style="margin-top:10px; font-size: 13px; color:#ccc;"></p>
     </div>
   </div>
 
   <div class="album-info">
-    <h1 class="album-title">Doolittle</h1>
+    <h1 class="album-title" id="album-title"></h1>
     <div class="album-meta">
-      <span><strong>Artist:</strong> Pixies</span>
-      <span><strong>Type:</strong> LP</span>
-      <span><strong>Release Date:</strong> 17 April, 1989</span>
-      <span><strong>Genres:</strong> Indie Rock, Alternative Rock, Surf Rock, Noise Pop</span>
-      <span><strong>Label:</strong> 4AD</span>
-      <span><strong>Language:</strong> English</span>
+      <span><strong>Artist:</strong> <span id="album-artist"></span></span>
+      <span><strong>Type:</strong> <span id="album-type"></span></span>
+      <span><strong>Release Date:</strong> <span id="release-date"></span></span>
+      <span><strong>Genres:</strong> <span id="album-genres"></span></span>
+      <span><strong>Label:</strong> <span id="album-label"></span></span>
+      <span><strong>Language:</strong> <span id="album-language"></span></span>
     </div>
     <div class="tabs">
       <div class="tab-header">
@@ -262,39 +429,51 @@
       </div>
       <div class="tab-content active" id="rating">
         <ol>
-          <li>Debaser ★★★★★</li>
-          <li>Tame ★★★★☆</li>
-          <li>Wave of Mutilation ★★★★★</li>
-          <li>I Bleed ★★★☆☆</li>
-          <li>Here Comes Your Man ★★★★☆</li>
-          <li>Dead ★★★☆☆</li>
-          <li>Monkey Gone to Heaven ★★★★★</li>
-          <li>Mr. Grieves ★★★☆☆</li>
-          <li>Crackity Jones ★★☆☆☆</li>
-          <li>La La Love You ★★★☆☆</li>
-          <li>No. 13 Baby ★★★★★</li>
-          <li>There Goes My Gun ★★☆☆☆</li>
-          <li>Hey ★★★★★</li>
-          <li>Silver ★★☆☆☆</li>
-          <li>Gouge Away ★★★★★</li>
+          <li><span>Debaser</span> <span class="stars">★★★★★</span></li>
+          <li><span>Tame</span> <span class="stars">★★★★☆</span></li>
+          <li><span>Wave of Mutilation</span> <span class="stars">★★★★★</span></li>
+          <li><span>I Bleed</span> <span class="stars">★★★☆☆</span></li>
+          <li><span>Here Comes Your Man</span> <span class="stars">★★★★☆</span></li>
+          <li><span>Dead</span> <span class="stars">★★★☆☆</span></li>
+          <li><span>Monkey Gone to Heaven</span> <span class="stars">★★★★★</span></li>
+          <li><span>Mr. Grieves</span> <span class="stars">★★★☆☆</span></li>
+          <li><span>Crackity Jones</span> <span class="stars">★★☆☆☆</span></li>
+          <li><span>La La Love You</span> <span class="stars">★★★☆☆</span></li>
+          <li><span>No. 13 Baby</span> <span class="stars">★★★★★</span></li>
+          <li><span>There Goes My Gun</span> <span class="stars">★★☆☆☆</span></li>
+          <li><span>Hey</span> <span class="stars">★★★★★</span></li>
+          <li><span>Silver</span> <span class="stars">★★☆☆☆</span></li>
+          <li><span>Gouge Away</span> <span class="stars">★★★★★</span></li>
         </ol>
       </div>
-      <div class="tab-content" id="credits"><p>Credits content goes here.</p></div>
-      <div class="tab-content" id="catalog"><p>Catalog info here.</p></div>
-      <div class="tab-content" id="tags"><p>Tags section.</p></div>
+      <div class="tab-content" id="credits"><p style="color: #bbb;">Credits content goes here.</p></div>
+      <div class="tab-content" id="catalog"><p style="color: #bbb;">Catalog info here.</p></div>
+      <div class="tab-content" id="tags"><p style="color: #bbb;">Tags section.</p></div>
     </div>
   </div>
 
   <div class="right">
     <div class="user-actions">
-      <div>🎧 Listen</div>
-      <div>❤️ Wishlist</div>
-      <div>⭐ Like</div>
+      <div data-action="listen">🎧 Listen</div>
+      <div data-action="wishlist">❤️ Wishlist</div>
+      <div data-action="like">⭐ Like</div>
       <div>➕ Add to List</div>
       <div>🏷️ Tag</div>
       <div>🔁 Recommend</div>
       <div>✍️ Write a review</div>
       <div>📝 Edit a review</div>
+      <div id="editAlbumButton">✏️ Edit Album</div>
+
+    </div>
+
+    <div class="score-block">
+      <div class="score-value">4.09 <span class="star-display">★★★★☆</span></div>
+      <div class="score-ratings">from 50,980 ratings</div>
+    </div>
+
+    <div class="score-block">
+      <div class="score-value" style="color: greenyellow;">3.89 <span class="star-display">★★★☆☆</span></div>
+      <div class="score-ratings">from 124 ratings</div>
     </div>
 
     <div class="rating-stars">
@@ -309,24 +488,108 @@
       <input type="radio" name="album-rating" id="star1" value="1"><label for="star1">★</label>
       <input type="radio" name="album-rating" id="star0-5" value="0.5"><label for="star0-5">★</label>
     </div>
+
     <div class="histogram">
-      <div class="bar"><span>5.0★</span><div class="bar-line" style="width: 70%" data-count="25,832 ratings"></div></div>
-      <div class="bar"><span>4.5★</span><div class="bar-line" style="width: 80%" data-count="20,000 ratings"></div></div>
-      <div class="bar"><span>4.0★</span><div class="bar-line" style="width: 60%" data-count="15,498 ratings"></div></div>
-      <div class="bar"><span>3.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
-      <div class="bar"><span>3.0★</span><div class="bar-line" style="width: 35%" data-count="6,234 ratings"></div></div>
-      <div class="bar"><span>2.5★</span><div class="bar-line" style="width: 80%" data-count="20,000 ratings"></div></div>
-      <div class="bar"><span>2.0★</span><div class="bar-line" style="width: 60%" data-count="15,498 ratings"></div></div>
-      <div class="bar"><span>1.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
-      <div class="bar"><span>1.0★</span><div class="bar-line" style="width: 35%" data-count="6,234 ratings"></div></div>
-      <div class="bar"><span>0.5★</span><div class="bar-line" style="width: 40%" data-count="10,200 ratings"></div></div>
+      <div class="bar"><span>5.0★</span><div class="bar-line" style="width: 70%;" data-count="25,832 ratings"></div></div>
+      <div class="bar"><span>4.5★</span><div class="bar-line" style="width: 80%;" data-count="20,000 ratings"></div></div>
+      <div class="bar"><span>4.0★</span><div class="bar-line" style="width: 60%;" data-count="15,498 ratings"></div></div>
+      <div class="bar"><span>3.5★</span><div class="bar-line" style="width: 40%;" data-count="10,200 ratings"></div></div>
+      <div class="bar"><span>3.0★</span><div class="bar-line" style="width: 35%;" data-count="6,234 ratings"></div></div>
+      <div class="bar"><span>2.5★</span><div class="bar-line" style="width: 25%;" data-count="5,000 ratings"></div></div>
+      <div class="bar"><span>2.0★</span><div class="bar-line" style="width: 15%;" data-count="3,000 ratings"></div></div>
+      <div class="bar"><span>1.5★</span><div class="bar-line" style="width: 10%;" data-count="2,000 ratings"></div></div>
+      <div class="bar"><span>1.0★</span><div class="bar-line" style="width: 5%;" data-count="1,000 ratings"></div></div>
+      <div class="bar"><span>0.5★</span><div class="bar-line" style="width: 2%;" data-count="500 ratings"></div></div>
+    </div>
+
+    <div class="media-links">
+      <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" alt="Spotify"></a>
+      <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_Music_icon.svg/1200px-Apple_Music_icon.svg.png" alt="Apple Music"></a>
+      <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Deezer_logo.svg" alt="Deezer" style="filter: none;"></a>
+      <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Amazon_Music_icon.svg" alt="Amazon Music"></a>
     </div>
   </div>
 </div>
+
 <script>
+  // Helper function to display messages
+  function showMessage(msg, isError = false) {
+    const msgEl = document.createElement('div');
+    msgEl.textContent = msg;
+    msgEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: ${isError ? '#ffdddd' : '#ddffdd'};
+      color: ${isError ? '#ff0000' : '#008800'};
+      border: 1px solid ${isError ? '#ff0000' : '#008800'};
+      border-radius: 5px;
+      z-index: 1000;
+      font-weight: bold;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    `;
+    document.body.appendChild(msgEl);
+    setTimeout(() => msgEl.remove(), 5000);
+  }
+
   const tabs = document.querySelectorAll('.tab');
   const contents = document.querySelectorAll('.tab-content');
+  let currentAlbumId = null;
 
+  // Function to display star rating visually
+  function getStarDisplay(score) {
+    const fullStars = Math.floor(score);
+    const halfStar = score % 1 >= 0.5 ? '★' : '';
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
+  }
+
+  // Function to update the user score display based on the histogram
+  function updateScoresDisplay() {
+    const userScoreEl = document.querySelector('.score-block:first-of-type .score-value');
+    const friendsScoreEl = document.querySelector('.score-block:last-of-type .score-value');
+    const userRatingsCountEl = document.querySelector('.score-block:first-of-type .score-ratings');
+    const friendsRatingsCountEl = document.querySelector('.score-block:last-of-type .score-ratings');
+
+    const userAvgScore = 4.09;
+    const userTotalRatings = 50980;
+    const friendsAvgScore = 3.89;
+    const friendsTotalRatings = 124;
+
+    userScoreEl.innerHTML = `${userAvgScore} <span class="star-display">${getStarDisplay(userAvgScore)}</span>`;
+    userRatingsCountEl.textContent = `from ${userTotalRatings.toLocaleString()} ratings`;
+
+    friendsScoreEl.innerHTML = `${friendsAvgScore} <span class="star-display">${getStarDisplay(friendsAvgScore)}</span>`;
+    friendsRatingsCountEl.textContent = `from ${friendsTotalRatings.toLocaleString()} ratings`;
+
+    const histogramData = [
+      { score: 5, count: 25832 },
+      { score: 4.5, count: 20000 },
+      { score: 4, count: 15498 },
+      { score: 3.5, count: 10200 },
+      { score: 3, count: 6234 },
+      { score: 2.5, count: 5000 },
+      { score: 2, count: 3000 },
+      { score: 1.5, count: 2000 },
+      { score: 1, count: 1000 },
+      { score: 0.5, count: 500 }
+    ];
+
+    const totalHistogramRatings = histogramData.reduce((sum, item) => sum + item.count, 0);
+
+    document.querySelectorAll('.histogram .bar-line').forEach((barLine, index) => {
+      const data = histogramData[index];
+      if (data) {
+        const percentage = (data.count / totalHistogramRatings) * 100;
+        barLine.style.width = `${percentage > 0 ? Math.max(percentage, 5) : 0}%`;
+        barLine.dataset.count = `${data.count.toLocaleString()} ratings`;
+      }
+    });
+  }
+
+  // Tab handling
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
@@ -334,6 +597,240 @@
       tab.classList.add('active');
       document.getElementById(tab.dataset.tab).classList.add('active');
     });
+  });
+
+  // Load user rating
+  async function loadUserRating(albumId) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch(`/api/albums/${albumId}/user-rating`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.score) {
+          document.querySelectorAll('.rating-stars input').forEach(input => {
+            input.checked = false;
+          });
+          const starInput = document.querySelector(`.rating-stars input[value="${data.score}"]`);
+          if (starInput) starInput.checked = true;
+        }
+      }
+    } catch (err) {
+      console.error('Error loading user rating:', err);
+      showMessage('Error loading your rating', true);
+    }
+  }
+
+  // Album rating handler
+  document.querySelector('.rating-stars').addEventListener('click', async (e) => {
+    if (!e.target.matches('label') && !e.target.matches('input')) return;
+
+    const rating = e.target.value || e.target.control?.value;
+    if (!rating || !currentAlbumId) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showMessage('Please log in to rate albums', true);
+        setTimeout(() => window.location.href = '/login.html', 2000);
+        return;
+      }
+
+      const res = await fetch(`/api/ratings/${currentAlbumId}/ratings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ score: parseFloat(rating) })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Rating failed');
+      }
+
+      showMessage('Rating submitted successfully!');
+      await loadUserRating(currentAlbumId);
+    } catch (err) {
+      console.error('Rating error:', err);
+      showMessage('Error submitting rating: ' + err.message, true);
+    }
+  });
+
+  // Album actions
+  async function sendAlbumAction(actionType) {
+    if (!currentAlbumId) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showMessage('Please log in to perform this action', true);
+        setTimeout(() => window.location.href = '/login.html', 2000);
+        return;
+      }
+      if (actionType === 'edit_profile') {
+        window.location.href = '/profile/edit.html';
+        return;
+      }
+      const button = document.querySelector(`.user-actions div[data-action="${actionType}"]`);
+      const isActive = button.classList.contains('active');
+
+      // Определяем метод HTTP в зависимости от текущего состояния
+      const method = isActive ? 'DELETE' : 'POST';
+
+      const url = isActive
+              ? `/api/actions?albumId=${currentAlbumId}&actionType=${actionType}`
+              : '/api/actions';
+
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: method === 'POST'
+                ? JSON.stringify({ albumId: currentAlbumId, actionType })
+                : null
+      });
+
+      if (!res.ok) throw new Error('Action failed');
+
+      // Переключаем состояние кнопки
+      button.classList.toggle('active');
+
+      showMessage(isActive
+              ? `Removed from ${actionType}`
+              : `Added to ${actionType}`);
+    } catch (err) {
+      console.error('Action error:', err);
+      showMessage('Error: ' + err.message, true);
+    }
+  }
+
+  // Check user action status
+  async function checkUserAction(albumId) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch(`/api/actions/album/${albumId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const action = await res.json();
+        if (action && action.action_type) {
+          document.querySelector(`.user-actions div[data-action="${action.action_type}"]`)
+                  ?.classList.add('active');
+        }
+      }
+    } catch (err) {
+      console.error('Error checking user action:', err);
+    }
+  }
+
+  // Main album loading
+  document.addEventListener('DOMContentLoaded', async () => {
+    const slug = window.location.pathname.split('/').pop().split('?')[0];
+    console.log('Album slug:', slug); // Для отладки
+
+
+    if (!slug) {
+      showMessage('Album slug not specified', true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/albums/by-slug/${slug}`);
+
+      if (response.status === 404) {
+        showMessage('Album not found', true);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const album = await response.json();
+      currentAlbumId = album.id;
+
+      // Set background image
+      if (album.cover_url) {
+        document.getElementById('dynamic-background').style.backgroundImage = `url('${album.cover_url}')`;
+      }
+
+      // Set album info
+      document.getElementById('album-title').textContent = album.title;
+      document.getElementById('album-artist').textContent = album.artist;
+      document.getElementById('album-type').textContent = album.type || 'N/A';
+      document.getElementById('release-date').textContent = album.release_date || 'N/A';
+
+      // FIXED: Properly display genres array as string
+      document.getElementById('album-genres').textContent =
+              Array.isArray(album.genres) && album.genres.length
+                      ? album.genres.join(', ')
+                      : (album.genres || 'N/A');
+
+      document.getElementById('album-label').textContent = album.label || 'N/A';
+      document.getElementById('album-language').textContent = album.language || 'N/A';
+
+      const editButton = document.getElementById('editAlbumButton');
+      if (editButton) {
+        editButton.style.display = 'block';
+        editButton.addEventListener('click', () => {
+          window.location.href = `/edit_album.html?album_id=${currentAlbumId}`;
+        });
+      }
+
+      // Set album cover
+      if (album.cover_url) {
+        document.getElementById('album-cover').src = album.cover_url;
+      }
+
+      // Render tracks
+      const tracksContainer = document.getElementById('tracks-container');
+      tracksContainer.innerHTML = '';
+
+      let totalDuration = 0;
+      album.tracks.forEach(track => {
+        const trackEl = document.createElement('div');
+        trackEl.className = 'track';
+        trackEl.innerHTML = `
+          <span>${track.track_number}. ${track.title}</span>
+          <span>${track.duration || ''}</span>
+        `;
+        tracksContainer.appendChild(trackEl);
+
+        if (track.duration) {
+          const [min, sec] = track.duration.split(':').map(Number);
+          totalDuration += min * 60 + (sec || 0);
+        }
+      });
+
+      // Display total duration
+      if (totalDuration > 0) {
+        const mins = Math.floor(totalDuration / 60);
+        const secs = totalDuration % 60;
+        document.getElementById('total-length').textContent =
+                `Total length: ${mins}:${secs < 10 ? '0' + secs : secs}`;
+      }
+
+      // Load user data
+      await loadUserRating(currentAlbumId);
+      await checkUserAction(currentAlbumId);
+
+      // Update scores display
+      updateScoresDisplay();
+    } catch (error) {
+      console.error('Error loading album:', error);
+      showMessage('Failed to load album. Please try again later.', true);
+    }
   });
 </script>
 </body>

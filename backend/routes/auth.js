@@ -1,4 +1,4 @@
-//backend/routes/auth.js
+// backend/routes/auth.js
 
 const express = require('express');
 const router = express.Router();
@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 
+// Регистрация
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -23,6 +24,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Вход
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -41,13 +43,13 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Увеличено время жизни токена до 7 дней
         const token = jwt.sign(
             { id: users[0].id, username: users[0].username },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '7d' }
         );
 
-        // Добавлено: возвращаем username вместе с токеном
         res.json({ token, username: users[0].username });
     } catch (err) {
         console.error(err);

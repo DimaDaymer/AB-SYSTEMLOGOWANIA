@@ -100,4 +100,49 @@ router.put('/profile/update', async (req, res) => {
     }
 });
 
+router.get('/rated-albums', async (req, res) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        const username = payload.username;
+
+        const [rows] = await pool.execute(`
+      SELECT a.id, a.title, a.artist, a.cover_url, r.score, r.created_at
+      FROM ratings r
+      JOIN albums a ON r.album_id = a.id
+      WHERE r.user_id = (SELECT id FROM users WHERE username = ?)
+      ORDER BY r.created_at DESC
+    `, [username]);
+
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Добавьте этот роут в user.js
+router.get('/current', authenticate, async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT 
+                id, username, email, role
+             FROM users
+             WHERE id = ?`,
+            [req.user.id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 module.exports = router;

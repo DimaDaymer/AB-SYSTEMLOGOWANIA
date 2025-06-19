@@ -38,28 +38,47 @@ async function initializeDatabase() {
             );
         `);
 
-        // ✅ Создание таблицы albums
+        // ✅ Создание таблицы albums (UPDATED)
+// backend/db.js
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS albums (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                artist VARCHAR(255) NOT NULL,
-                release_year INT,
-                genre VARCHAR(100)
+            CREATE TABLE IF NOT EXISTS albums
+            (
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                title        VARCHAR(255) NOT NULL,
+                artist       VARCHAR(255) NOT NULL,
+                release_date VARCHAR(100),
+                cover_url    VARCHAR(255),
+                type         VARCHAR(50),
+                genres       VARCHAR(255),
+                label        VARCHAR(255),
+                language     VARCHAR(50),
+                slug         VARCHAR(255) UNIQUE NOT NULL  -- Добавлено новое поле
+            );
+        `);
+// ...
+        // ✅ Создание таблицы tracks (NEW)
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS tracks (
+                                                  id INT AUTO_INCREMENT PRIMARY KEY,
+                                                  album_id INT NOT NULL,
+                                                  track_number INT NOT NULL,
+                                                  title VARCHAR(255) NOT NULL,
+                                                  duration VARCHAR(50),
+                                                  FOREIGN KEY (album_id) REFERENCES albums(id)
             );
         `);
 
         // ✅ Создание таблицы ratings
         await connection.query(`
             CREATE TABLE IF NOT EXISTS ratings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                album_id INT NOT NULL,
-                score INT NOT NULL CHECK (score BETWEEN 1 AND 5),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_rating (user_id, album_id),
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (album_id) REFERENCES albums(id)
+                                                   id INT AUTO_INCREMENT PRIMARY KEY,
+                                                   user_id INT NOT NULL,
+                                                   album_id INT NOT NULL,
+                                                   score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
+                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                   UNIQUE KEY unique_rating (user_id, album_id),
+                                                   FOREIGN KEY (user_id) REFERENCES users(id),
+                                                   FOREIGN KEY (album_id) REFERENCES albums(id)
             );
         `);
 
@@ -80,6 +99,20 @@ async function initializeDatabase() {
                 FOREIGN KEY (album_id) REFERENCES albums(id),
                 FOREIGN KEY (genre_id) REFERENCES genres(id)
             );
+        `);
+
+        // ✅ Создание таблицы user_album_actions
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS user_album_actions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            album_id INT NOT NULL,
+            action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (album_id) REFERENCES albums(id)
+          );
         `);
 
         console.log('✅ Database initialized successfully');

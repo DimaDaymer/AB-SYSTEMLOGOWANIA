@@ -1,4 +1,6 @@
 //database/init.sql
+DROP DATABASE IF EXISTS `melody_rater`;
+
 CREATE DATABASE IF NOT EXISTS mydb;
 USE mydb;
 

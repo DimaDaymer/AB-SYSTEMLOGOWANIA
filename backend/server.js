@@ -1,9 +1,8 @@
-//backend/server.js
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { pool, initializeDatabase } = require('./db'); // Деструктуризация импорта
+const { pool, initializeDatabase } = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -17,12 +16,22 @@ const albumsRoute = require('./routes/albums');
 const authRoute = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const uploadRoute = require('./routes/upload');
+const ratingsRoute = require('./routes/ratings'); // Добавлен роут для оценок
+const actionsRoute = require('./routes/actions');
+// Добавьте этот middleware перед роутами
+const authenticate = require('./authMiddleware');
+app.use(authenticate); // Глобальная аутентификация
 
+// Измените подключение userRoutes
+app.use('/api/user', userRoutes);
 app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
 app.use('/user', userRoutes);
 app.use('/user', uploadRoute);
+app.use('/api/ratings', ratingsRoute); // Подключение роутов оценок
+app.use('/api/actions', actionsRoute);
 
+// Serve HTML files
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
 });
@@ -38,33 +47,33 @@ app.get('/register.html', (req, res) => {
 app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/profile.html'));
 });
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// ✅ Этот роут должен быть ПОСЛЕ всех остальных
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-// backend/server.js
 app.get('/new_releases.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/new_releases.html'));
 });
 
-// Добавить явное указание для папки js
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Serve album pages
+app.get('/release/album/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/albums.html'));
+});
+
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
+
+// Fallback to index.html for SPA routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
 // Database initialization and server start
 async function setupServer() {
     try {
-        // Инициализация БД и таблиц
         await initializeDatabase();
-
-        // Проверка соединения
         const conn = await pool.getConnection();
         console.log('✅ Database connection established');
         conn.release();
 
-        // Запуск сервера
         app.listen(port, () => {
             console.log(`🚀 Server running at http://localhost:${port}`);
         });
@@ -74,5 +83,4 @@ async function setupServer() {
     }
 }
 
-// Запускаем весь процесс
 setupServer();

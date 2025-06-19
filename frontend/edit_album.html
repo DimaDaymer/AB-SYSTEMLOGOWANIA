@@ -1,0 +1,373 @@
+<!-- */frontend/edit-album.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Album</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #1f1f1f;
+      color: white;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    h1 {
+      color: #00ffcc;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    form div {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #ddd;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #2a2a2a;
+      color: white;
+    }
+    button {
+      background-color: #00cc99;
+      color: #1a1a1a;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 0.3s;
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #00ffcc;
+    }
+    #tracksContainer {
+      border: 1px solid #444;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 4px;
+      background: #1a1a1a;
+    }
+    .track-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .track-item input {
+      flex: 1;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .track-item input[name="track_number"] {
+      flex: 0 0 60px;
+    }
+    .remove-track-button {
+      background: #ff5555;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 10px; /* Уменьшены горизонтальные отступы */
+      cursor: pointer;
+      width: 40px; /* Фиксированная ширина */
+      text-align: center; /* Центрирование текста */
+    }
+    .add-track-button {
+      background: #00cc99;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .form-section {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    .form-section h2 {
+      margin-top: 0;
+      color: #00ffcc;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+
+    #editAlbumButton {
+      background: #2a2a2a;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      color: #ddd;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    #editAlbumButton:hover {
+      background: #3a3a3a;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+<h1>Edit Album</h1>
+
+<form id="editAlbumForm">
+  <div class="form-section">
+    <h2>Basic Information</h2>
+    <div>
+      <label for="title">Title:</label>
+      <input type="text" id="title" name="title" required>
+    </div>
+    <div>
+      <label for="artist">Artist:</label>
+      <input type="text" id="artist" name="artist" required>
+    </div>
+    <div>
+      <label for="cover_url">Cover URL:</label>
+      <input type="text" id="cover_url" name="cover_url">
+    </div>
+    <div>
+      <label for="type">Type:</label>
+      <select id="type" name="type">
+        <option value="LP">LP (Long Play)</option>
+        <option value="EP">EP (Extended Play)</option>
+        <option value="Single">Single</option>
+        <option value="Compilation">Compilation</option>
+        <option value="Live">Live Album</option>
+      </select>
+    </div>
+    <div>
+      <label for="release_date">Release Date:</label>
+      <input type="date" id="release_date" name="release_date">
+    </div>
+    <div>
+      <label for="release_year">Release Year (if no specific date):</label>
+      <input type="number" id="release_year" name="release_year" min="1900" max="2100">
+    </div>
+    <div>
+      <label for="genre">Genre (comma separated):</label>
+      <input type="text" id="genre" name="genre" placeholder="e.g., Indie Rock, Alternative Rock">
+    </div>
+    <div>
+      <label for="label">Label:</label>
+      <input type="text" id="label" name="label">
+    </div>
+    <div>
+      <label for="language">Language:</label>
+      <input type="text" id="language" name="language">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2>Tracks</h2>
+    <div id="tracksContainer">
+      <!-- Tracks will be added here dynamically -->
+    </div>
+    <button type="button" id="addTrackButton" class="add-track-button">+ Add Track</button>
+  </div>
+
+  <button type="submit">Update Album</button>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const editAlbumForm = document.getElementById('editAlbumForm');
+    const tracksContainer = document.getElementById('tracksContainer');
+    const addTrackButton = document.getElementById('addTrackButton');
+
+    // Получаем ID альбома из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const albumId = urlParams.get('album_id');
+
+    if (!albumId) {
+      alert('Album ID not specified');
+      window.location.href = '/';
+      return;
+    }
+
+    // Загружаем данные альбома
+    let albumData;
+    try {
+      const response = await fetch(`/api/albums/${albumId}`);
+      if (!response.ok) throw new Error('Album not found');
+      albumData = await response.json();
+    } catch (error) {
+      console.error('Error loading album:', error);
+      alert('Error loading album data');
+      return;
+    }
+
+    // Заполняем форму данными альбома
+    document.getElementById('title').value = albumData.title || '';
+    document.getElementById('artist').value = albumData.artist || '';
+    document.getElementById('cover_url').value = albumData.cover_url || '';
+    document.getElementById('type').value = albumData.type || 'LP';
+
+    // Обработка даты релиза
+    if (albumData.release_date) {
+      const date = new Date(albumData.release_date);
+      if (!isNaN(date)) {
+        const formattedDate = date.toISOString().split('T')[0];
+        document.getElementById('release_date').value = formattedDate;
+      }
+    }
+
+    document.getElementById('release_year').value = albumData.release_year || '';
+    document.getElementById('genre').value = albumData.genres || '';
+    document.getElementById('label').value = albumData.label || '';
+    document.getElementById('language').value = albumData.language || '';
+
+    // Заполняем треки
+    albumData.tracks.forEach(track => {
+      addTrackInput(track.track_number, track.title, track.duration);
+    });
+
+    // Функция добавления трека
+    function addTrackInput(trackNumber = '', title = '', duration = '') {
+      const trackDiv = document.createElement('div');
+      trackDiv.classList.add('track-item');
+      trackDiv.innerHTML = `
+                <input type="number" name="track_number" placeholder="No." value="${trackNumber}" min="1" required>
+                <input type="text" name="track_title" placeholder="Track Title" value="${title}" required>
+                <input type="text" name="track_duration" placeholder="Duration (e.g., 3:45)" value="${duration}">
+                <button type="button" class="remove-track-button">X</button>
+            `;
+      tracksContainer.appendChild(trackDiv);
+
+      trackDiv.querySelector('.remove-track-button').addEventListener('click', () => {
+        tracksContainer.removeChild(trackDiv);
+      });
+    }
+
+    // Добавление нового трека
+    addTrackButton.addEventListener('click', () => {
+      const trackCount = tracksContainer.querySelectorAll('.track-item').length;
+      addTrackInput(trackCount + 1);
+    });
+
+    // Обработка отправки формы
+    editAlbumForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      // Валидация обязательных полей
+      if (!editAlbumForm.title.value || !editAlbumForm.artist.value) {
+        alert('Album title and artist are required!');
+        return;
+      }
+
+      // Собираем данные треков
+      const trackNumbers = document.querySelectorAll('#tracksContainer input[name="track_number"]');
+      const trackTitles = document.querySelectorAll('#tracksContainer input[name="track_title"]');
+      const trackDurations = document.querySelectorAll('#tracksContainer input[name="track_duration"]');
+
+      const tracks = [];
+      for (let i = 0; i < trackTitles.length; i++) {
+        const trackNumber = parseInt(trackNumbers[i].value);
+        if (isNaN(trackNumber)) {
+          alert(`Invalid track number at position ${i + 1}!`);
+          return;
+        }
+
+        if (!trackTitles[i].value) {
+          alert(`Track title is required at position ${i + 1}!`);
+          return;
+        }
+
+        tracks.push({
+          track_number: trackNumber,
+          title: trackTitles[i].value,
+          duration: trackDurations[i].value
+        });
+      }
+
+      // Формируем объект альбома
+      const updatedAlbum = {
+        title: editAlbumForm.title.value,
+        artist: editAlbumForm.artist.value,
+        cover_url: editAlbumForm.cover_url.value || null,
+        type: editAlbumForm.type.value || null,
+        release_date: editAlbumForm.release_date.value || null,
+        release_year: editAlbumForm.release_year.value || null,
+        genres: editAlbumForm.genre.value || null,
+        label: editAlbumForm.label.value || null,
+        language: editAlbumForm.language.value || null,
+        tracks: tracks
+      };
+
+      try {
+        const updateResponse = await fetch(`/api/albums/${albumId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updatedAlbum)
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update album');
+        }
+
+        const result = await updateResponse.json();
+        alert(result.message || 'Album updated successfully!');
+        window.location.href = `/release/album/${albumData.slug}`;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert('You need to login to edit albums');
+          window.location.href = '/login.html';
+          return;
+        }
+
+        // Проверка роли пользователя
+        const userResponse = await fetch('/user/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!userResponse.ok) throw new Error('Failed to fetch user data');
+
+        const userData = await userResponse.json();
+        const isAdmin = userData.role === 'admin'; // Предполагаем, что в профиле есть поле role
+
+        if (!isAdmin) {
+          alert('You do not have permission to edit albums');
+          window.location.href = '/';
+          return;
+        }
+      } catch (error) {
+        console.error('Permission check failed:', error);
+        alert('Error checking permissions');
+        return;
+      }
+    });
+  });
+</script>
+</body>
+</html>
