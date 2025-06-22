@@ -1,4 +1,4 @@
-//backend/routes/albums1.js
+//backend/routes/albums.js
 
 const express = require('express');
 const router = express.Router();
@@ -147,10 +147,13 @@ router.post('/', async (req, res) => {
   }
 });
 // GET album by slug
+// GET album by slug
 router.get('/by-slug/:slug', async (req, res) => {
   let connection;
   try {
     connection = await pool.getConnection();
+
+    // Убрана проверка токена - она не нужна для просмотра альбома
     const [albums] = await connection.execute(
         'SELECT * FROM albums WHERE slug = ?',
         [req.params.slug]
@@ -160,12 +163,14 @@ router.get('/by-slug/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Album not found' });
     }
 
+    // Преобразование жанров
     if (albums[0].genres && typeof albums[0].genres === 'string') {
       albums[0].genres = albums[0].genres.split(',').map(genre => genre.trim());
     } else {
       albums[0].genres = albums[0].genres || [];
     }
 
+    // Получение треков
     const [tracks] = await connection.execute(
         'SELECT * FROM tracks WHERE album_id = ? ORDER BY track_number',
         [albums[0].id]
@@ -175,6 +180,7 @@ router.get('/by-slug/:slug', async (req, res) => {
     res.json(albums[0]);
   } catch (err) {
     console.error('Error in /by-slug:', err);
+    // Убрана лишняя отправка ответа (была попытка отправить 2 ответа)
     res.status(500).json({ error: 'Database error', details: err.message });
   } finally {
     if (connection) connection.release();

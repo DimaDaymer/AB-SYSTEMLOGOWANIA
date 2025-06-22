@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
+const authenticate = require('../authMiddleware'); // Добавлен импорт
 
 router.get('/profile', async (req, res) => {
     const token = req.headers['authorization']?.split(' ')[1];
@@ -73,11 +74,10 @@ router.put('/profile/update', async (req, res) => {
             description, music, movies
         } = req.body;
 
-// Convert empty string birthDate to null
+        // Convert empty string birthDate to null
         if (!birthDate || birthDate.trim() === '') {
             birthDate = null;
         }
-
 
         const [result] = await pool.execute(
             `UPDATE users SET 
@@ -123,25 +123,41 @@ router.get('/rated-albums', async (req, res) => {
     }
 });
 
-// Добавьте этот роут в user.js
-router.get('/current', authenticate, async (req, res) => {
+// Новый эндпоинт для получения оценок треков
+// Измененный эндпоинт для получения оценок треков
+// backend/routes/user.js
+router.get('/track-ratings', authenticate, async (req, res) => {
     try {
-        const [rows] = await pool.execute(
-            `SELECT 
-                id, username, email, role
-             FROM users
-             WHERE id = ?`,
-            [req.user.id]
-        );
+        const userId = req.user.id;
 
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+        // Исправленный запрос - убрали DISTINCT и изменили ORDER BY
+        const [albums] = await pool.execute(`
+            SELECT a.id, a.title, a.artist, a.cover_url, a.slug
+            FROM albums a
+                     JOIN tracks t ON a.id = t.album_id
+                     JOIN track_ratings tr ON t.id = tr.track_id
+            WHERE tr.user_id = ?
+            GROUP BY a.id  -- Группируем по альбомам
+            ORDER BY MAX(tr.created_at) DESC  -- Сортируем по последней оценке
+        `, [userId]);
+
+        // Для каждого альбома получаем треки с оценками
+        for (const album of albums) {
+            const [tracks] = await pool.execute(`
+                SELECT t.id, t.track_number, t.title, t.duration, tr.rating AS user_rating
+                FROM tracks t
+                         JOIN track_ratings tr ON t.id = tr.track_id
+                WHERE t.album_id = ? AND tr.user_id = ?
+                ORDER BY t.track_number
+            `, [album.id, userId]);
+
+            album.tracks = tracks;
         }
 
-        res.json(rows[0]);
+        res.json(albums);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Database error' });
+        console.error('Error fetching track ratings:', err);
+        res.status(500).json({ error: 'Failed to load track ratings' });
     }
 });
 

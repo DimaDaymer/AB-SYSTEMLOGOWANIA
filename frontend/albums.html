@@ -371,15 +371,97 @@
         font-size: 2rem;
       }
     }
-
     .user-actions div {
       transition: all 0.3s ease;
+    }
+
+    #rating ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #rating li {
+      margin: 15px 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .track-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .track-title {
+      font-weight: 600;
+      color: #eee;
+      margin-bottom: 3px;
+    }
+
+    .track-duration {
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .track-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .track-stars {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+
+    .track-stars input {
+      display: none;
+    }
+
+    .track-stars label {
+      color: #444;
+      cursor: pointer;
+      font-size: 1.3rem;
+      transition: color 0.2s;
+    }
+
+    .track-stars label:hover,
+    .track-stars label:hover ~ label {
+      color: gold;
+    }
+
+    .track-stars input:checked ~ label {
+      color: gold;
+    }
+
+    .track-rating-value {
+      min-width: 40px;
+      text-align: right;
+      font-size: 0.9rem;
+      color: #bbb;
     }
 
     .user-actions div.active {
       transform: scale(1.05);
       box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
     }
+    .rating-stars {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+      font-size: 2rem; /* Уменьшенный размер */
+    }
+
+    .rating-stars label {
+      cursor: pointer;
+      color: #444;
+      transition: color 0.2s;
+      margin-right: 2px; /* Уменьшенный отступ */
+    }
+
     @media (max-width: 600px) {
       .container {
         margin: 20px auto;
@@ -392,6 +474,19 @@
 
       .rating-stars {
         font-size: 2rem;
+      }
+
+      .rating-stars {
+        display: flex;
+        font-size: 24px;
+      }
+      .rating-stars label {
+        cursor: pointer;
+        color: #444;
+        transition: color 0.2s;
+      }
+      .rating-stars label:hover {
+        color: gold;
       }
     }
   </style>
@@ -427,24 +522,9 @@
         <div class="tab" data-tab="catalog">Catalog</div>
         <div class="tab" data-tab="tags">Tags</div>
       </div>
+      <!-- Исправлено: заменяем статический список на динамический контейнер -->
       <div class="tab-content active" id="rating">
-        <ol>
-          <li><span>Debaser</span> <span class="stars">★★★★★</span></li>
-          <li><span>Tame</span> <span class="stars">★★★★☆</span></li>
-          <li><span>Wave of Mutilation</span> <span class="stars">★★★★★</span></li>
-          <li><span>I Bleed</span> <span class="stars">★★★☆☆</span></li>
-          <li><span>Here Comes Your Man</span> <span class="stars">★★★★☆</span></li>
-          <li><span>Dead</span> <span class="stars">★★★☆☆</span></li>
-          <li><span>Monkey Gone to Heaven</span> <span class="stars">★★★★★</span></li>
-          <li><span>Mr. Grieves</span> <span class="stars">★★★☆☆</span></li>
-          <li><span>Crackity Jones</span> <span class="stars">★★☆☆☆</span></li>
-          <li><span>La La Love You</span> <span class="stars">★★★☆☆</span></li>
-          <li><span>No. 13 Baby</span> <span class="stars">★★★★★</span></li>
-          <li><span>There Goes My Gun</span> <span class="stars">★★☆☆☆</span></li>
-          <li><span>Hey</span> <span class="stars">★★★★★</span></li>
-          <li><span>Silver</span> <span class="stars">★★☆☆☆</span></li>
-          <li><span>Gouge Away</span> <span class="stars">★★★★★</span></li>
-        </ol>
+        <ol id="track-ratings-container"></ol>
       </div>
       <div class="tab-content" id="credits"><p style="color: #bbb;">Credits content goes here.</p></div>
       <div class="tab-content" id="catalog"><p style="color: #bbb;">Catalog info here.</p></div>
@@ -462,8 +542,6 @@
       <div>🔁 Recommend</div>
       <div>✍️ Write a review</div>
       <div>📝 Edit a review</div>
-      <div id="editAlbumButton">✏️ Edit Album</div>
-
     </div>
 
     <div class="score-block">
@@ -476,6 +554,7 @@
       <div class="score-ratings">from 124 ratings</div>
     </div>
 
+    <!-- Измененный блок звезд -->
     <div class="rating-stars">
       <input type="radio" name="album-rating" id="star5" value="5"><label for="star5">★</label>
       <input type="radio" name="album-rating" id="star4-5" value="4.5"><label for="star4-5">★</label>
@@ -673,10 +752,7 @@
         setTimeout(() => window.location.href = '/login.html', 2000);
         return;
       }
-      if (actionType === 'edit_profile') {
-        window.location.href = '/profile/edit.html';
-        return;
-      }
+
       const button = document.querySelector(`.user-actions div[data-action="${actionType}"]`);
       const isActive = button.classList.contains('active');
 
@@ -712,6 +788,14 @@
     }
   }
 
+  // Action button handlers
+  document.querySelectorAll('.user-actions div[data-action]').forEach(button => {
+    button.addEventListener('click', () => {
+      const actionType = button.dataset.action;
+      sendAlbumAction(actionType);
+    });
+  });
+
   // Check user action status
   async function checkUserAction(albumId) {
     try {
@@ -734,11 +818,160 @@
     }
   }
 
+  // Функция загрузки рейтинга треков пользователя
+  async function loadUserTrackRatings(albumId) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return {};
+
+      const res = await fetch(`/api/albums/${albumId}/track-ratings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    } catch (err) {
+      console.error('Error loading track ratings:', err);
+      return {};
+    }
+  }
+
+  // Функция сохранения рейтинга трека
+  async function saveTrackRating(trackId, rating) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showMessage('Please log in to rate tracks', true);
+        setTimeout(() => window.location.href = '/login.html', 2000);
+        return;
+      }
+
+      const res = await fetch(`/api/track-ratings/${trackId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rating })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save track rating');
+      }
+
+      showMessage('Track rating saved!');
+    } catch (err) {
+      console.error('Error saving track rating:', err);
+      showMessage('Error: ' + err.message, true);
+    }
+  }
+
+  // Функция для отображения рейтинга треков
+  function renderTrackRatings(tracks, userTrackRatings = {}) {
+    const container = document.getElementById('track-ratings-container');
+    container.innerHTML = '';
+
+    tracks.forEach(track => {
+      const li = document.createElement('li');
+
+      // Информация о треке
+      const trackInfo = document.createElement('div');
+      trackInfo.className = 'track-info';
+      trackInfo.innerHTML = `
+        <div class="track-title">${track.track_number}. ${track.title}</div>
+        <div class="track-duration">${track.duration || ''}</div>
+      `;
+
+      // Рейтинг трека
+      const ratingContainer = document.createElement('div');
+      ratingContainer.className = 'track-rating';
+
+      // Контейнер для звезд
+      const starsContainer = document.createElement('div');
+      starsContainer.className = 'track-stars';
+
+      // Создаем 5 звезд для рейтинга
+      for (let i = 5; i >= 1; i--) {
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = `track-rating-${track.id}`;
+        input.id = `track-${track.id}-star${i}`;
+        input.value = i;
+
+        const label = document.createElement('label');
+        label.htmlFor = `track-${track.id}-star${i}`;
+        label.textContent = '★';
+        label.style.cursor = 'pointer';
+
+        starsContainer.appendChild(input);
+        starsContainer.appendChild(label);
+      }
+
+      // Отображаем текущий рейтинг
+      const ratingValue = document.createElement('div');
+      ratingValue.className = 'track-rating-value';
+
+      // Проверяем есть ли рейтинг пользователя для этого трека
+      if (userTrackRatings[track.id] !== undefined) {
+        const userRating = userTrackRatings[track.id];
+        ratingValue.textContent = `${userRating}/5`;
+
+        // Устанавливаем выбранную звезду
+        const starInput = starsContainer.querySelector(`input[value="${userRating}"]`);
+        if (starInput) starInput.checked = true;
+      } else {
+        ratingValue.textContent = '0/5';
+      }
+
+      ratingContainer.appendChild(starsContainer);
+      ratingContainer.appendChild(ratingValue);
+
+      li.appendChild(trackInfo);
+      li.appendChild(ratingContainer);
+      container.appendChild(li);
+
+      // Обработчик изменения рейтинга
+      starsContainer.addEventListener('click', async (e) => {
+        if (e.target.matches('label') || e.target.matches('input')) {
+          const ratingInput = e.target.closest('input') ||
+                  (e.target.tagName === 'LABEL' ? document.getElementById(e.target.htmlFor) : null);
+
+          if (ratingInput) {
+            const rating = parseInt(ratingInput.value);
+            await saveTrackRating(track.id, rating);
+            ratingValue.textContent = `${rating}/5`;
+          }
+        }
+      });
+    });
+  }
+  async function loadUserTrackRatings(albumId) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return {};
+
+      // Исправленный URL
+      const res = await fetch(`/api/track-ratings/album/${albumId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    } catch (err) {
+      console.error('Error loading track ratings:', err);
+      return {};
+    }
+  }
+
   // Main album loading
   document.addEventListener('DOMContentLoaded', async () => {
     const slug = window.location.pathname.split('/').pop().split('?')[0];
     console.log('Album slug:', slug); // Для отладки
-
 
     if (!slug) {
       showMessage('Album slug not specified', true);
@@ -780,14 +1013,6 @@
       document.getElementById('album-label').textContent = album.label || 'N/A';
       document.getElementById('album-language').textContent = album.language || 'N/A';
 
-      const editButton = document.getElementById('editAlbumButton');
-      if (editButton) {
-        editButton.style.display = 'block';
-        editButton.addEventListener('click', () => {
-          window.location.href = `/edit_album.html?album_id=${currentAlbumId}`;
-        });
-      }
-
       // Set album cover
       if (album.cover_url) {
         document.getElementById('album-cover').src = album.cover_url;
@@ -812,6 +1037,10 @@
           totalDuration += min * 60 + (sec || 0);
         }
       });
+
+      // Загрузка и отображение рейтингов треков
+      const userTrackRatings = await loadUserTrackRatings(currentAlbumId);
+      renderTrackRatings(album.tracks, userTrackRatings);
 
       // Display total duration
       if (totalDuration > 0) {

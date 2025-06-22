@@ -156,6 +156,105 @@
             color: #00ffcc;
             font-size: 0.85rem;
         }
+        .album-with-tracks {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .album-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #333;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .album-header:hover {
+            background-color: #3a3a3a;
+        }
+
+        .album-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .album-artist {
+            color: #bbb;
+            font-size: 0.9rem;
+        }
+
+        .toggle-icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s;
+        }
+
+        .album-header.expanded .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .tracks-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .track-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .track-item:last-child {
+            border-bottom: none;
+        }
+
+        .track-name {
+            flex: 1;
+        }
+
+        .track-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rating-stars {
+            color: gold;
+            font-size: 1rem;
+        }
+
+        .rating-value {
+            min-width: 30px;
+            text-align: right;
+            font-size: 0.9rem;
+            color: #bbb;
+        }
+
+        .no-ratings {
+            padding: 20px;
+            text-align: center;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        .album-cover-small {
+            width: 50px;
+            height: 50px;
+            border-radius: 4px;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        .album-header-content {
+            display: flex;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -201,8 +300,10 @@
         <div class="tab-content" id="liked"><p>Liked tab content.</p></div>
         <div class="tab-content" id="wishlist"><p>Wishlist tab content.</p></div>
         <div class="tab-content" id="tags"><p>Tags tab content.</p></div>
-        <div class="tab-content" id="trackratings"><p>Track ratings tab content.</p></div>
-    </div>
+        <div class="tab-content" id="trackratings">
+            <h3>Albums with Track Ratings</h3>
+            <div id="track-ratings-container"></div>
+        </div>    </div>
 
     <div class="right">
         <div class="notifications">
@@ -277,6 +378,108 @@
         }
     }
 
+    async function loadAlbumsWithTrackRatings() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const res = await fetch(`/user/track-ratings`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to load track ratings');
+
+            const albumsWithRatings = await res.json();
+            const container = document.getElementById('track-ratings-container');
+
+            if (!albumsWithRatings || albumsWithRatings.length === 0) {
+                container.innerHTML = '<div class="no-ratings">No track ratings yet</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            albumsWithRatings.forEach(album => {
+                const albumElement = document.createElement('div');
+                albumElement.className = 'album-with-tracks';
+
+                albumElement.innerHTML = `
+                    <div class="album-header">
+                        <div class="album-header-content">
+                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
+                                 alt="${album.title}" class="album-cover-small">
+                            <div>
+                                <div class="album-title">${album.title}</div>
+                                <div class="album-artist">${album.artist}</div>
+                            </div>
+                        </div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="tracks-container"></div>
+                `;
+
+                container.appendChild(albumElement);
+
+                // Добавляем обработчик для раскрытия/сворачивания треков
+                const header = albumElement.querySelector('.album-header');
+                const tracksContainer = albumElement.querySelector('.tracks-container');
+
+                header.addEventListener('click', () => {
+                    if (tracksContainer.style.maxHeight) {
+                        tracksContainer.style.maxHeight = null;
+                        header.classList.remove('expanded');
+                    } else {
+                        // Если треки еще не загружены, загружаем их
+                        if (tracksContainer.innerHTML === '') {
+                            renderAlbumTracks(tracksContainer, album.tracks);
+                        }
+                        tracksContainer.style.maxHeight = tracksContainer.scrollHeight + 'px';
+                        header.classList.add('expanded');
+                    }
+                });
+            });
+
+        } catch (err) {
+            console.error('Error loading track ratings:', err);
+            const container = document.getElementById('track-ratings-container');
+            container.innerHTML = `<p style="color: #ff6b6b;">Error loading track ratings</p>`;
+        }
+    }
+
+    // Функция для отображения треков альбома с рейтингами
+    function renderAlbumTracks(container, tracks) {
+        container.innerHTML = '';
+
+        tracks.forEach(track => {
+            const trackElement = document.createElement('div');
+            trackElement.className = 'track-item';
+
+            trackElement.innerHTML = `
+                <div class="track-name">${track.track_number}. ${track.title}</div>
+                <div class="track-rating">
+                    <span class="rating-stars">${getStarsForRating(track.user_rating)}</span>
+                    <span class="rating-value">${track.user_rating}/5</span>
+                </div>
+            `;
+
+            container.appendChild(trackElement);
+        });
+    }
+
+    // Функция для преобразования оценки в звезды
+    function getStarsForRating(rating) {
+        if (!rating) return '☆☆☆☆☆';
+
+        const fullStars = Math.floor(rating);
+        const halfStar = rating % 1 >= 0.5 ? 1 : 0;
+        const emptyStars = 5 - fullStars - halfStar;
+
+        return '★'.repeat(fullStars) +
+            (halfStar ? '½' : '') +
+            '☆'.repeat(emptyStars);
+    }
+
+
     // Обработчик вкладок
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -296,6 +499,9 @@
                     break;
                 case 'wishlist':
                     loadUserActions('wishlist', 'wishlist');
+                    break;
+                case 'trackratings':
+                    loadAlbumsWithTrackRatings();
                     break;
             }
         });
@@ -337,9 +543,9 @@
                 const albumEl = document.createElement('div');
                 albumEl.className = 'album-entry';
 
-                // Добавляем ссылку на альбом
+                // В функции loadRatedAlbums():
                 albumEl.innerHTML = `
-                    <a href="/album-detail.html?album_id=${album.id}" style="color: inherit; text-decoration: none;">
+                    <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none;">
                         <span>${album.artist} – ${album.title}</span>
                         <span>${scoreToStars(album.score)}</span>
                     </a>

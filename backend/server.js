@@ -18,12 +18,11 @@ const userRoutes = require('./routes/user');
 const uploadRoute = require('./routes/upload');
 const ratingsRoute = require('./routes/ratings'); // Добавлен роут для оценок
 const actionsRoute = require('./routes/actions');
-// Добавьте этот middleware перед роутами
-const authenticate = require('./authMiddleware');
-app.use(authenticate); // Глобальная аутентификация
+// Добавьте в секцию Routes
+const trackRatingsRoute = require('./routes/trackRatings');
 
-// Измените подключение userRoutes
-app.use('/api/user', userRoutes);
+// Подключите роуты
+app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
 app.use('/user', userRoutes);

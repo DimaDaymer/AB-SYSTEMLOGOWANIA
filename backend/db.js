@@ -18,28 +18,27 @@ async function initializeDatabase() {
         // ✅ Создание таблицы users с полями профиля
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE,
-                email VARCHAR(100) UNIQUE,
-                password_hash VARCHAR(255),
-                profile_pic VARCHAR(255),
-                description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                first_name VARCHAR(100),
-                last_name VARCHAR(100),
-                birth_date DATE,
-                gender VARCHAR(20),
-                location VARCHAR(100),
-                country VARCHAR(100),
-                social VARCHAR(255),
-                contact_email VARCHAR(100),
-                music TEXT,
-                movies TEXT
+                                                 id INT AUTO_INCREMENT PRIMARY KEY,
+                                                 username VARCHAR(50) UNIQUE,
+                                                 email VARCHAR(100) UNIQUE,
+                                                 password_hash VARCHAR(255),
+                                                 profile_pic VARCHAR(255),
+                                                 description TEXT,
+                                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                 first_name VARCHAR(100),
+                                                 last_name VARCHAR(100),
+                                                 birth_date DATE,
+                                                 gender VARCHAR(20),
+                                                 location VARCHAR(100),
+                                                 country VARCHAR(100),
+                                                 social VARCHAR(255),
+                                                 contact_email VARCHAR(100),
+                                                 music TEXT,
+                                                 movies TEXT
             );
         `);
 
         // ✅ Создание таблицы albums (UPDATED)
-// backend/db.js
         await connection.query(`
             CREATE TABLE IF NOT EXISTS albums
             (
@@ -52,11 +51,11 @@ async function initializeDatabase() {
                 genres       VARCHAR(255),
                 label        VARCHAR(255),
                 language     VARCHAR(50),
-                slug         VARCHAR(255) UNIQUE NOT NULL  -- Добавлено новое поле
+                slug         VARCHAR(255) UNIQUE NOT NULL
             );
         `);
-// ...
-        // ✅ Создание таблицы tracks (NEW)
+
+        // ✅ Создание таблицы tracks
         await connection.query(`
             CREATE TABLE IF NOT EXISTS tracks (
                                                   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -68,51 +67,66 @@ async function initializeDatabase() {
             );
         `);
 
-        // ✅ Создание таблицы ratings
+        // ✅ Создание таблицы ratings (для альбомов)
         await connection.query(`
             CREATE TABLE IF NOT EXISTS ratings (
-                                                   id INT AUTO_INCREMENT PRIMARY KEY,
-                                                   user_id INT NOT NULL,
-                                                   album_id INT NOT NULL,
-                                                   score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
-                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                                   UNIQUE KEY unique_rating (user_id, album_id),
-                                                   FOREIGN KEY (user_id) REFERENCES users(id),
-                                                   FOREIGN KEY (album_id) REFERENCES albums(id)
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                album_id INT NOT NULL,
+                score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_rating (user_id, album_id),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (album_id) REFERENCES albums(id)
+            );
+        `);
+
+        // ✅ Создание таблицы track_ratings (NEW)
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS track_ratings (
+                                                         id INT AUTO_INCREMENT PRIMARY KEY,
+                                                         user_id INT NOT NULL,
+                                                         track_id INT NOT NULL,
+                                                         rating FLOAT NOT NULL CHECK (rating BETWEEN 0.5 AND 5.0),
+                                                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                                         UNIQUE KEY (user_id, track_id),
+                                                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                                         FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
             );
         `);
 
         // ✅ Таблица жанров
         await connection.query(`
             CREATE TABLE IF NOT EXISTS genres (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(50) UNIQUE NOT NULL
+                                                  id INT AUTO_INCREMENT PRIMARY KEY,
+                                                  name VARCHAR(50) UNIQUE NOT NULL
             );
         `);
 
         // ✅ Связь альбомов и жанров
         await connection.query(`
             CREATE TABLE IF NOT EXISTS album_genres (
-                album_id INT,
-                genre_id INT,
-                PRIMARY KEY (album_id, genre_id),
-                FOREIGN KEY (album_id) REFERENCES albums(id),
-                FOREIGN KEY (genre_id) REFERENCES genres(id)
+                                                        album_id INT,
+                                                        genre_id INT,
+                                                        PRIMARY KEY (album_id, genre_id),
+                                                        FOREIGN KEY (album_id) REFERENCES albums(id),
+                                                        FOREIGN KEY (genre_id) REFERENCES genres(id)
             );
         `);
 
         // ✅ Создание таблицы user_album_actions
         await connection.query(`
-          CREATE TABLE IF NOT EXISTS user_album_actions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            album_id INT NOT NULL,
-            action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
-            FOREIGN KEY (user_id) REFERENCES users(id),
-            FOREIGN KEY (album_id) REFERENCES albums(id)
-          );
+            CREATE TABLE IF NOT EXISTS user_album_actions (
+                                                              id INT AUTO_INCREMENT PRIMARY KEY,
+                                                              user_id INT NOT NULL,
+                                                              album_id INT NOT NULL,
+                                                              action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
+                                                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                              UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
+                                                              FOREIGN KEY (user_id) REFERENCES users(id),
+                                                              FOREIGN KEY (album_id) REFERENCES albums(id)
+            );
         `);
 
         console.log('✅ Database initialized successfully');
