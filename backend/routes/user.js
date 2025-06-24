@@ -108,13 +108,14 @@ router.get('/rated-albums', async (req, res) => {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         const username = payload.username;
 
+        // В методе /rated-albums добавить slug в SELECT
         const [rows] = await pool.execute(`
-      SELECT a.id, a.title, a.artist, a.cover_url, r.score, r.created_at
-      FROM ratings r
-      JOIN albums a ON r.album_id = a.id
-      WHERE r.user_id = (SELECT id FROM users WHERE username = ?)
-      ORDER BY r.created_at DESC
-    `, [username]);
+            SELECT a.id, a.title, a.artist, a.cover_url, a.slug, r.score, r.created_at
+            FROM ratings r
+                     JOIN albums a ON r.album_id = a.id
+            WHERE r.user_id = (SELECT id FROM users WHERE username = ?)
+            ORDER BY r.created_at DESC
+        `, [username]);
 
         res.json(rows);
     } catch (err) {

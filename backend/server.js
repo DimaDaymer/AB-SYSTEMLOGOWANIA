@@ -6,6 +6,10 @@ const { pool, initializeDatabase } = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
 
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Database:', process.env.DB_NAME);
+console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -16,9 +20,8 @@ const albumsRoute = require('./routes/albums');
 const authRoute = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const uploadRoute = require('./routes/upload');
-const ratingsRoute = require('./routes/ratings'); // Добавлен роут для оценок
+const ratingsRoute = require('./routes/ratings');
 const actionsRoute = require('./routes/actions');
-// Добавьте в секцию Routes
 const trackRatingsRoute = require('./routes/trackRatings');
 
 // Подключите роуты
@@ -27,8 +30,13 @@ app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
 app.use('/user', userRoutes);
 app.use('/user', uploadRoute);
-app.use('/api/ratings', ratingsRoute); // Подключение роутов оценок
+app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
+
+// Serve album pages
+app.get('/release/album/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/albums.html'));
+});
 
 // Serve HTML files
 app.get('/add_album.html', (req, res) => {
@@ -51,19 +59,56 @@ app.get('/new_releases.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/new_releases.html'));
 });
 
-// Serve album pages
-app.get('/release/album/:slug', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/albums.html'));
-});
-
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
+
+// CORS configuration
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Fallback to index.html for SPA routing
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
+
+// Request logging
+app.use((req, res, next) => {
+    const start = Date.now();
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    });
+
+    next();
+});
+
+// Database check endpoint
+app.get('/api/debug/db-check', async (req, res) => {
+    try {
+        const [rows] = await pool.execute('SELECT 1 + 1 AS solution');
+        res.json({
+            dbConnected: true,
+            solution: rows[0].solution,
+            albumsCount: (await pool.execute('SELECT COUNT(*) FROM albums'))[0][0]['COUNT(*)']
+        });
+    } catch (error) {
+        res.status(500).json({ dbConnected: false, error: error.message });
+    }
+});
+
+// Database connection check
+pool.query('SELECT 1')
+    .then(() => console.log('✅ DB connection verified'))
+    .catch(err => {
+        console.error('❌ DB connection failed:', err);
+        process.exit(1);
+    });
 
 // Database initialization and server start
 async function setupServer() {

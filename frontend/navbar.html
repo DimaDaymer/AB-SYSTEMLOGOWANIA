@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Navbar Component</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Общие сбросы и стили для body (можно перенести в глобальный style.css) */
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a; /* Темный фон для контраста */
+            color: white;
+            min-height: 100vh;
+        }
+
+        /* Стили для новой навигационной панели */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar-left .site-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .navbar-left .site-logo img {
+            height: 35px;
+            filter: brightness(0) invert(1);
+        }
+
+        .navbar-center {
+            display: flex;
+            gap: 35px;
+        }
+
+        .navbar-center a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 1.05em;
+            font-weight: 500;
+            padding: 5px 0;
+            position: relative;
+            transition: color 0.3s ease, transform 0.2s ease;
+        }
+
+        .navbar-center a:hover {
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .navbar-right .icon-button {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: color 0.3s ease, transform 0.2s ease;
+            padding: 5px;
+        }
+
+        .navbar-right .icon-button:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            outline: none;
+            width: 0;
+            opacity: 0;
+            transition: width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .search-input.active {
+            width: 200px;
+            opacity: 1;
+            padding: 8px 15px;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #3a3a3a;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
+            z-index: 1;
+            right: 0;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s ease;
+            font-size: 1em;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #4a4a4a;
+            border-radius: 5px;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        /* Медиа-запросы для адаптивности */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 15px;
+            }
+
+            .navbar-center, .navbar-right {
+                margin-top: 10px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .navbar-center {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .search-container {
+                width: 100%;
+                justify-content: center;
+            }
+            .search-input.active {
+                width: calc(100% - 70px);
+            }
+
+            .user-menu {
+                margin-top: 10px;
+            }
+
+            .dropdown-content {
+                right: auto;
+                left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="navbar-left">
+        <a href="/" class="site-logo">
+            <img src="/img/MelodyRaterLogo.png" alt="MelodyRater Logo">
+        </a>
+    </div>
+
+    <div class="navbar-center">
+        <a href="/browse.html">Browse</a>
+        <a href="/new_releases.html">New Releases</a>
+        <a href="/genres">Genres</a>
+        <a href="/lists">Lists</a>
+    </div>
+    <div class="navbar-right">
+        <div class="search-container">
+            <button class="icon-button search-toggle-button">🔍</button>
+            <input type="search" class="search-input" placeholder="Search...">
+        </div>
+        <div class="user-menu">
+            <button class="icon-button profile-toggle-button">👤</button>
+            <div class="dropdown-content">
+                <a href="/profile">Profile</a>
+                <a href="/notifications">Notifications</a>
+                <a href="edit-profile.html">Settings</a>
+                <a href="#" id="logout-button">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+    function initNavbar() {
+        const profileToggleButton = document.querySelector('.profile-toggle-button');
+        const dropdownContent = document.querySelector('.dropdown-content');
+        const searchToggleButton = document.querySelector('.search-toggle-button');
+        const searchInput = document.querySelector('.search-input');
+
+        // Toggle profile dropdown
+        if (profileToggleButton && dropdownContent) {
+            profileToggleButton.addEventListener('click', (event) => {
+                dropdownContent.classList.toggle('show');
+                if (searchInput) searchInput.classList.remove('active');
+                event.stopPropagation();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!profileToggleButton.contains(event.target) && !dropdownContent.contains(event.target)) {
+                    dropdownContent.classList.remove('show');
+                }
+            });
+        }
+
+        // Toggle search input
+        if (searchToggleButton && searchInput) {
+            searchToggleButton.addEventListener('click', (event) => {
+                searchInput.classList.toggle('active');
+                if (searchInput.classList.contains('active')) {
+                    searchInput.focus();
+                } else {
+                    searchInput.value = '';
+                }
+                if (dropdownContent) dropdownContent.classList.remove('show');
+                event.stopPropagation();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!searchToggleButton.contains(event.target) && !searchInput.contains(event.target)) {
+                    searchInput.classList.remove('active');
+                }
+            });
+        }
+
+        // Logout functionality
+        const logoutButton = document.getElementById('logout-button');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('token');
+                localStorage.removeItem('userAvatar');
+                window.location.href = '/login.html';
+            });
+        }
+    }
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.navbar-center a').forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        }
+    });
+    searchInput.addEventListener('input', async (e) => {
+        const query = e.target.value;
+        if (query.length < 3) return;
+
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+
+        // Показать результаты в выпадающем списке
+    });
+    // Инициализируем навбар сразу после загрузки
+    document.addEventListener('DOMContentLoaded', initNavbar);
+</script>
+</body>
+</html>

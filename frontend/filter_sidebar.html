@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Filter Sidebar</title>
+</head>
+<body>
+<div class="filter-header">Add filters</div>
+<div class="filter-dropdowns">
+    <select class="filter-dropdown" id="sort-by-dropdown">
+        <option value="average-rating">Top</option>
+        <option value="popularity">Popularity</option>
+    </select>
+    <select class="filter-dropdown" id="format-dropdown">
+        <option value="albums">Albums</option>
+        <option value="EP">EP</option>
+        <option value="mixtape">Mixtape</option>
+        <option value="video">Video</option>
+        <option value="single">Single</option>
+        <option value="compilation">Compilation</option>
+        <option value="unauthorized">Unauthorized</option>
+        <option value="songs">Songs</option>
+    </select>
+    <select class="filter-dropdown" id="time-range-dropdown">
+        <option value="all-time">All-time</option>
+        <option value="specific-year">Specific Year</option>
+        <option value="year-range">Year Range</option>
+        <option value="decade">Decade</option>
+    </select>
+</div>
+
+<div class="filter-search-container">
+    <input type="text" class="filter-search-input" placeholder="Examples of filters" id="filter-search-input">
+    <span class="filter-search-icon">🔍</span>
+</div>
+
+<div class="filter-section">
+    <h3>Format</h3>
+    <div class="filter-options-grid" id="format-filter-options">
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="albums">albums</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="EP">EP</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="mixtape">mixtape</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="DJ Mix">DJ Mix</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="singles">singles</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="video">video</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="compilations">compilations</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="unauthorized">unauthorized</div>
+        <div class="filter-option-button" data-filter-type="format" data-filter-value="songs">songs</div>
+    </div>
+</div>
+
+<div class="filter-section">
+    <h3>Genres</h3>
+    <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">2,528 genres</p>
+    <a href="#" class="filter-link-button">Browse genres ▶</a>
+</div>
+
+<div class="filter-section">
+    <h3>Descriptors</h3>
+    <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">223 descriptors</p>
+    <a href="#" class="filter-link-button">Browse descriptors ▶</a>
+</div>
+
+<div class="filter-section">
+    <h3>Locations</h3>
+    <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">257 locations</p>
+    <a href="#" class="filter-link-button">Browse locations ▶</a>
+</div>
+
+<div class="filter-section">
+    <h3>Languages</h3>
+    <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">286 languages</p>
+    <a href="#" class="filter-link-button">Browse languages ▶</a>
+</div>
+
+<div class="filter-section">
+    <h3>Timeframe</h3>
+    <div class="year-filter-options">
+        <div>
+            <input type="radio" id="time-all-time" name="timeframe" value="all-time" checked>
+            <label for="time-all-time">All-time</label>
+        </div>
+        <div>
+            <input type="radio" id="time-specific-year" name="timeframe" value="specific-year">
+            <label for="time-specific-year">Specific year or decade</label>
+            <input type="text" placeholder="Ex: 1982, 2010s" style="width: calc(100% - 10px); padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #f0f0f0;">
+        </div>
+        <div>
+            <input type="radio" id="time-year-range" name="timeframe" value="year-range">
+            <label for="time-year-range">Year range</label>
+            <input type="text" placeholder="Ex: 1970-2000" style="width: calc(100% - 10px); padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #f0f0f0;">
+        </div>
+    </div>
+    <div class="year-grid">
+        <div data-year-range="2020s">2020s</div>
+        <div data-year="2020">20</div>
+        <div data-year="2021">21</div>
+        <div data-year="2022">22</div>
+        <div data-year="2023">23</div>
+        <div data-year="2024">24</div>
+        <div data-year="2025">25</div>
+        <div data-year-range="2010s">2010s</div>
+        <div data-year="2010">10</div>
+        <div data-year="2011">11</div>
+        <div data-year="2012">12</div>
+        <div data-year="2013">13</div>
+        <div data-year="2014">14</div>
+        <div data-year="2015">15</div>
+        <div data-year="2016">16</div>
+        <div data-year="2017">17</div>
+        <div data-year="2018">18</div>
+        <div data-year="2019">19</div>
+        <div data-year-range="2000s">2000s</div>
+        <div data-year="2000">00</div>
+        <div data-year="2001">01</div>
+        <div data-year="2002">02</div>
+        <div data-year="2003">03</div>
+        <div data-year="2004">04</div>
+        <div data-year="2005">05</div>
+        <div data-year="2006">06</div>
+        <div data-year="2007">07</div>
+        <div data-year="2008">08</div>
+        <div data-year="2009">09</div>
+        <div data-year-range="1990s">1990s</div>
+        <div data-year="1990">90</div>
+        <div data-year="1991">91</div>
+        <div data-year="1992">92</div>
+        <div data-year="1993">93</div>
+        <div data-year="1994">94</div>
+        <div data-year="1995">95</div>
+        <div data-year="1996">96</div>
+        <div data-year="1997">97</div>
+        <div data-year="1998">98</div>
+        <div data-year="1999">99</div>
+        <div data-year-range="1980s">1980s</div>
+        <div data-year="1980">80</div>
+        <div data-year="1981">81</div>
+        <div data-year="1982">82</div>
+        <div data-year="1983">83</div>
+        <div data-year="1984">84</div>
+        <div data-year="1985">85</div>
+        <div data-year="1986">86</div>
+        <div data-year="1987">87</div>
+        <div data-year="1988">88</div>
+        <div data-year="1989">89</div>
+        <div data-year-range="1970s">1970s</div>
+        <div data-year="1970">70</div>
+        <div data-year="1971">71</div>
+        <div data-year="1972">72</div>
+        <div data-year="1973">73</div>
+        <div data-year="1974">74</div>
+        <div data-year="1975">75</div>
+        <div data-year="1976">76</div>
+        <div data-year="1977">77</div>
+        <div data-year="1978">78</div>
+        <div data-year="1979">79</div>
+        <div data-year-range="1960s">1960s</div>
+        <div data-year="1960">60</div>
+        <div data-year="1961">61</div>
+        <div data-year="1962">62</div>
+        <div data-year="1963">63</div>
+        <div data-year="1964">64</div>
+        <div data-year="1965">65</div>
+        <div data-year="1966">66</div>
+        <div data-year="1967">67</div>
+        <div data-year="1968">68</div>
+        <div data-year="1969">69</div>
+        <div data-year-range="1950s">1950s</div>
+        <div data-year="1950">50</div>
+        <div data-year="1951">51</div>
+        <div data-year="1952">52</div>
+        <div data-year="1953">53</div>
+        <div data-year="1954">54</div>
+        <div data-year="1955">55</div>
+        <div data-year="1956">56</div>
+        <div data-year="1957">57</div>
+        <div data-year="1958">58</div>
+        <div data-year="1959">59</div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sortByDropdown = document.getElementById('sort-by-dropdown');
+        const formatDropdown = document.getElementById('format-dropdown');
+        const timeRangeDropdown = document.getElementById('time-range-dropdown');
+        const filterSearchInput = document.getElementById('filter-search-input');
+        const formatFilterOptions = document.getElementById('format-filter-options');
+        const yearFilterRadios = document.querySelectorAll('input[name="timeframe"]');
+        const yearGridYears = document.querySelectorAll('.year-grid div[data-year]');
+        const yearGridDecades = document.querySelectorAll('.year-grid div[data-year-range]');
+
+        let currentFilters = {
+            sortBy: 'average-rating',
+            format: [], // Can be multiple
+            timeframe: 'all-time',
+            year: null, // For specific year
+            yearRange: null, // For year range 'YYYY-YYYY'
+            genres: [],
+            languages: [],
+            locations: [],
+            descriptors: [],
+            excludeGenres: [] // Example of exclusion
+            // Add more filter states as needed
+        };
+
+        // Function to apply filters and fetch albums
+        function applyFilters() {
+            let queryParams = new URLSearchParams();
+
+            if (currentFilters.sortBy && currentFilters.sortBy !== 'all-time') {
+                if (currentFilters.sortBy === 'average-rating') {
+                    queryParams.append('sortBy', 'rating');
+                    queryParams.append('order', 'desc');
+                } else if (currentFilters.sortBy === 'popularity') {
+                    queryParams.append('sortBy', 'popularity');
+                    queryParams.append('order', 'desc');
+                }
+                // Add more sorting logic here
+            }
+
+            if (currentFilters.format.length > 0) {
+                queryParams.append('format', currentFilters.format.join(','));
+            }
+
+            if (currentFilters.timeframe === 'specific-year' && currentFilters.year) {
+                queryParams.append('year', currentFilters.year);
+            } else if (currentFilters.timeframe === 'year-range' && currentFilters.yearRange) {
+                queryParams.append('yearRange', currentFilters.yearRange);
+            }
+            // Add logic for genres, languages, etc.
+
+            const queryString = queryParams.toString();
+            // This is a conceptual fetch. The actual album list fetching logic is in new_releases.html.
+            // You would need to re-trigger or modify the fetch in new_releases.html from here.
+            // For demonstration, we'll just log the intended API call.
+            console.log('Fetching albums with filters:', `/api/albums?${queryString}`);
+
+            // In a real application, you would typically:
+            // 1. Have a function in index.html or a shared script that handles fetching albums.
+            // 2. This function would take the currentFilters object.
+            // 3. It would then update the #newReleasesContainer based on the new fetch.
+            // Example (requires refactoring of new_releases.html's fetch logic):
+            // fetchAlbums(`/api/albums?${queryString}`);
+        }
+
+        // Event Listeners for Dropdowns
+        sortByDropdown.addEventListener('change', (e) => {
+            currentFilters.sortBy = e.target.value;
+            applyFilters();
+        });
+
+        formatDropdown.addEventListener('change', (e) => {
+            // This dropdown will act as a primary filter, and the buttons below will add/remove
+            // For simplicity, let's treat it as setting the main format if selected
+            const selectedFormat = e.target.value;
+            if (selectedFormat === 'albums') { // Reset if "Albums" is chosen
+                currentFilters.format = [];
+            } else if (!currentFilters.format.includes(selectedFormat)) {
+                currentFilters.format = [selectedFormat]; // Set as single selection for dropdown
+            }
+            // Update active state of format buttons
+            document.querySelectorAll('.filter-option-button[data-filter-type="format"]').forEach(btn => {
+                btn.classList.remove('active');
+                if (currentFilters.format.includes(btn.dataset.filterValue)) {
+                    btn.classList.add('active');
+                }
+            });
+            applyFilters();
+        });
+
+        timeRangeDropdown.addEventListener('change', (e) => {
+            currentFilters.timeframe = e.target.value;
+            // Further logic for handling year inputs or grid selections would go here
+            applyFilters();
+        });
+
+        // Event Listener for Format Filter Buttons (multi-select)
+        if (formatFilterOptions) {
+            formatFilterOptions.addEventListener('click', (e) => {
+                const button = e.target.closest('.filter-option-button[data-filter-type="format"]');
+                if (button) {
+                    const value = button.dataset.filterValue;
+                    if (currentFilters.format.includes(value)) {
+                        currentFilters.format = currentFilters.format.filter(f => f !== value);
+                        button.classList.remove('active');
+                    } else {
+                        currentFilters.format.push(value);
+                        button.classList.add('active');
+                    }
+                    applyFilters();
+                }
+            });
+        }
+
+        // Event Listeners for Year Radio Buttons
+        yearFilterRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentFilters.timeframe = e.target.value;
+                applyFilters();
+            });
+        });
+
+        // Event Listeners for Year Grid (Years)
+        yearGridYears.forEach(yearDiv => {
+            yearDiv.addEventListener('click', (e) => {
+                const year = e.target.dataset.year;
+                // For simplicity, assume selecting a year from the grid sets it as "specific-year"
+                document.getElementById('time-specific-year').checked = true;
+                currentFilters.timeframe = 'specific-year';
+                currentFilters.year = year;
+                currentFilters.yearRange = null; // Clear range
+                // Visual feedback: activate clicked year, deactivate others
+                yearGridYears.forEach(div => div.classList.remove('active'));
+                e.target.classList.add('active');
+                yearGridDecades.forEach(div => div.classList.remove('active'));
+                applyFilters();
+            });
+        });
+
+        // Event Listeners for Year Grid (Decades)
+        yearGridDecades.forEach(decadeDiv => {
+            decadeDiv.addEventListener('click', (e) => {
+                const decadeRange = e.target.dataset.yearRange; // e.g., "1990s"
+                const startYear = parseInt(decadeRange.substring(0, 4));
+                const endYear = startYear + 9;
+                document.getElementById('time-year-range').checked = true;
+                currentFilters.timeframe = 'year-range';
+                currentFilters.yearRange = `${startYear}-${endYear}`;
+                currentFilters.year = null; // Clear specific year
+                // Visual feedback: activate clicked decade, deactivate others
+                yearGridDecades.forEach(div => div.classList.remove('active'));
+                yearGridYears.forEach(div => div.classList.remove('active'));
+                e.target.classList.add('active');
+                applyFilters();
+            });
+        });
+
+        // Initial application of filters (optional, if you want default filters applied on load)
+        // applyFilters();
+    });
+</script>
+</body>
+</html>

@@ -1,26 +1,22 @@
-// backend/routes/actions.js
-
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const authenticate = require('../authMiddleware');
 
-// Добавление действия пользователя
 router.post('/', authenticate, async (req, res) => {
     try {
         const { albumId, actionType } = req.body;
         const userId = req.user.id;
 
-        // Проверка допустимых типов действий
-        if (!['listen', 'wishlist', 'like'].includes(actionType)) {
+        // Добавлен новый тип действия 'add-to-list'
+        if (!['listen', 'wishlist', 'like', 'add-to-list'].includes(actionType)) {
             return res.status(400).json({ error: 'Invalid action type' });
         }
 
-        // Добавляем действие
         await pool.execute(
             `INSERT INTO user_album_actions (user_id, album_id, action_type)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP`,
+             VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP`,
             [userId, albumId, actionType]
         );
 
@@ -31,18 +27,17 @@ router.post('/', authenticate, async (req, res) => {
     }
 });
 
-// Получение действий пользователя по типу
 router.get('/:actionType', authenticate, async (req, res) => {
     try {
         const { actionType } = req.params;
         const userId = req.user.id;
 
         const [actions] = await pool.execute(
-            `SELECT a.id, a.title, a.artist, a.cover_url, uaa.created_at
-       FROM user_album_actions uaa
-       JOIN albums a ON uaa.album_id = a.id
-       WHERE uaa.user_id = ? AND uaa.action_type = ?
-       ORDER BY uaa.created_at DESC`,
+            `SELECT a.id, a.title, a.artist, a.cover_url, a.slug, uaa.created_at
+             FROM user_album_actions uaa
+                      JOIN albums a ON uaa.album_id = a.id
+             WHERE uaa.user_id = ? AND uaa.action_type = ?
+             ORDER BY uaa.created_at DESC`,
             [userId, actionType]
         );
 
@@ -52,16 +47,16 @@ router.get('/:actionType', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Failed to get actions' });
     }
 });
-// Получение действия пользователя для конкретного альбома
+
 router.get('/album/:albumId', authenticate, async (req, res) => {
     try {
         const { albumId } = req.params;
         const userId = req.user.id;
 
         const [action] = await pool.execute(
-            `SELECT action_type 
-       FROM user_album_actions 
-       WHERE user_id = ? AND album_id = ?`,
+            `SELECT action_type
+             FROM user_album_actions
+             WHERE user_id = ? AND album_id = ?`,
             [userId, albumId]
         );
 
@@ -72,18 +67,17 @@ router.get('/album/:albumId', authenticate, async (req, res) => {
     }
 });
 
-// Получение всех действий пользователя (для вкладки Recent)
 router.get('/all', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
 
         const [actions] = await pool.execute(
-            `SELECT a.id, a.title, a.artist, a.cover_url, uaa.action_type, uaa.created_at, a.slug
-       FROM user_album_actions uaa
-       JOIN albums a ON uaa.album_id = a.id
-       WHERE uaa.user_id = ?
-       ORDER BY uaa.created_at DESC
-       LIMIT 50`,
+            `SELECT a.id, a.title, a.artist, a.cover_url, a.slug, uaa.action_type, uaa.created_at
+             FROM user_album_actions uaa
+                      JOIN albums a ON uaa.album_id = a.id
+             WHERE uaa.user_id = ?
+             ORDER BY uaa.created_at DESC
+             LIMIT 50`,
             [userId]
         );
 
@@ -94,7 +88,6 @@ router.get('/all', authenticate, async (req, res) => {
     }
 });
 
-// Добавьте этот код в конец файла actions.js
 router.delete('/', authenticate, async (req, res) => {
     try {
         const { albumId, actionType } = req.query;
@@ -105,7 +98,7 @@ router.delete('/', authenticate, async (req, res) => {
         }
 
         await pool.execute(
-            `DELETE FROM user_album_actions 
+            `DELETE FROM user_album_actions
              WHERE user_id = ? AND album_id = ? AND action_type = ?`,
             [userId, albumId, actionType]
         );

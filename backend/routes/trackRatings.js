@@ -27,8 +27,13 @@ router.post('/:trackId', authenticate, async (req, res) => {
 // Получение оценок треков для альбома
 router.get('/album/:albumId', authenticate, async (req, res) => {
     try {
-        const { albumId } = req.params;
+        const albumId = parseInt(req.params.albumId);
         const userId = req.user.id;
+
+        // Проверка корректности albumId
+        if (isNaN(albumId)) {
+            return res.status(400).json({ error: 'Invalid album ID' });
+        }
 
         const [ratings] = await pool.execute(`
             SELECT t.id AS track_id, tr.rating

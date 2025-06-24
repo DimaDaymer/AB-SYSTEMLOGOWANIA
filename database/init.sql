@@ -1,8 +1,8 @@
 //database/init.sql
 DROP DATABASE IF EXISTS `melody_rater`;
 
-CREATE DATABASE IF NOT EXISTS mydb;
-USE mydb;
+CREATE DATABASE IF NOT EXISTS melody_rater;
+USE melody_rater;
 
 CREATE TABLE IF NOT EXISTS albums (
     id INT AUTO_INCREMENT PRIMARY KEY,

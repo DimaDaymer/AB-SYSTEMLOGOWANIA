@@ -1,4 +1,3 @@
-//backend/db.js
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
@@ -38,20 +37,23 @@ async function initializeDatabase() {
             );
         `);
 
-        // ✅ Создание таблицы albums (UPDATED)
+        // ✅ Обновлённая таблица albums с новыми статистическими полями
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS albums
-            (
-                id           INT AUTO_INCREMENT PRIMARY KEY,
-                title        VARCHAR(255) NOT NULL,
-                artist       VARCHAR(255) NOT NULL,
-                release_date VARCHAR(100),
-                cover_url    VARCHAR(255),
-                type         VARCHAR(50),
-                genres       VARCHAR(255),
-                label        VARCHAR(255),
-                language     VARCHAR(50),
-                slug         VARCHAR(255) UNIQUE NOT NULL
+            CREATE TABLE IF NOT EXISTS albums (
+                                                  id INT AUTO_INCREMENT PRIMARY KEY,
+                                                  title VARCHAR(255) NOT NULL,
+                                                  artist VARCHAR(255) NOT NULL,
+                                                  release_date VARCHAR(100),
+                                                  cover_url VARCHAR(255),
+                                                  type VARCHAR(50),
+                                                  genres VARCHAR(255),
+                                                  label VARCHAR(255),
+                                                  language VARCHAR(50),
+                                                  slug VARCHAR(255) UNIQUE NOT NULL,
+                                                  likes INT DEFAULT 0,
+                                                  wishlist_count INT DEFAULT 0,
+                                                  in_lists_count INT DEFAULT 0,
+                                                  reviews_count INT DEFAULT 0
             );
         `);
 
@@ -70,18 +72,18 @@ async function initializeDatabase() {
         // ✅ Создание таблицы ratings (для альбомов)
         await connection.query(`
             CREATE TABLE IF NOT EXISTS ratings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                album_id INT NOT NULL,
-                score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_rating (user_id, album_id),
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (album_id) REFERENCES albums(id)
+                                                   id INT AUTO_INCREMENT PRIMARY KEY,
+                                                   user_id INT NOT NULL,
+                                                   album_id INT NOT NULL,
+                                                   score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
+                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                   UNIQUE KEY unique_rating (user_id, album_id),
+                                                   FOREIGN KEY (user_id) REFERENCES users(id),
+                                                   FOREIGN KEY (album_id) REFERENCES albums(id)
             );
         `);
 
-        // ✅ Создание таблицы track_ratings (NEW)
+        // ✅ Создание таблицы track_ratings
         await connection.query(`
             CREATE TABLE IF NOT EXISTS track_ratings (
                                                          id INT AUTO_INCREMENT PRIMARY KEY,
@@ -121,7 +123,7 @@ async function initializeDatabase() {
                                                               id INT AUTO_INCREMENT PRIMARY KEY,
                                                               user_id INT NOT NULL,
                                                               album_id INT NOT NULL,
-                                                              action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
+                                                              action_type ENUM('listen', 'wishlist', 'like', 'add-to-list') NOT NULL,
                                                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                                               UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
                                                               FOREIGN KEY (user_id) REFERENCES users(id),

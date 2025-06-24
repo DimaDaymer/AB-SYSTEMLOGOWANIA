@@ -492,6 +492,7 @@
   </style>
 </head>
 <body>
+<div id="navbar-container"></div>
 <div id="dynamic-background"></div>
 <div class="container">
   <div class="left-panel">
@@ -591,6 +592,9 @@
 </div>
 
 <script>
+
+
+
   // Helper function to display messages
   function showMessage(msg, isError = false) {
     const msgEl = document.createElement('div');
@@ -637,11 +641,15 @@
     const friendsAvgScore = 3.89;
     const friendsTotalRatings = 124;
 
-    userScoreEl.innerHTML = `${userAvgScore} <span class="star-display">${getStarDisplay(userAvgScore)}</span>`;
-    userRatingsCountEl.textContent = `from ${userTotalRatings.toLocaleString()} ratings`;
+    if (userScoreEl && userRatingsCountEl) {
+      userScoreEl.innerHTML = `${userAvgScore} <span class="star-display">${getStarDisplay(userAvgScore)}</span>`;
+      userRatingsCountEl.textContent = `from ${userTotalRatings.toLocaleString()} ratings`;
+    }
 
-    friendsScoreEl.innerHTML = `${friendsAvgScore} <span class="star-display">${getStarDisplay(friendsAvgScore)}</span>`;
-    friendsRatingsCountEl.textContent = `from ${friendsTotalRatings.toLocaleString()} ratings`;
+    if (friendsScoreEl && friendsRatingsCountEl) {
+      friendsScoreEl.innerHTML = `${friendsAvgScore} <span class="star-display">${getStarDisplay(friendsAvgScore)}</span>`;
+      friendsRatingsCountEl.textContent = `from ${friendsTotalRatings.toLocaleString()} ratings`;
+    }
 
     const histogramData = [
       { score: 5, count: 25832 },
@@ -660,7 +668,7 @@
 
     document.querySelectorAll('.histogram .bar-line').forEach((barLine, index) => {
       const data = histogramData[index];
-      if (data) {
+      if (data && barLine) {
         const percentage = (data.count / totalHistogramRatings) * 100;
         barLine.style.width = `${percentage > 0 ? Math.max(percentage, 5) : 0}%`;
         barLine.dataset.count = `${data.count.toLocaleString()} ratings`;
@@ -684,19 +692,33 @@
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch(`/api/albums/${albumId}/user-rating`, {
+      const res = await fetch(`/api/ratings/${albumId}/user-rating`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.score) {
-          document.querySelectorAll('.rating-stars input').forEach(input => {
-            input.checked = false;
-          });
-          const starInput = document.querySelector(`.rating-stars input[value="${data.score}"]`);
-          if (starInput) starInput.checked = true;
+        if (data.score !== null) {
+          const exactMatch = document.querySelector(`.rating-stars input[value="${data.score}"]`);
+
+          if (exactMatch) {
+            exactMatch.checked = true;
+          } else {
+            const allStars = document.querySelectorAll('.rating-stars input');
+            const ratingValue = parseFloat(data.score);
+
+            for (const star of allStars) {
+              if (Math.abs(parseFloat(star.value) - ratingValue) < 0.3) {
+                star.checked = true;
+                break;
+              }
+            }
+          }
         }
+      } else if (res.status === 404) {
+        console.log('No user rating found');
+      } else {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
     } catch (err) {
       console.error('Error loading user rating:', err);
@@ -705,7 +727,7 @@
   }
 
   // Album rating handler
-  document.querySelector('.rating-stars').addEventListener('click', async (e) => {
+  document.querySelector('.rating-stars')?.addEventListener('click', async (e) => {
     if (!e.target.matches('label') && !e.target.matches('input')) return;
 
     const rating = e.target.value || e.target.control?.value;
@@ -754,11 +776,10 @@
       }
 
       const button = document.querySelector(`.user-actions div[data-action="${actionType}"]`);
+      if (!button) return;
+
       const isActive = button.classList.contains('active');
-
-      // Определяем метод HTTP в зависимости от текущего состояния
       const method = isActive ? 'DELETE' : 'POST';
-
       const url = isActive
               ? `/api/actions?albumId=${currentAlbumId}&actionType=${actionType}`
               : '/api/actions';
@@ -776,9 +797,7 @@
 
       if (!res.ok) throw new Error('Action failed');
 
-      // Переключаем состояние кнопки
       button.classList.toggle('active');
-
       showMessage(isActive
               ? `Removed from ${actionType}`
               : `Added to ${actionType}`);
@@ -809,8 +828,10 @@
       if (res.ok) {
         const action = await res.json();
         if (action && action.action_type) {
-          document.querySelector(`.user-actions div[data-action="${action.action_type}"]`)
-                  ?.classList.add('active');
+          const button = document.querySelector(`.user-actions div[data-action="${action.action_type}"]`);
+          if (button) {
+            button.classList.add('active');
+          }
         }
       }
     } catch (err) {
@@ -818,13 +839,13 @@
     }
   }
 
-  // Функция загрузки рейтинга треков пользователя
+  // Load user track ratings
   async function loadUserTrackRatings(albumId) {
     try {
       const token = localStorage.getItem('token');
       if (!token) return {};
 
-      const res = await fetch(`/api/albums/${albumId}/track-ratings`, {
+      const res = await fetch(`/api/track-ratings/album/${albumId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -838,7 +859,7 @@
     }
   }
 
-  // Функция сохранения рейтинга трека
+  // Save track rating
   async function saveTrackRating(trackId, rating) {
     try {
       const token = localStorage.getItem('token');
@@ -869,15 +890,20 @@
     }
   }
 
-  // Функция для отображения рейтинга треков
+  // Render track ratings
   function renderTrackRatings(tracks, userTrackRatings = {}) {
     const container = document.getElementById('track-ratings-container');
+    if (!container) {
+      console.error('Track ratings container not found');
+      return;
+    }
+
     container.innerHTML = '';
 
     tracks.forEach(track => {
       const li = document.createElement('li');
 
-      // Информация о треке
+      // Track info
       const trackInfo = document.createElement('div');
       trackInfo.className = 'track-info';
       trackInfo.innerHTML = `
@@ -885,15 +911,15 @@
         <div class="track-duration">${track.duration || ''}</div>
       `;
 
-      // Рейтинг трека
+      // Rating container
       const ratingContainer = document.createElement('div');
       ratingContainer.className = 'track-rating';
 
-      // Контейнер для звезд
+      // Stars container
       const starsContainer = document.createElement('div');
       starsContainer.className = 'track-stars';
 
-      // Создаем 5 звезд для рейтинга
+      // Create 5 stars for rating
       for (let i = 5; i >= 1; i--) {
         const input = document.createElement('input');
         input.type = 'radio';
@@ -910,16 +936,14 @@
         starsContainer.appendChild(label);
       }
 
-      // Отображаем текущий рейтинг
+      // Display current rating
       const ratingValue = document.createElement('div');
       ratingValue.className = 'track-rating-value';
 
-      // Проверяем есть ли рейтинг пользователя для этого трека
       if (userTrackRatings[track.id] !== undefined) {
         const userRating = userTrackRatings[track.id];
         ratingValue.textContent = `${userRating}/5`;
 
-        // Устанавливаем выбранную звезду
         const starInput = starsContainer.querySelector(`input[value="${userRating}"]`);
         if (starInput) starInput.checked = true;
       } else {
@@ -933,7 +957,7 @@
       li.appendChild(ratingContainer);
       container.appendChild(li);
 
-      // Обработчик изменения рейтинга
+      // Rating change handler
       starsContainer.addEventListener('click', async (e) => {
         if (e.target.matches('label') || e.target.matches('input')) {
           const ratingInput = e.target.closest('input') ||
@@ -948,117 +972,158 @@
       });
     });
   }
-  async function loadUserTrackRatings(albumId) {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return {};
+  fetch('/navbar.html')
+          .then(response => response.text())
+          .then(html => {
+            document.getElementById('navbar-container').innerHTML = html;
 
-      // Исправленный URL
-      const res = await fetch(`/api/track-ratings/album/${albumId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+            // Извлекаем и выполняем скрипты навбара
+            const navbarScripts = document.getElementById('navbar-container').querySelectorAll('script');
+            navbarScripts.forEach(script => {
+              const newScript = document.createElement('script');
+              newScript.textContent = script.textContent;
+              document.body.appendChild(newScript);
+            });
 
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
-    } catch (err) {
-      console.error('Error loading track ratings:', err);
-      return {};
-    }
-  }
-
+            // Инициализируем навбар вручную
+            if (typeof initNavbar === 'function') {
+              initNavbar();
+            }
+          })
+          .catch(err => console.error('Failed to load navbar: ', err));
   // Main album loading
   document.addEventListener('DOMContentLoaded', async () => {
-    const slug = window.location.pathname.split('/').pop().split('?')[0];
-    console.log('Album slug:', slug); // Для отладки
-
-    if (!slug) {
-      showMessage('Album slug not specified', true);
-      return;
-    }
+    console.log('[Frontend] DOMContentLoaded started');
 
     try {
-      const response = await fetch(`/api/albums/by-slug/${slug}`);
+      // 1. Get slug from URL
+      const path = window.location.pathname;
+      const slug = path.substring(path.lastIndexOf('/') + 1);
+      console.log('[Frontend] Parsed slug:', slug);
 
-      if (response.status === 404) {
-        showMessage('Album not found', true);
+      if (!slug || slug === 'album') {
+        showMessage('Invalid album URL', true);
         return;
       }
 
+      // 2. Load album data
+      console.log('[Frontend] Fetching album data...');
+      const response = await fetch(`/api/albums/by-slug/${slug}`);
+      console.log('[Frontend] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        console.error('[Frontend] Album fetch error:', errorData);
+        showMessage('Failed to load album: ' + (errorData.error || 'Server error'), true);
+        return;
       }
 
-      const album = await response.json();
-      currentAlbumId = album.id;
+      const albumData = await response.json();
+      console.log('[Frontend] Album data received:', albumData);
+      currentAlbumId = albumData.id;
 
-      // Set background image
-      if (album.cover_url) {
-        document.getElementById('dynamic-background').style.backgroundImage = `url('${album.cover_url}')`;
-      }
+      // 3. Update UI with album data
+      // Cover image
+      const albumCover = document.getElementById('album-cover');
+      const dynamicBackground = document.getElementById('dynamic-background');
 
-      // Set album info
-      document.getElementById('album-title').textContent = album.title;
-      document.getElementById('album-artist').textContent = album.artist;
-      document.getElementById('album-type').textContent = album.type || 'N/A';
-      document.getElementById('release-date').textContent = album.release_date || 'N/A';
-
-      // FIXED: Properly display genres array as string
-      document.getElementById('album-genres').textContent =
-              Array.isArray(album.genres) && album.genres.length
-                      ? album.genres.join(', ')
-                      : (album.genres || 'N/A');
-
-      document.getElementById('album-label').textContent = album.label || 'N/A';
-      document.getElementById('album-language').textContent = album.language || 'N/A';
-
-      // Set album cover
-      if (album.cover_url) {
-        document.getElementById('album-cover').src = album.cover_url;
-      }
-
-      // Render tracks
-      const tracksContainer = document.getElementById('tracks-container');
-      tracksContainer.innerHTML = '';
-
-      let totalDuration = 0;
-      album.tracks.forEach(track => {
-        const trackEl = document.createElement('div');
-        trackEl.className = 'track';
-        trackEl.innerHTML = `
-          <span>${track.track_number}. ${track.title}</span>
-          <span>${track.duration || ''}</span>
-        `;
-        tracksContainer.appendChild(trackEl);
-
-        if (track.duration) {
-          const [min, sec] = track.duration.split(':').map(Number);
-          totalDuration += min * 60 + (sec || 0);
+      if (albumCover) {
+        if (albumData.cover_url) {
+          albumCover.src = albumData.cover_url;
+        } else {
+          albumCover.src = '/assets/album-placeholder.png';
         }
-      });
-
-      // Загрузка и отображение рейтингов треков
-      const userTrackRatings = await loadUserTrackRatings(currentAlbumId);
-      renderTrackRatings(album.tracks, userTrackRatings);
-
-      // Display total duration
-      if (totalDuration > 0) {
-        const mins = Math.floor(totalDuration / 60);
-        const secs = totalDuration % 60;
-        document.getElementById('total-length').textContent =
-                `Total length: ${mins}:${secs < 10 ? '0' + secs : secs}`;
       }
 
-      // Load user data
-      await loadUserRating(currentAlbumId);
-      await checkUserAction(currentAlbumId);
+      if (dynamicBackground && albumData.cover_url) {
+        dynamicBackground.style.backgroundImage = `url('${albumData.cover_url}')`;
+      }
 
-      // Update scores display
+      // Basic info
+      const setTextContent = (id, text) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = text;
+      };
+
+      setTextContent('album-title', albumData.title || 'Untitled Album');
+      setTextContent('album-artist', albumData.artist || 'Unknown Artist');
+      setTextContent('album-type', albumData.type || 'N/A');
+      setTextContent('release-date', albumData.release_date || 'N/A');
+
+      // Genres
+      const genres = Array.isArray(albumData.genres) ?
+              albumData.genres.join(', ') :
+              (albumData.genres || 'N/A');
+      setTextContent('album-genres', genres);
+
+      setTextContent('album-label', albumData.label || 'N/A');
+      setTextContent('album-language', albumData.language || 'N/A');
+
+      // 4. Render tracks
+      const tracksContainer = document.getElementById('tracks-container');
+      const totalLengthEl = document.getElementById('total-length');
+
+      if (tracksContainer) {
+        tracksContainer.innerHTML = '';
+
+        let totalDuration = 0;
+
+        if (albumData.tracks && albumData.tracks.length > 0) {
+          albumData.tracks.forEach(track => {
+            const trackEl = document.createElement('div');
+            trackEl.className = 'track';
+            trackEl.innerHTML = `
+              <span>${track.track_number}. ${track.title}</span>
+              <span>${track.duration || ''}</span>
+            `;
+            tracksContainer.appendChild(trackEl);
+
+            if (track.duration) {
+              const [min, sec] = track.duration.split(':').map(Number);
+              totalDuration += min * 60 + (sec || 0);
+            }
+          });
+
+          // Total duration
+          if (totalLengthEl && totalDuration > 0) {
+            const mins = Math.floor(totalDuration / 60);
+            const secs = totalDuration % 60;
+            totalLengthEl.textContent =
+                    `Total length: ${mins}:${secs < 10 ? '0' + secs : secs}`;
+          }
+        } else {
+          tracksContainer.innerHTML = '<p>No tracks available</p>';
+        }
+      }
+
+      // 5. Load track ratings
+      const trackRatingsContainer = document.getElementById('track-ratings-container');
+      if (trackRatingsContainer && albumData.tracks && albumData.tracks.length > 0) {
+        try {
+          const userTrackRatings = await loadUserTrackRatings(currentAlbumId);
+          renderTrackRatings(albumData.tracks, userTrackRatings);
+        } catch (error) {
+          console.error('Error loading track ratings:', error);
+        }
+      }
+
+      // 6. Load user data
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await loadUserRating(currentAlbumId);
+          await checkUserAction(currentAlbumId);
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+
+      // 7. Update scores
       updateScoresDisplay();
+
     } catch (error) {
-      console.error('Error loading album:', error);
-      showMessage('Failed to load album. Please try again later.', true);
+      console.error('[Frontend] Critical error:', error);
+      showMessage('Error loading page: ' + error.message, true);
     }
   });
 </script>
