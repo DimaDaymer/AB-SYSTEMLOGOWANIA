@@ -1,0 +1,446 @@
+/* Основные стили */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #1f1f1f;
+    color: white;
+    position: relative;
+}
+
+#dynamic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 600px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(20px) brightness(0.5);
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+}
+
+.container {
+    display: flex;
+    max-width: 1200px;
+    gap: 30px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.left-panel {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Адаптивность */
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .left-panel, .center-panel, .right-panel {
+        width: 90%;
+        max-width: 600px;
+    }
+
+    .left-panel {
+        order: 1;
+    }
+
+    .center-panel {
+        order: 2;
+    }
+
+    .right-panel {
+        order: 3;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin: 20px auto;
+        padding: 0 10px;
+    }
+}
+
+/* Стили для информации об альбоме */
+.album-info {
+    background-color: #1a1a1a;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.album-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #eee;
+}
+
+.album-meta span {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 0.95rem;
+    color: #bbb;
+}
+
+.album-meta strong {
+    color: #ddd;
+}
+
+/* Обложка альбома */
+.album-cover img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Треклист */
+.tracklist {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.tracklist h3 {
+    margin-top: 0;
+    color: #ccc;
+    font-size: 1rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.track {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.track span:first-child {
+    color: #eee;
+}
+
+.track span:last-child {
+    color: #bbb;
+}
+
+#total-length {
+    margin-top: 15px;
+    font-size: 13px;
+    color: #aaa;
+    border-top: 1px solid #333;
+    padding-top: 10px;
+}
+
+/* Вкладки */
+.tabs {
+    margin-top: 30px;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.tab-header {
+    display: flex;
+    border-bottom: 1px solid #444;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    color: #aaa;
+    transition: all 0.2s ease-in-out;
+}
+
+.tab:hover {
+    color: #fff;
+}
+
+.tab.active {
+    border-color: #00ffcc;
+    color: #00ffcc;
+}
+
+.tab-content {
+    padding: 20px;
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Действия пользователя */
+.user-actions {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.user-actions div {
+    background: #2a2a2a;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+    color: #ddd;
+    transition: all 0.3s ease;
+}
+
+.user-actions div:last-child {
+    margin-bottom: 0;
+}
+
+.user-actions div:hover {
+    background: #3a3a3a;
+    color: #fff;
+}
+
+.user-actions div.active {
+    background: #00ffcc;
+    color: #1a1a1a;
+    font-weight: 700;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}
+
+/* Блоки рейтингов */
+.score-block {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.score-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: greenyellow;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.score-value .star-display {
+    font-size: 1.8rem;
+    color: greenyellow;
+    margin-left: 10px;
+}
+
+.score-ratings {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 15px;
+}
+
+/* Звёздный рейтинг */
+.rating-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    font-size: 2rem;
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.rating-stars input {
+    display: none;
+}
+
+.rating-stars label {
+    color: #444;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-right: 2px;
+}
+
+.rating-stars label:hover,
+.rating-stars label:hover ~ label {
+    color: gold;
+}
+
+.rating-stars input:checked ~ label {
+    color: gold;
+}
+
+/* Медиа-ссылки */
+.media-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #333;
+    padding-top: 15px;
+}
+
+.media-links img {
+    width: 30px;
+    height: 30px;
+    filter: invert(1);
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.media-links img:hover {
+    opacity: 1;
+}
+
+/* Гистограмма */
+.histogram {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.bar span {
+    width: 55px;
+    font-size: 0.9rem;
+    color: #ccc;
+    flex-shrink: 0;
+}
+
+.bar-line {
+    height: 12px;
+    background-color: #00ffcc;
+    border-radius: 6px;
+    flex-grow: 1;
+    position: relative;
+    margin-left: 10px;
+    background-image: linear-gradient(to right, #00ffcc, #00cc99);
+    transition: width 0.5s ease;
+}
+
+.bar-line::after {
+    content: attr(data-count);
+    position: absolute;
+    right: 8px;
+    font-size: 0.75rem;
+    color: #1f1f1f;
+    line-height: 12px;
+    font-weight: 600;
+}
+
+/* Рейтинги треков */
+#track-ratings-container {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.track-rating-item {
+    padding: 10px; /* Добавлен padding, чтобы соответствовал дизайну */
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05); /* Добавлен background */
+    transition: background 0.3s ease; /* Добавлен transition для эффекта hover */
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+}
+
+.track-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.track-title {
+    font-weight: 600;
+    color: #eee;
+    margin-bottom: 3px;
+}
+
+.track-duration {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.track-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.track-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.track-stars input {
+    display: none;
+}
+
+.track-stars label {
+    color: #444;
+    cursor: pointer;
+    font-size: 1.3rem;
+    transition: color 0.2s;
+}
+
+.track-stars label:hover,
+.track-stars label:hover ~ label {
+    color: gold;
+}
+
+.track-stars input:checked ~ label {
+    color: gold;
+}
+
+.track-rating-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.9rem;
+    color: #bbb;
+}
+
+@media (max-width: 600px) {
+    .track-rating-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .track-rating {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

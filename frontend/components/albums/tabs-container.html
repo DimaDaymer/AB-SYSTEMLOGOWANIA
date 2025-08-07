@@ -1,0 +1,97 @@
+<div class="tabs">
+  <div class="tab-header">
+    <div class="tab active" data-tab="rating">Track Rating</div>
+    <div class="tab" data-tab="credits">Credits</div>
+    <div class="tab" data-tab="catalog">Catalog</div>
+    <div class="tab" data-tab="tags">Tags</div>
+  </div>
+
+  <div class="tab-content-container">
+    <div class="tab-content active" id="rating-tab-content">
+      <div class="track-ratings-tab">
+        <ol id="track-ratings-container"></ol>
+      </div>
+    </div>
+
+    <div class="tab-content" id="credits-tab-content">
+      <div class="credits-tab">
+        <div class="credits-container">
+          <div class="loading">Loading credits...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="catalog-tab-content">
+      <div class="catalog-tab">
+        <div class="catalog-container">
+          <div class="loading">Loading catalog info...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tags-tab-content">
+      <div class="tags-tab">
+        <div class="tags-container">
+          <div class="tags-input-container">
+            <input type="text" id="tag-input" placeholder="Add a tag...">
+            <button id="add-tag-btn">Add</button>
+          </div>
+          <div class="tags-list">
+            <div class="loading">Loading tags...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .tabs { margin-top: 10px; }
+  .tab-header { display: flex; border-bottom: 1px solid #444; margin-bottom: 15px; }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    color: #aaa;
+    transition: all 0.2s ease-in-out;
+  }
+  .tab:hover { color: #fff; }
+  .tab.active { border-color: #00ffcc; color: #00ffcc; }
+  .tab-content { display: none; margin-top: 10px; }
+  .tab-content.active { display: block; }
+</style>
+
+<script>
+  const tabHeader = document.querySelector('.tab-header');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabHeader.addEventListener('click', function(e) {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    tabHeader.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const tabId = tab.dataset.tab;
+    tabContents.forEach(c => c.classList.remove('active'));
+    const content = document.getElementById(`${tabId}-tab-content`);
+    if (content) {
+      content.classList.add('active');
+      loadTabContent(tabId);
+    }
+  });
+
+  function loadTabContent(tabId) {
+    if (!window.currentAlbumId || !window.albumDataCache) return;
+    const component = window.components[`${tabId}Tab`];
+    if (component && typeof component.update === 'function') {
+      const userRatings = window.albumDataCache.userTrackRatings || {};
+      component.update(window.albumDataCache.tracks, userRatings);
+    }
+  }
+
+  // Initial load of the active tab content
+  const activeTab = tabHeader.querySelector('.tab.active');
+  if (activeTab) {
+    loadTabContent(activeTab.dataset.tab);
+  }
+</script>

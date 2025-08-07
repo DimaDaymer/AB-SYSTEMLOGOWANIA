@@ -1,0 +1,51 @@
+<div class="left-panel">
+  <div class="avatar">
+    <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
+    <label for="avatarUpload">Change Avatar</label>
+    <input type="file" id="avatarUpload" accept="image/*" />
+  </div>
+  <div class="user-info">
+    <h1 id="nickname">Nickname</h1>
+    <span><strong>Username:</strong> <span id="username">user</span></span>
+    <span id="age-container" style="display:none;"><strong>Age:</strong> <span id="age"></span></span>
+    <span id="location-container" style="display:none;"><strong>Location:</strong> <span id="location"></span></span>
+    <span id="description-container" style="display:none;"><strong>Description:</strong> <span id="description"></span></span>
+    <span id="gender-container" style="display:none;"><strong>Gender:</strong> <span id="gender"></span></span>
+    <span id="email-container" style="display:none;"><strong>Email:</strong> <span id="email"></span></span>
+    <span id="music-container" style="display:none;"><strong>Favorite Music:</strong> <span id="music"></span></span>
+    <span id="movies-container" style="display:none;"><strong>Favorite Movies:</strong> <span id="movies"></span></span>
+    <button onclick="window.location.href='edit-profile.html'" class="edit-button">
+      Account options
+    </button>
+  </div>
+</div>
+
+<script>
+  document.getElementById('avatarUpload').addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const res = await fetch('/user/avatar', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      const result = await res.json();
+      if (result.success && result.url) {
+        const avatarUrl = result.url + `?${Date.now()}`;
+        document.getElementById('avatar-img').src = avatarUrl;
+        localStorage.setItem('userAvatar', avatarUrl);
+      } else {
+        alert('Avatar upload failed.');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+    }
+  });
+</script>

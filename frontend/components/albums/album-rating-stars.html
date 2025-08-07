@@ -1,0 +1,78 @@
+<div class="album-rating-stars">
+  <div class="rating-stars">
+    <!-- Звезды для оценки альбома -->
+    <input type="radio" name="album-rating" id="star5" value="5"><label for="star5">★</label>
+    <input type="radio" name="album-rating" id="star4-5" value="4.5"><label for="star4-5">★</label>
+    <input type="radio" name="album-rating" id="star4" value="4"><label for="star4">★</label>
+    <input type="radio" name="album-rating" id="star3-5" value="3.5"><label for="star3-5">★</label>
+    <input type="radio" name="album-rating" id="star3" value="3"><label for="star3">★</label>
+    <input type="radio" name="album-rating" id="star2-5" value="2.5"><label for="star2-5">★</label>
+    <input type="radio" name="album-rating" id="star2" value="2"><label for="star2">★</label>
+    <input type="radio" name="album-rating" id="star1-5" value="1.5"><label for="star1-5">★</label>
+    <input type="radio" name="album-rating" id="star1" value="1"><label for="star1">★</label>
+    <input type="radio" name="album-rating" id="star0-5" value="0.5"><label for="star0-5">★</label>
+  </div>
+</div>
+
+<style>
+  .album-rating-stars {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .rating-stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    font-size: 2rem;
+  }
+
+  .rating-stars input {
+    display: none;
+  }
+
+  .rating-stars label {
+    color: #444;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-right: 2px;
+  }
+
+  .rating-stars label:hover,
+  .rating-stars label:hover ~ label {
+    color: gold;
+  }
+
+  .rating-stars input:checked ~ label {
+    color: gold;
+  }
+</style>
+
+<script>
+  window.components = window.components || {};
+  window.components.albumRatingStars = {
+    init: function() {
+      const starsContainer = document.querySelector('.rating-stars');
+      starsContainer.addEventListener('click', (e) => {
+        if (e.target.matches('label') || e.target.matches('input')) {
+          const ratingInput = e.target.closest('input') ||
+                  (e.target.tagName === 'LABEL' ? document.getElementById(e.target.htmlFor) : null);
+
+          if (ratingInput && window.currentAlbumId) {
+            const rating = parseFloat(ratingInput.value);
+            window.rateAlbum(rating);
+          }
+        }
+      });
+    }
+  };
+
+  // Инициализация при загрузке
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.components.albumRatingStars) {
+      window.components.albumRatingStars.init();
+    }
+  });
+</script>

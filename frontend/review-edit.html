@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Review | MelodyRater</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #1f1f1f;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .review-form {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        .album-header {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .album-cover {
+            width: 100px;
+            height: 100px;
+            border-radius: 4px;
+            margin-right: 20px;
+        }
+
+        .album-info {
+            flex: 1;
+        }
+
+        .album-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .album-artist {
+            color: #bbb;
+            margin-top: 5px;
+        }
+
+        .rating-section {
+            margin: 20px 0;
+        }
+
+        .rating-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .rating-stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            font-size: 2.5rem;
+        }
+
+        .rating-stars input {
+            display: none;
+        }
+
+        .rating-stars label {
+            color: #444;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .rating-stars label:hover,
+        .rating-stars label:hover ~ label {
+            color: gold;
+        }
+
+        .rating-stars input:checked ~ label {
+            color: gold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: white;
+            padding: 15px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .btn-save {
+            background: #00ffcc;
+            color: #1a1a1a;
+        }
+
+        .btn-save:hover {
+            background: #00e0b3;
+        }
+
+        .btn-cancel {
+            background: #333;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #444;
+        }
+
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #e05a5a;
+        }
+    </style>
+</head>
+<body>
+<div id="navbar-container"></div>
+<div class="container">
+    <div class="review-form">
+        <div class="album-header">
+            <img id="album-cover" src="" alt="Album cover" class="album-cover">
+            <div class="album-info">
+                <div class="album-title" id="album-title"></div>
+                <div class="album-artist" id="album-artist"></div>
+            </div>
+        </div>
+
+        <div class="rating-section">
+            <span class="rating-label">Your Rating:</span>
+            <div class="rating-stars">
+                <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
+                <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
+                <input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label>
+                <input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label>
+                <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
+            </div>
+        </div>
+
+        <textarea id="review-content" placeholder="Write your review here..."></textarea>
+
+        <div class="form-actions">
+            <button id="btn-delete" class="btn-delete">Delete</button>
+            <button id="btn-cancel" class="btn-cancel">Cancel</button>
+            <button id="btn-save" class="btn-save">Save Review</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        fetch('/navbar.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('navbar-container').innerHTML = html;
+
+                const navbarScripts = document.getElementById('navbar-container').querySelectorAll('script');
+                navbarScripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
+                });
+
+                if (typeof initNavbar === 'function') {
+                    initNavbar();
+                }
+            })
+            .catch(err => console.error('Failed to load navbar: ', err));
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const reviewId = urlParams.get('id');
+        const albumId = urlParams.get('album');
+
+        let currentReview = null;
+        let currentAlbum = null;
+
+        if (reviewId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/reviews/${reviewId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    currentReview = await res.json();
+                    document.getElementById('review-content').value = currentReview.content;
+                    document.querySelector(`input[name="rating"][value="${Math.floor(currentReview.rating)}"]`).checked = true;
+                    currentAlbum = currentReview.album;
+                }
+            } catch (err) {
+                console.error('Error loading review:', err);
+                alert('Failed to load review');
+            }
+        }
+
+        if (albumId && !currentAlbum) {
+            try {
+                const res = await fetch(`/api/albums/${albumId}`);
+                currentAlbum = await res.json();
+            } catch (err) {
+                console.error('Error loading album:', err);
+                alert('Failed to load album');
+            }
+        }
+
+        if (currentAlbum) {
+            document.getElementById('album-title').textContent = currentAlbum.title;
+            document.getElementById('album-artist').textContent = currentAlbum.artist;
+
+            if (currentAlbum.cover_url) {
+                document.getElementById('album-cover').src = currentAlbum.cover_url;
+            } else {
+                document.getElementById('album-cover').src = '/assets/album-placeholder.png';
+            }
+        }
+
+        document.getElementById('btn-save').addEventListener('click', async () => {
+            const rating = document.querySelector('input[name="rating"]:checked')?.value;
+            const content = document.getElementById('review-content').value;
+
+            if (!rating || !content.trim()) {
+                alert('Please provide both a rating and review content');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const url = currentReview ? `/api/reviews/${currentReview.id}` : '/api/reviews';
+                const method = currentReview ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        album_id: currentAlbum.id,
+                        rating: parseInt(rating),
+                        content
+                    })
+                });
+
+                if (res.ok) {
+                    window.location.href = `/album/${currentAlbum.slug}`;
+                } else {
+                    throw new Error('Failed to save review');
+                }
+            } catch (err) {
+                console.error('Save review error:', err);
+                alert('Error saving review');
+            }
+        });
+
+        document.getElementById('btn-delete').addEventListener('click', async () => {
+            if (!currentReview) return;
+
+            if (confirm('Are you sure you want to delete this review?')) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`/api/reviews/${currentReview.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        window.location.href = `/album/${currentAlbum.slug}`;
+                    } else {
+                        throw new Error('Failed to delete review');
+                    }
+                } catch (err) {
+                    console.error('Delete review error:', err);
+                    alert('Error deleting review');
+                }
+            }
+        });
+
+        document.getElementById('btn-cancel').addEventListener('click', () => {
+            if (currentAlbum) {
+                window.location.href = `/album/${currentAlbum.slug}`;
+            } else {
+                window.history.back();
+            }
+        });
+
+        if (!reviewId) {
+            document.getElementById('btn-delete').style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>

@@ -20,4 +20,4 @@ router.post('/avatar', authenticate, upload.single('avatar'), async (req, res) =
     }
 });
 
-module.exports = router; // ✅ this must be a router
+module.exports = router;

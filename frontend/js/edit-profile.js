@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Загрузка текущих данных
     fetch(`/user/profile?username=${username}`, {
         headers: {
             'Authorization': `Bearer ${token}`
@@ -34,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-    // Отправка обновлений
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 

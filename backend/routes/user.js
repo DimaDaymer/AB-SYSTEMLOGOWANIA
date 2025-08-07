@@ -33,10 +33,8 @@ router.get('/profile', async (req, res) => {
 
         const user = rows[0];
 
-        // Вычисляем nickname
         const nickname = `${user.first_name || ''} ${user.last_name || ''}`.trim();
 
-        // Вычисляем возраст, если есть birth_date
         let age = null;
         if (user.birth_date) {
             const birth = new Date(user.birth_date);
@@ -124,25 +122,21 @@ router.get('/rated-albums', async (req, res) => {
     }
 });
 
-// Новый эндпоинт для получения оценок треков
-// Измененный эндпоинт для получения оценок треков
-// backend/routes/user.js
+
 router.get('/track-ratings', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Исправленный запрос - убрали DISTINCT и изменили ORDER BY
         const [albums] = await pool.execute(`
             SELECT a.id, a.title, a.artist, a.cover_url, a.slug
             FROM albums a
                      JOIN tracks t ON a.id = t.album_id
                      JOIN track_ratings tr ON t.id = tr.track_id
             WHERE tr.user_id = ?
-            GROUP BY a.id  -- Группируем по альбомам
-            ORDER BY MAX(tr.created_at) DESC  -- Сортируем по последней оценке
+            GROUP BY a.id 
+            ORDER BY MAX(tr.created_at) DESC  
         `, [userId]);
 
-        // Для каждого альбома получаем треки с оценками
         for (const album of albums) {
             const [tracks] = await pool.execute(`
                 SELECT t.id, t.track_number, t.title, t.duration, tr.rating AS user_rating

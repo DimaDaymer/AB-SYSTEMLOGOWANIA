@@ -1,0 +1,172 @@
+<style>
+    .track-ratings-tab {
+        padding: 15px;
+    }
+
+    #track-ratings-container {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .track-rating-item {
+        margin: 15px 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        transition: background 0.3s ease;
+    }
+
+    .track-rating-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .track-info {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .track-title {
+        font-weight: 600;
+        color: #eee;
+        margin-bottom: 3px;
+    }
+
+    .track-duration {
+        font-size: 0.85rem;
+        color: #aaa;
+    }
+
+    .track-rating {
+        display: flex;
+        align-items: center;
+    }
+
+    .track-rating .rating-stars {
+        display: inline-block;
+        font-size: 1.5rem;
+        position: relative;
+    }
+
+    .track-rating .rating-stars input {
+        display: none;
+    }
+
+    .track-rating .rating-stars label {
+        color: #444;
+        cursor: pointer;
+        transition: color 0.2s;
+        -webkit-text-stroke: 1px #000;
+        font-size: 1.8rem;
+    }
+
+    .track-rating .rating-stars input:checked ~ label,
+    .track-rating .rating-stars label:hover,
+    .track-rating .rating-stars label:hover ~ label {
+        color: #00ffcc;
+    }
+
+    .track-rating .rating-stars label:before {
+        content: '★';
+    }
+
+    .track-rating .rating-stars label:after {
+        content: attr(data-score);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: black;
+        opacity: 0;
+    }
+
+    .track-rating .rating-stars input:checked + label:after {
+        opacity: 1;
+    }
+
+</style>
+
+<div class="track-ratings-tab">
+    <ol id="track-ratings-container"></ol>
+</div>
+
+<script>
+    window.components = window.components || {};
+
+    window.components.ratingTab = {
+        update: function (tracks, userRatings) {
+            const container = document.getElementById('track-ratings-container');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            tracks.forEach(track => {
+                const trackRating = userRatings[track.id] || 0;
+                const trackHtml = `
+                    <li class="track-rating-item" data-track-id="${track.id}">
+                        <div class="track-info">
+                            <div class="track-title">${track.title}</div>
+                            <div class="track-duration">${track.duration}</div>
+                        </div>
+                        <div class="track-rating">
+                            <div class="rating-stars">
+                                <input type="radio" id="track-${track.id}-star-5" name="track-${track.id}-rating" value="5" ${trackRating === 5 ? 'checked' : ''}><label for="track-${track.id}-star-5"></label>
+                                <input type="radio" id="track-${track.id}-star-4" name="track-${track.id}-rating" value="4" ${trackRating === 4 ? 'checked' : ''}><label for="track-${track.id}-star-4"></label>
+                                <input type="radio" id="track-${track.id}-star-3" name="track-${track.id}-rating" value="3" ${trackRating === 3 ? 'checked' : ''}><label for="track-${track.id}-star-3"></label>
+                                <input type="radio" id="track-${track.id}-star-2" name="track-${track.id}-rating" value="2" ${trackRating === 2 ? 'checked' : ''}><label for="track-${track.id}-star-2"></label>
+                                <input type="radio" id="track-${track.id}-star-1" name="track-${track.id}-rating" value="1" ${trackRating === 1 ? 'checked' : ''}><label for="track-${track.id}-star-1"></label>
+                            </div>
+                        </div>
+                    </li>
+                `;
+                container.innerHTML += trackHtml;
+            });
+
+            container.addEventListener('change', async (e) => {
+                const ratingInput = e.target.closest('input[type="radio"]');
+                if (ratingInput) {
+                    const trackItem = ratingInput.closest('.track-rating-item');
+                    const trackId = trackItem.dataset.trackId;
+                    const rating = parseInt(ratingInput.value);
+                    await this.saveTrackRating(trackId, rating);
+                }
+            });
+        },
+
+        saveTrackRating: async function (trackId, rating) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showMessage('Please log in to rate tracks', true);
+                    setTimeout(() => window.location.href = '/login.html', 2000);
+                    return;
+                }
+
+                const res = await fetch(`/api/track-ratings/${trackId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({rating})
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Failed to save track rating');
+                }
+
+                showMessage('Track rating saved!');
+            } catch (err) {
+                console.error('Error saving track rating:', err);
+                showMessage('Error: ' + err.message, true);
+            }
+        }
+    };
+</script>

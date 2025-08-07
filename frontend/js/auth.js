@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(data.error || 'Login failed');
                 }
 
-                // ✅ Сохраняем и token, и username
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('username', data.username);
 

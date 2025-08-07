@@ -6,7 +6,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 
-// Регистрация
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -24,7 +23,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Вход
+
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;

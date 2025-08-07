@@ -1,0 +1,139 @@
+<div class="album-ratings">
+  <div class="score-block">
+    <div class="score-value" id="user-score">4.09 <span class="star-display">★★★★☆</span></div>
+    <div class="score-ratings" id="user-ratings-count">from 50,980 ratings</div>
+  </div>
+
+  <div class="score-block">
+    <div class="score-value" style="color: greenyellow;" id="friends-score">3.89 <span class="star-display">★★★☆☆</span></div>
+    <div class="score-ratings" id="friends-ratings-count">from 124 ratings</div>
+  </div>
+
+  <div class="histogram">
+    <!-- Гистограмма будет сгенерирована динамически -->
+  </div>
+</div>
+
+<style>
+  .score-block {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+  }
+
+  .score-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .score-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: greenyellow;
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .score-value .star-display {
+    font-size: 1.8rem;
+    color: greenyellow;
+    margin-left: 10px;
+  }
+
+  .score-ratings {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-bottom: 15px;
+  }
+
+  .histogram {
+    background-color: #1a1a1a;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    margin-top: 20px;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .bar span {
+    width: 55px;
+    font-size: 0.9rem;
+    color: #ccc;
+    flex-shrink: 0;
+  }
+
+  .bar-line {
+    height: 12px;
+    background-color: #00ffcc;
+    border-radius: 6px;
+    flex-grow: 1;
+    position: relative;
+    margin-left: 10px;
+    background-image: linear-gradient(to right, #00ffcc, #00cc99);
+  }
+
+  .bar-line::after {
+    content: attr(data-count);
+    position: absolute;
+    right: 8px;
+    font-size: 0.75rem;
+    color: #1f1f1f;
+    line-height: 12px;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  window.components = window.components || {};
+  window.components.albumRatings = {
+    update: function(ratingsData) {
+      // Обновление рейтингов
+      document.getElementById('user-score').textContent = `${ratingsData.userScore} ${this.getStarDisplay(ratingsData.userScore)}`;
+      document.getElementById('user-ratings-count').textContent = `from ${ratingsData.userRatingsCount} ratings`;
+
+      document.getElementById('friends-score').textContent = `${ratingsData.friendsScore} ${this.getStarDisplay(ratingsData.friendsScore)}`;
+      document.getElementById('friends-ratings-count').textContent = `from ${ratingsData.friendsRatingsCount} ratings`;
+
+      // Обновление гистограммы
+      this.updateHistogram(ratingsData.histogram);
+    },
+
+    getStarDisplay: function(score) {
+      const fullStars = Math.floor(score);
+      const halfStar = score % 1 >= 0.5 ? '★' : '';
+      const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+      return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
+    },
+
+    updateHistogram: function(histogramData) {
+      const histogramContainer = document.querySelector('.histogram');
+      if (!histogramContainer) return;
+
+      histogramContainer.innerHTML = '';
+
+      histogramData.forEach(item => {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+
+        const label = document.createElement('span');
+        label.textContent = `${item.score}★`;
+
+        const barLine = document.createElement('div');
+        barLine.className = 'bar-line';
+        barLine.style.width = `${item.percentage}%`;
+        barLine.dataset.count = `${item.count} ratings`;
+
+        bar.appendChild(label);
+        bar.appendChild(barLine);
+        histogramContainer.appendChild(bar);
+      });
+    }
+  };
+</script>

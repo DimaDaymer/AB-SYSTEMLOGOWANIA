@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 
-// GET all albums with their tracks
 router.get('/', async (req, res) => {
   let connection;
   try {
@@ -10,7 +9,6 @@ router.get('/', async (req, res) => {
 
     connection = await pool.getConnection();
 
-    // Base query
     let query = `
       SELECT a.*, 
         AVG(r.score) AS rating,
@@ -25,39 +23,32 @@ router.get('/', async (req, res) => {
       LEFT JOIN user_album_actions uaa3 ON a.id = uaa3.album_id AND uaa3.action_type = 'add-to-list'
     `;
 
-    // Add WHERE clauses based on filters
     const whereClauses = [];
     const params = [];
 
-    // Format filter
     if (format) {
       const formats = format.split(',');
       whereClauses.push(`a.type IN (${formats.map(() => '?').join(',')})`);
       params.push(...formats);
     }
 
-    // Year filter
     if (year) {
       whereClauses.push('YEAR(a.release_date) = ?');
       params.push(year);
     }
 
-    // Year range filter
     if (yearRange) {
       const [startYear, endYear] = yearRange.split('-');
       whereClauses.push('YEAR(a.release_date) BETWEEN ? AND ?');
       params.push(startYear, endYear);
     }
 
-    // Add WHERE clause if needed
     if (whereClauses.length > 0) {
       query += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
-    // Group by album
     query += ` GROUP BY a.id`;
 
-    // Sorting
     if (sort === 'rating') {
       query += ` ORDER BY rating ${order === 'desc' ? 'DESC' : 'ASC'}`;
     } else if (sort === 'popularity') {
@@ -66,10 +57,8 @@ router.get('/', async (req, res) => {
       query += ' ORDER BY a.release_date DESC';
     }
 
-    // Execute query
     const [albums] = await connection.execute(query, params);
 
-    // Get tracks for each album
     for (let album of albums) {
       const [tracks] = await connection.execute(
           'SELECT track_number, title, duration FROM tracks WHERE album_id = ? ORDER BY track_number',
@@ -77,7 +66,6 @@ router.get('/', async (req, res) => {
       );
       album.tracks = tracks;
 
-      // Ensure numeric values
       album.rating = album.rating ? parseFloat(album.rating) : 0;
       album.likes = album.likes || 0;
       album.wishlist_count = album.wishlist_count || 0;
@@ -94,7 +82,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET album by ID with tracks
 router.get('/:id', async (req, res) => {
   let connection;
   try {
@@ -123,34 +110,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST new album with tracks
 router.post('/', async (req, res) => {
   let connection;
   try {
     const { title, artist, release_date, cover_url, type, genres, label, language, tracks } = req.body;
 
-    // Проверка обязательных полей
     if (!title || !artist) {
       return res.status(400).json({ error: 'Title and artist are required' });
     }
 
-    // Преобразование undefined в null
     const safeValue = (val) => (val !== undefined ? val : null);
 
-    // Генерация случайных статистических данных
     const generateRandom = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // Генерация slug
     const slug = `${artist}-${title}`
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-');
 
-    // Параметры для запроса
     const albumParams = [
       title,
       artist,
@@ -219,7 +200,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET album by slug
 router.get('/by-slug/:slug', async (req, res) => {
   let connection;
   try {
@@ -240,12 +220,10 @@ router.get('/by-slug/:slug', async (req, res) => {
     const albumData = albums[0];
     console.log(`Album found: ${albumData.title} by ${albumData.artist}`);
 
-    // Обработка жанров
     albumData.genres = typeof albumData.genres === 'string' ?
         albumData.genres.split(',').map(g => g.trim()) :
         (albumData.genres || []);
 
-    // Получаем треки
     const [tracks] = await connection.execute(
         `SELECT id, track_number, title, duration
          FROM tracks WHERE album_id = ?
@@ -253,7 +231,6 @@ router.get('/by-slug/:slug', async (req, res) => {
         [albumData.id]
     );
 
-    // Возвращаем все данные альбома
     res.json({
       ...albumData,
       tracks: tracks

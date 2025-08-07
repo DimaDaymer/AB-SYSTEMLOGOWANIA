@@ -1,0 +1,49 @@
+<div className="tracklist">
+    <h3>Track List</h3>
+    <div id="tracks-container"></div>
+    <p id="total-length"></p>
+</div>
+
+<script>
+    window.components = window.components || {};
+    window.components.tracklist = {
+        update: function (tracks) {
+            const tracksContainer = document.getElementById('tracks-container');
+            const totalLengthEl = document.getElementById('total-length');
+
+            if (!tracksContainer) return;
+
+            tracksContainer.innerHTML = '';
+            let totalDuration = 0;
+
+            if (tracks && tracks.length > 0) {
+                tracks.forEach(track => {
+                    const trackEl = document.createElement('div');
+                    trackEl.className = 'track';
+                    trackEl.innerHTML = `
+                    <span>${track.track_number}. ${track.title}</span>
+                    <span>${track.duration || ''}</span>
+                `;
+                    tracksContainer.appendChild(trackEl);
+
+                    if (track.duration) {
+                        const [min, sec] = track.duration.split(':').map(Number);
+                        totalDuration += min * 60 + (sec || 0);
+                    }
+                });
+
+                // Total duration
+                if (totalLengthEl && totalDuration > 0) {
+                    const mins = Math.floor(totalDuration / 60);
+                    const secs = totalDuration % 60;
+                    totalLengthEl.textContent = `Total length: ${mins}:${secs < 10 ? '0' + secs : secs}`;
+                    totalLengthEl.style.marginTop = '10px';
+                    totalLengthEl.style.fontSize = '13px';
+                    totalLengthEl.style.color = '#ccc';
+                }
+            } else {
+                tracksContainer.innerHTML = '<p>No tracks available</p>';
+            }
+        }
+    };
+</script>

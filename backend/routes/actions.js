@@ -8,7 +8,6 @@ router.post('/', authenticate, async (req, res) => {
         const { albumId, actionType } = req.body;
         const userId = req.user.id;
 
-        // Добавлен новый тип действия 'add-to-list'
         if (!['listen', 'wishlist', 'like', 'add-to-list'].includes(actionType)) {
             return res.status(400).json({ error: 'Invalid action type' });
         }

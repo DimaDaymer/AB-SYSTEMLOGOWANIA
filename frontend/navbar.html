@@ -5,16 +5,14 @@
     <title>Navbar Component</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Общие сбросы и стили для body (можно перенести в глобальный style.css) */
         body {
             margin: 0;
             font-family: 'Inter', sans-serif;
-            background: #1a1a1a; /* Темный фон для контраста */
+            background: #1a1a1a;
             color: white;
             min-height: 100vh;
         }
 
-        /* Стили для новой навигационной панели */
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -142,7 +140,6 @@
             display: block;
         }
 
-        /* Медиа-запросы для адаптивности */
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -219,7 +216,6 @@
         const searchToggleButton = document.querySelector('.search-toggle-button');
         const searchInput = document.querySelector('.search-input');
 
-        // Toggle profile dropdown
         if (profileToggleButton && dropdownContent) {
             profileToggleButton.addEventListener('click', (event) => {
                 dropdownContent.classList.toggle('show');
@@ -234,7 +230,6 @@
             });
         }
 
-        // Toggle search input
         if (searchToggleButton && searchInput) {
             searchToggleButton.addEventListener('click', (event) => {
                 searchInput.classList.toggle('active');
@@ -254,7 +249,6 @@
             });
         }
 
-        // Logout functionality
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
             logoutButton.addEventListener('click', (e) => {
@@ -278,9 +272,7 @@
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         const results = await response.json();
 
-        // Показать результаты в выпадающем списке
     });
-    // Инициализируем навбар сразу после загрузки
     document.addEventListener('DOMContentLoaded', initNavbar);
 </script>
 </body>

@@ -1,0 +1,36 @@
+<div class="album-info">
+    <h1 class="album-title" id="album-title"></h1>
+    <div class="album-meta">
+        <span><strong>Artist:</strong> <span id="album-artist"></span></span>
+        <span><strong>Type:</strong> <span id="album-type"></span></span>
+        <span><strong>Release Date:</strong> <span id="release-date"></span></span>
+        <span><strong>Genres:</strong> <span id="album-genres"></span></span>
+        <span><strong>Label:</strong> <span id="album-label"></span></span>
+        <span><strong>Language:</strong> <span id="album-language"></span></span>
+    </div>
+</div>
+
+<script>
+    window.components = window.components || {};
+    window.components.albumInfo = {
+        update: function(albumData) {
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+
+            setText('album-title', albumData.title || 'Untitled Album');
+            setText('album-artist', albumData.artist || 'Unknown Artist');
+            setText('album-type', albumData.type || 'N/A');
+            setText('release-date', albumData.release_date || 'N/A');
+
+            const genres = Array.isArray(albumData.genres) ?
+                albumData.genres.join(', ') :
+                (albumData.genres || 'N/A');
+            setText('album-genres', genres);
+
+            setText('album-label', albumData.label || 'N/A');
+            setText('album-language', albumData.language || 'N/A');
+        }
+    };
+</script>

@@ -1,0 +1,29 @@
+<div class="media-links">
+  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" alt="Spotify"></a>
+  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_Music_icon.svg/1200px-Apple_Music_icon.svg.png" alt="Apple Music"></a>
+  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Deezer_logo.svg" alt="Deezer" style="filter: none;"></a>
+  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Amazon_Music_icon.svg" alt="Amazon Music"></a>
+</div>
+
+<style>
+  .media-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    border-top: 1px solid #333;
+    padding-top: 15px;
+  }
+
+  .media-links img {
+    width: 30px;
+    height: 30px;
+    filter: invert(1);
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+  }
+
+  .media-links img:hover {
+    opacity: 1;
+  }
+</style>

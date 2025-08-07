@@ -1,0 +1,119 @@
+// catalog-tab.html
+<style>
+  .catalog-tab {
+    padding: 15px;
+  }
+
+  .catalog-container {
+    color: #bbb;
+  }
+
+  .catalog-item {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+
+  .catalog-title {
+    font-weight: 600;
+    color: #00ffcc;
+    margin-bottom: 5px;
+  }
+
+  .catalog-detail {
+    margin-bottom: 3px;
+    font-size: 0.9rem;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: #aaa;
+    font-style: italic;
+  }
+
+  .error-message {
+    color: #ff6b6b;
+    padding: 10px;
+    background: rgba(255, 0, 0, 0.1);
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+</style>
+
+<script>
+  window.components = window.components || {};
+  window.components.catalogTab = {
+    loaded: false,
+
+    load: async function(albumId) {
+      if (this.loaded || !albumId) return;
+
+      const container = document.querySelector('.catalog-container');
+      if (!container) return;
+
+      container.innerHTML = '<div class="loading">Loading catalog info...</div>';
+
+      try {
+        const response = await fetch(`/api/albums/${albumId}/catalog`);
+        if (!response.ok) {
+          throw new Error('Failed to load catalog info');
+        }
+
+        const catalogItems = await response.json();
+        this.loaded = true;
+
+        if (catalogItems.length === 0) {
+          container.innerHTML = '<div class="loading">No catalog information available</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        catalogItems.forEach(item => {
+          const catalogItem = document.createElement('div');
+          catalogItem.className = 'catalog-item';
+
+          const title = document.createElement('div');
+          title.className = 'catalog-title';
+          title.textContent = item.format || 'Unknown format';
+
+          const details = document.createElement('div');
+          details.className = 'catalog-details';
+
+          const releaseDate = document.createElement('div');
+          releaseDate.className = 'catalog-detail';
+          releaseDate.textContent = `Release Date: ${item.release_date || 'Unknown'}`;
+
+          const label = document.createElement('div');
+          label.className = 'catalog-detail';
+          label.textContent = `Label: ${item.label || 'Unknown'}`;
+
+          const catalogNum = document.createElement('div');
+          catalogNum.className = 'catalog-detail';
+          catalogNum.textContent = `Catalog #: ${item.catalog_number || 'Unknown'}`;
+
+          const country = document.createElement('div');
+          country.className = 'catalog-detail';
+          country.textContent = `Country: ${item.country || 'Unknown'}`;
+
+          details.appendChild(releaseDate);
+          details.appendChild(label);
+          details.appendChild(catalogNum);
+          details.appendChild(country);
+
+          catalogItem.appendChild(title);
+          catalogItem.appendChild(details);
+          container.appendChild(catalogItem);
+        });
+      } catch (error) {
+        console.error('Error loading catalog:', error);
+        container.innerHTML = `
+          <div class="error-message">
+            Failed to load catalog info: ${error.message}
+          </div>
+        `;
+      }
+    }
+  };
+</script>

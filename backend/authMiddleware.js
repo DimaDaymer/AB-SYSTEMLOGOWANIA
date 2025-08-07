@@ -7,10 +7,8 @@ module.exports = async function authenticate(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Требуется авторизация' });
 
     try {
-        // Декодируем токен
         const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Получаем пользователя из БД
         const [users] = await pool.execute(
             'SELECT id, username FROM users WHERE id = ?',
             [payload.id]
@@ -20,7 +18,6 @@ module.exports = async function authenticate(req, res, next) {
             return res.status(401).json({ error: 'Пользователь не найден' });
         }
 
-        // Добавляем пользователя в запрос
         req.user = users[0];
         next();
     } catch (err) {

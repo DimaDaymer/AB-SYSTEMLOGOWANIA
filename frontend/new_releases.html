@@ -36,7 +36,6 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
-        /* Album list styles */
         .album-list {
             display: flex;
             flex-direction: column;
@@ -130,7 +129,6 @@
             box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
         }
 
-        /* Filter sidebar styles */
         .filter-header {
             font-size: 1.5em;
             font-weight: 700;
@@ -277,7 +275,6 @@
             font-weight: 600;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 900px) {
             .main-content-wrapper {
                 flex-direction: column;
@@ -482,7 +479,6 @@
 </div>
 
 <script>
-    // Load navbar
     fetch('/navbar.html')
         .then(response => response.text())
         .then(html => {
@@ -499,7 +495,6 @@
         })
         .catch(err => console.error('Failed to load navbar: ', err));
 
-    // Current filters state
     let currentFilters = {
         sortBy: 'average-rating',
         format: [],
@@ -508,7 +503,6 @@
         yearRange: null
     };
 
-    // DOM elements
     const newReleasesContainer = document.getElementById('newReleasesContainer');
     const sortByDropdown = document.getElementById('sort-by-dropdown');
     const formatDropdown = document.getElementById('format-dropdown');
@@ -520,7 +514,6 @@
     const yearGridYears = document.querySelectorAll('.year-grid div[data-year]');
     const yearGridDecades = document.querySelectorAll('.year-grid div[data-year-range]');
 
-    // Function to display messages
     function showMessage(msg, isError = false) {
         const msgEl = document.createElement('div');
         msgEl.textContent = msg;
@@ -542,28 +535,22 @@
         setTimeout(() => msgEl.remove(), 3000);
     }
 
-    // Initialize filters
     function initFilters() {
-        // Set default values
         sortByDropdown.value = currentFilters.sortBy;
         formatDropdown.value = 'albums';
 
-        // Add event listeners
         sortByDropdown.addEventListener('change', handleSortChange);
         formatDropdown.addEventListener('change', handleFormatChange);
         timeRangeDropdown.addEventListener('change', handleTimeRangeChange);
 
-        // Format buttons
         if (formatFilterOptions) {
             formatFilterOptions.addEventListener('click', handleFormatButtonClick);
         }
 
-        // Year selection
         yearFilterRadios.forEach(radio => {
             radio.addEventListener('change', handleTimeframeChange);
         });
 
-        // Year grid
         yearGridYears.forEach(yearDiv => {
             yearDiv.addEventListener('click', handleYearClick);
         });
@@ -572,12 +559,10 @@
             decadeDiv.addEventListener('click', handleDecadeClick);
         });
 
-        // Text inputs
         specificYearInput.addEventListener('change', handleSpecificYearInput);
         yearRangeInput.addEventListener('change', handleYearRangeInput);
     }
 
-    // Filter handlers
     function handleSortChange(e) {
         currentFilters.sortBy = e.target.value;
         loadAlbums();
@@ -672,7 +657,6 @@
         });
     }
 
-    // Album action handler
     async function handleAlbumAction(e) {
         const button = e.target.closest('.action-button');
         if (!button) return;
@@ -717,7 +701,6 @@
         }
     }
 
-    // Check user action status
     async function checkUserActions() {
         try {
             const token = localStorage.getItem('token');
@@ -741,12 +724,10 @@
         }
     }
 
-    // Load albums with current filters
     async function loadAlbums() {
         try {
             newReleasesContainer.innerHTML = '<p>Loading albums...</p>';
 
-            // Build query parameters based on current filters
             const params = new URLSearchParams();
 
             if (currentFilters.sortBy) {
@@ -782,7 +763,6 @@
         }
     }
 
-    // Render albums to the page
     function renderAlbums(albums) {
         if (albums.length === 0) {
             newReleasesContainer.innerHTML = '<p>No albums found matching your filters.</p>';
@@ -800,7 +780,6 @@
                 new Date(album.release_date).getFullYear() :
                 (album.release_year || 'N/A');
 
-            // Use actual data
             const rating = album.rating ? `${album.rating.toFixed(2)} / 5.0` : "N/A";
 
             albumCard.innerHTML = `

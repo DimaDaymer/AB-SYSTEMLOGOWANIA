@@ -1,0 +1,23 @@
+<div class="album-cover">
+    <img id="album-cover" src="" alt="Album cover">
+</div>
+
+<script>
+    window.components = window.components || {};
+    window.components.albumCover = {
+        update: function(albumData) {
+            const albumCover = document.getElementById('album-cover');
+            if (albumCover) {
+                albumCover.src = albumData.cover_url || '/assets/album-placeholder.png';
+
+                // Добавляем обработчик для установки правильных пропорций
+                albumCover.onload = function() {
+                    // Для не-квадратных изображений
+                    if (this.naturalWidth !== this.naturalHeight) {
+                        this.style.aspectRatio = `${this.naturalWidth}/${this.naturalHeight}`;
+                    }
+                };
+            }
+        }
+    };
+</script>
