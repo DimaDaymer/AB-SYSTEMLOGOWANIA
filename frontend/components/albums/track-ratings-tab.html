@@ -1,6 +1,6 @@
 <style>
     .track-ratings-tab {
-        padding: 15px;
+        padding: 0 15px 15px 15px; /* Убран верхний padding */
     }
 
     #track-ratings-container {
@@ -89,12 +89,7 @@
     .track-rating .rating-stars input:checked + label:after {
         opacity: 1;
     }
-
 </style>
-
-<div class="track-ratings-tab">
-    <ol id="track-ratings-container"></ol>
-</div>
 
 <script>
     window.components = window.components || {};
@@ -128,7 +123,7 @@
                 container.innerHTML += trackHtml;
             });
 
-            container.addEventListener('change', async (e) => {
+            container.addEventListener('click', async (e) => {
                 const ratingInput = e.target.closest('input[type="radio"]');
                 if (ratingInput) {
                     const trackItem = ratingInput.closest('.track-rating-item');

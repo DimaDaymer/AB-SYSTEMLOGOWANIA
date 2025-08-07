@@ -34,6 +34,7 @@ export async function loadComponent(containerId, componentPath) {
         if (!response.ok) throw new Error(`Failed to load component: ${componentPath}`);
         const html = await response.text();
         const container = document.getElementById(containerId);
+        if (!container) throw new Error(`Container with ID '${containerId}' not found.`);
         container.innerHTML = html;
         const scripts = container.querySelectorAll('script');
         for (const script of scripts) {
@@ -179,9 +180,11 @@ async function loadNavbar() {
     try {
         const response = await fetch('/navbar.html');
         const html = await response.text();
-        document.getElementById('navbar-container').innerHTML = html;
+        const navbarContainer = document.getElementById('navbar-container');
+        if (!navbarContainer) return;
+        navbarContainer.innerHTML = html;
 
-        const navbarScripts = document.getElementById('navbar-container').querySelectorAll('script');
+        const navbarScripts = navbarContainer.querySelectorAll('script');
         navbarScripts.forEach(script => {
             const newScript = document.createElement('script');
             newScript.textContent = script.textContent;
@@ -256,6 +259,8 @@ function updateComponents(albumData) {
         window.components.albumInfo.update(albumData);
 
     // Инициализация рейтинга треков
+    // Обратите внимание, что здесь мы передаем пустой объект для userRatings,
+    // так как они будут загружены позже в loadUserData
     if (window.components && window.components.ratingTab && albumData.tracks) {
         window.components.ratingTab.update(albumData.tracks, {});
     }
@@ -267,9 +272,12 @@ async function loadUserData(albumId) {
         const token = localStorage.getItem('token');
         if (!token) return;
 
+        // Загрузка рейтинга альбома
         await loadUserRating(albumId);
+        // Проверка действий пользователя (like, listen, etc.)
         await checkUserAction(albumId);
 
+        // Загрузка и обновление рейтингов треков
         if (albumDataCache?.tracks?.length > 0) {
             const userTrackRatings = await loadUserTrackRatings(albumId);
             if (window.components && window.components.ratingTab) {
@@ -281,7 +289,7 @@ async function loadUserData(albumId) {
     }
 }
 
-// Загрузка пользовательского рейтинга альбома
+// Функция, которая загружает и отображает рейтинг пользователя при загрузке страницы.
 async function loadUserRating(albumId) {
     try {
         const token = localStorage.getItem('token');
@@ -292,8 +300,8 @@ async function loadUserRating(albumId) {
         });
 
         if (!res.ok) {
-            if (res.status !== 404) throw new Error(`HTTP error! status: ${res.status}`);
-            return;
+            if (res.status !== 404) return;
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
 
         const data = await res.json();
@@ -302,7 +310,6 @@ async function loadUserRating(albumId) {
             if (exactMatch) {
                 exactMatch.checked = true;
             } else {
-                // Для нецелых значений
                 const allStars = document.querySelectorAll('.rating-stars input');
                 const ratingValue = parseFloat(data.score);
 
@@ -354,10 +361,7 @@ async function loadUserTrackRatings(albumId) {
 
         if (res.ok) {
             const ratings = await res.json();
-            return ratings.reduce((acc, rating) => {
-                acc[rating.track_id] = rating.rating;
-                return acc;
-            }, {});
+            return ratings;
         }
         return {};
     } catch (err) {
@@ -369,40 +373,16 @@ async function loadUserTrackRatings(albumId) {
 // Обновление отображения рейтингов
 function updateScoresDisplay() {
     const userScoreEl = document.querySelector('.score-block:first-of-type .score-value');
-    const friendsScoreEl = document.querySelector('.score-block:last-of-type .score-value');
     const userRatingsCountEl = document.querySelector('.score-block:first-of-type .score-ratings');
-    const friendsRatingsCountEl = document.querySelector('.score-block:last-of-type .score-ratings');
 
+    // Эти данные пока что хардкодированы, но в будущем их нужно получать с сервера
     const userAvgScore = 4.09;
     const userTotalRatings = 50980;
-    const friendsAvgScore = 3.89;
-    const friendsTotalRatings = 124;
 
     if (userScoreEl && userRatingsCountEl) {
         userScoreEl.innerHTML = `${userAvgScore} <span class="star-display">${getStarDisplay(userAvgScore)}</span>`;
         userRatingsCountEl.textContent = `from ${userTotalRatings.toLocaleString()} ratings`;
     }
-
-    if (friendsScoreEl && friendsRatingsCountEl) {
-        friendsScoreEl.innerHTML = `${friendsAvgScore} <span class="star-display">${getStarDisplay(friendsAvgScore)}</span>`;
-        friendsRatingsCountEl.textContent = `from ${friendsTotalRatings.toLocaleString()} ratings`;
-    }
-
-    const histogramData = [
-        { score: 5, count: 25832, percentage: 70 },
-        { score: 4.5, count: 20000, percentage: 80 },
-        { score: 4, count: 15498, percentage: 60 },
-        { score: 3.5, count: 10200, percentage: 40 },
-        { score: 3, count: 6234, percentage: 35 },
-        { score: 2.5, count: 5000, percentage: 25 },
-        { score: 2, count: 3000, percentage: 15 },
-        { score: 1.5, count: 2000, percentage: 10 },
-        { score: 1, count: 1000, percentage: 5 },
-        { score: 0.5, count: 500, percentage: 2 }
-    ];
-
-    if (window.components && window.components.histogram)
-        window.components.histogram.update(histogramData);
 }
 
 // Сохранение рейтинга альбома
