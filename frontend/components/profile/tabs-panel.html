@@ -1,17 +1,17 @@
-<div class="tab-panel">
-  <div class="tab-header">
-    <div class="tab active" data-tab="recent">Recent</div>
-    <div class="tab" data-tab="albums">Albums</div>
-    <div class="tab" data-tab="liked">Liked</div>
-    <div class="tab" data-tab="wishlist">Wishlist</div>
-    <div class="tab" data-tab="trackratings">Track Ratings</div>
+<div className="tab-panel">
+  <div className="tab-header">
+    <div className="tab active" data-tab="recent">Recent</div>
+    <div className="tab" data-tab="albums">Albums</div>
+    <div className="tab" data-tab="liked">Liked</div>
+    <div className="tab" data-tab="wishlist">Wishlist</div>
+    <div className="tab" data-tab="trackratings">Track Ratings</div>
   </div>
-  <div class="tab-content active" id="recent">
+  <div className="tab-content active" id="recent">
   </div>
-  <div class="tab-content" id="albums"><p>Albums tab content.</p></div>
-  <div class="tab-content" id="liked"><p>Liked tab content.</p></div>
-  <div class="tab-content" id="wishlist"><p>Wishlist tab content.</p></div>
-  <div class="tab-content" id="trackratings">
+  <div className="tab-content" id="albums"><p>Albums tab content.</p></div>
+  <div className="tab-content" id="liked"><p>Liked tab content.</p></div>
+  <div className="tab-content" id="wishlist"><p>Wishlist tab content.</p></div>
+  <div className="tab-content" id="trackratings">
     <h3>Albums with Track Ratings</h3>
     <div id="track-ratings-container"></div>
   </div>
@@ -21,28 +21,23 @@
   const tabs = document.querySelectorAll('.tab');
   const contents = document.querySelectorAll('.tab-content');
 
-  // This is a helper function that gets stars from a rating
+  // This is a helper function that gets stars from a rating (10-point scale for tracks)
   function getStarsForRating(rating) {
     if (!rating) return '☆☆☆☆☆';
-
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5 ? 1 : 0;
-    const emptyStars = 5 - fullStars - halfStar;
-
-    return '★'.repeat(fullStars) +
-            (halfStar ? '½' : '') +
-            '☆'.repeat(emptyStars);
+    const stars = rating / 2;
+    const fullStars = Math.floor(stars);
+    const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
   }
 
-  // This is another helper function for a different star representation
+  // This is another helper function for a different star representation (5-point scale for albums)
   function scoreToStars(score) {
+    if (!score) return '☆☆☆☆☆';
     const fullStars = Math.floor(score);
-    const halfStar = score % 1 >= 0.5 ? 1 : 0;
-    const emptyStars = 5 - fullStars - halfStar;
-
-    return '★'.repeat(fullStars) +
-            (halfStar ? '½' : '') +
-            '☆'.repeat(emptyStars);
+    const halfStar = score % 1 >= 0.25 && score % 1 < 0.75 ? '½' : '';
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
   }
 
   // This is the function to render individual tracks with their ratings
@@ -55,7 +50,7 @@
                 <div class="track-name">${track.track_number}. ${track.title}</div>
                 <div class="track-rating">
                     <span class="rating-stars">${getStarsForRating(track.user_rating)}</span>
-                    <span class="rating-value">${track.user_rating}/5</span>
+                    <span class="rating-value">${track.user_rating}/10</span>
                 </div>
             `;
       container.appendChild(trackElement);
@@ -72,7 +67,7 @@
       container.innerHTML = '<div class="loading">Loading track ratings...</div>';
 
       const res = await fetch(`/user/track-ratings`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {'Authorization': `Bearer ${token}`}
       });
 
       if (!res.ok) throw new Error('Failed to load track ratings');
@@ -140,7 +135,7 @@
       container.innerHTML = '<div class="loading">Loading...</div>';
 
       const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {'Authorization': `Bearer ${token}`}
       });
 
       if (!res.ok) throw new Error(`Failed to load ${type}`);
@@ -192,7 +187,7 @@
       container.innerHTML = '<div class="loading">Loading rated albums...</div>';
 
       const res = await fetch('/user/rated-albums', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {'Authorization': `Bearer ${token}`}
       });
 
       if (!res.ok) {
@@ -244,7 +239,7 @@
       tab.classList.add('active');
       document.getElementById(tab.dataset.tab).classList.add('active');
 
-      switch(tab.dataset.tab) {
+      switch (tab.dataset.tab) {
         case 'recent':
           loadRatedAlbums();
           break;
@@ -267,7 +262,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const activeTab = document.querySelector('.tab.active');
     if (activeTab) {
-      switch(activeTab.dataset.tab) {
+      switch (activeTab.dataset.tab) {
         case 'recent':
           loadRatedAlbums();
           break;

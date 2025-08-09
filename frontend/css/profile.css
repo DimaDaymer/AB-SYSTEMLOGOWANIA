@@ -488,10 +488,11 @@ body {
 .rating-stars {
     color: gold;
     font-size: 1rem;
+    white-space: nowrap; /* Added to keep stars on one line */
 }
 
 .rating-value {
-    min-width: 30px;
+    min-width: 45px; /* Increased width to accommodate "/10" */
     text-align: right;
     font-size: 0.9rem;
     color: #bbb;

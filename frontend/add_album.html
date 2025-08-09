@@ -6,6 +6,7 @@
     <title>Add New Album | MelodyRater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/add_album.css">
 </head>
 <body>
 <div class="form-container">
@@ -14,32 +15,37 @@
         <form id="addAlbumForm">
             <div class="form-group">
                 <label for="title">Title*</label>
-                <input type="text" id="title" name="title" class="form-control" required>
+                <input type="text" id="title" name="title" class="form-control" required placeholder="Enter album title">
             </div>
 
             <div class="form-group">
                 <label for="artist">Artist*</label>
-                <input type="text" id="artist" name="artist" class="form-control" required>
+                <input type="text" id="artist" name="artist" class="form-control" required placeholder="Enter artist names, separated by commas">
             </div>
 
             <div class="form-group">
                 <label for="cover_url">Cover URL</label>
-                <input type="text" id="cover_url" name="cover_url" class="form-control">
+                <input type="text" id="cover_url" name="cover_url" class="form-control" placeholder="Image link">
             </div>
 
             <div class="form-group">
                 <label for="type">Type</label>
-                <input type="text" id="type" name="type" class="form-control" placeholder="e.g., LP, EP, Single">
+                <select id="type" name="type" class="form-control">
+                    <option value="Albums">Albums</option>
+                    <option value="EP">EP</option>
+                    <option value="Mixtape">Mixtape</option>
+                    <option value="DJ Mix">DJ Mix</option>
+                    <option value="Single">Singles</option>
+                    <option value="Video">Video</option>
+                    <option value="Compilation">Compilations</option>
+                    <option value="Unauthorized">Unauthorized</option>
+                    <option value="Song">Songs</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label for="release_date">Release Date</label>
-                <input type="date" id="release_date" name="release_date" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label for="release_year">Release Year (if no specific date)</label>
-                <input type="number" id="release_year" name="release_year" class="form-control" min="1900" max="2100">
+                <input type="date" id="release_date" name="release_date" class="form-control" placeholder="e.g., 2024-10-26 or 2024">
             </div>
 
             <div class="form-group">
@@ -49,13 +55,19 @@
 
             <div class="form-group">
                 <label for="label">Label</label>
-                <input type="text" id="label" name="label" class="form-control">
+                <input type="text" id="label" name="label" class="form-control" placeholder="Enter labels, separated by commas">
             </div>
 
             <div class="form-group">
                 <label for="language">Language</label>
-                <input type="text" id="language" name="language" class="form-control">
+                <input type="text" id="language" name="language" class="form-control" placeholder="Ee.g., English, Spanish, separated by commas">
             </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input type="text" id="description" name="description" class="form-control" placeholder="Enter album description, separated by commas">
+            </div>
+
 
             <h2>Tracks</h2>
             <div id="tracksContainer" class="form-group"></div>
@@ -81,11 +93,11 @@
             const trackDiv = document.createElement('div');
             trackDiv.classList.add('track-item');
             trackDiv.innerHTML = `
-                    <input type="number" name="track_number" class="form-control" placeholder="No." value="${trackNumber}" min="1" required>
-                    <input type="text" name="track_title" class="form-control" placeholder="Track Title" required>
-                    <input type="text" name="track_duration" class="form-control" placeholder="Duration (e.g., 3:45)">
-                    <button type="button" class="remove-track">✕</button>
-                `;
+            <input type="number" name="track_number" class="form-control track-number" placeholder="No." value="${trackNumber}" min="1" required>
+            <input type="text" name="track_title" class="form-control track-title" placeholder="Track Title" required>
+            <input type="text" name="track_duration" class="form-control track-duration" placeholder="Duration (e.g., 3:45)" pattern="\\d{1,2}:\\d{2}" title="Формат: M:SS или MM:SS">
+            <button type="button" class="remove-track">✕</button>
+        `;
             tracksContainer.appendChild(trackDiv);
 
             trackDiv.querySelector('.remove-track').addEventListener('click', () => {
@@ -117,6 +129,15 @@
                 }
             }
 
+            // Проверка формата продолжительности
+            const durationRegex = /^(?:[0-5]?\d(?::[0-5]?\d)?|60(?::00)?)$/;
+            for (let i = 0; i < trackDurations.length; i++) {
+                if (trackDurations[i].value && !durationRegex.test(trackDurations[i].value)) {
+                    alert(`Неверный формат продолжительности в треке "${trackTitles[i].value}". Используйте формат M:SS или MM:SS.`);
+                    return;
+                }
+            }
+
             const slug = `${formData.get('artist')}-${formData.get('title')}`
                 .toLowerCase()
                 .replace(/[^\w\s-]/g, '')
@@ -128,10 +149,11 @@
                 artist: formData.get('artist'),
                 cover_url: formData.get('cover_url'),
                 type: formData.get('type'),
-                release_date: formData.get('release_date') || formData.get('release_year'),
+                release_date: formData.get('release_date'),
                 genres: formData.get('genre'),
                 label: formData.get('label'),
                 language: formData.get('language'),
+                description: formData.get('description'),
                 slug: slug,
                 tracks: []
             };
@@ -168,6 +190,5 @@
         });
     });
 </script>
-
 </body>
 </html>

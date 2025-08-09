@@ -3,10 +3,11 @@
     <div class="album-meta">
         <span><strong>Artist:</strong> <span id="album-artist"></span></span>
         <span><strong>Type:</strong> <span id="album-type"></span></span>
-        <span><strong>Release Date:</strong> <span id="release-date"></span></span>
+        <span><strong>Release Date:</strong><br> <a href="#" id="release-date-link"></a></span>
         <span><strong>Genres:</strong> <span id="album-genres"></span></span>
         <span><strong>Label:</strong> <span id="album-label"></span></span>
         <span><strong>Language:</strong> <span id="album-language"></span></span>
+        <span><strong>Description:</strong> <span id="album-description"></span></span>
     </div>
 </div>
 
@@ -19,18 +20,82 @@
                 if (el) el.textContent = text;
             };
 
+            const setLinkText = (id, text, url) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.textContent = text;
+                    el.href = url;
+                }
+            };
+
             setText('album-title', albumData.title || 'Untitled Album');
-            setText('album-artist', albumData.artist || 'Unknown Artist');
-            setText('album-type', albumData.type || 'N/A');
-            setText('release-date', albumData.release_date || 'N/A');
 
-            const genres = Array.isArray(albumData.genres) ?
-                albumData.genres.join(', ') :
-                (albumData.genres || 'N/A');
-            setText('album-genres', genres);
+            // Создаем ссылки для каждого исполнителя
+            const artistContainer = document.getElementById('album-artist');
+            if (artistContainer && Array.isArray(albumData.artist)) {
+                artistContainer.innerHTML = albumData.artist.map(artist => {
+                    return `<a href="/new_releases.html?artist=${encodeURIComponent(artist)}" class="artist-link">${artist}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-artist', 'Unknown artist');
+            }
+            // Создаем ссылки для каждого типа
+            const typeContainer = document.getElementById('album-type');
+            if (typeContainer && Array.isArray(albumData.type)) {
+                typeContainer.innerHTML = albumData.type.map(type => {
+                    return `<a href="/new_releases.html?type=${encodeURIComponent(type)}" class="type-link">${type}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-type', 'N/A');
+            }
 
-            setText('album-label', albumData.label || 'N/A');
-            setText('album-language', albumData.language || 'N/A');
+            // Создаем ссылку для года выпуска
+            if (albumData.release_date) {
+                const year = new Date(albumData.release_date).getFullYear();
+                setLinkText('release-date-link', year, `/new_releases.html?timeframe=specific-year&year=${year}`);
+            } else {
+                setLinkText('release-date-link', 'N/A', '#');
+            }
+
+            // Создаем ссылки для каждого жанра
+            const genresContainer = document.getElementById('album-genres');
+            if (genresContainer && Array.isArray(albumData.genres)) {
+                genresContainer.innerHTML = albumData.genres.map(genre => {
+                    return `<a href="/new_releases.html?genres=${encodeURIComponent(genre)}" class="genre-link">${genre}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-genres', 'N/A');
+            }
+
+            // Создаем ссылки для каждого лейбла
+            const labelContainer = document.getElementById('album-label');
+            if (labelContainer && Array.isArray(albumData.label)) {
+                labelContainer.innerHTML = albumData.label.map(label => {
+                    return `<a href="/new_releases.html?label=${encodeURIComponent(label)}" class="label-link">${label}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-label', 'N/A');
+            }
+
+            // Создаем ссылки для каждого языка
+            const languageContainer = document.getElementById('album-language');
+            if (languageContainer && Array.isArray(albumData.language)) {
+                languageContainer.innerHTML = albumData.language.map(language => {
+                    return `<a href="/new_releases.html?language=${encodeURIComponent(language)}" class="language-link">${language}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-language', 'N/A');
+            }
+
+            // Creates links for each description
+            const descriptionContainer = document.getElementById('album-description');
+            if (descriptionContainer && Array.isArray(albumData.description)) {
+                descriptionContainer.innerHTML = albumData.description.map(description => {
+                    return `<a href="/new_releases.html?description=${encodeURIComponent(description)}" class="description-link">${description}</a>`;
+                }).join(', ');
+            } else {
+                setText('album-description', 'N/A');
+            }
         }
     };
 </script>

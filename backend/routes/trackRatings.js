@@ -9,6 +9,11 @@ router.post('/:trackId', authenticate, async (req, res) => {
         const { rating } = req.body;
         const userId = req.user.id;
 
+        // Добавлена проверка на 10-балльную шкалу
+        if (rating === null || rating < 0.5 || rating > 10) {
+            return res.status(400).json({ error: 'Rating must be a value between 0.5 and 10.' });
+        }
+
         await pool.execute(
             `INSERT INTO track_ratings (user_id, track_id, rating)
              VALUES (?, ?, ?)

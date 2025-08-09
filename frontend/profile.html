@@ -1,68 +1,118 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>User Profile | MelodyRater</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/profile.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль пользователя</title>
+    <link rel="stylesheet" href="/css/profile.css">
 </head>
 <body>
-<div id="navbar-container"></div>
-<div class="container">
-    <div id="user-info-panel-container"></div>
-    <div id="tabs-panel-container"></div>
-    <div id="right-panel-container"></div>
+
+<div id="navbar-container">
 </div>
 
-<script src="js/profile.js"></script>
+<div class="container">
+    <div class="left-panel">
+        <div class="avatar">
+            <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
+            <label for="avatarUpload">Сменить аватар</label>
+            <input type="file" id="avatarUpload" accept="image/*" />
+        </div>
+        <div class="user-info">
+            <h1 id="nickname">Никнейм</h1>
+            <span><strong>Имя пользователя:</strong> <span id="username">пользователь</span></span>
+            <span id="age-container" style="display:none;"><strong>Возраст:</strong> <span id="age"></span></span>
+            <span id="location-container" style="display:none;"><strong>Местоположение:</strong> <span id="location"></span></span>
+            <span id="description-container" style="display:none;"><strong>Описание:</strong> <span id="description"></span></span>
+            <span id="gender-container" style="display:none;"><strong>Пол:</strong> <span id="gender"></span></span>
+            <span id="email-container" style="display:none;"><strong>Email:</strong> <span id="email"></span></span>
+            <span id="music-container" style="display:none;"><strong>Любимая музыка:</strong> <span id="music"></span></span>
+            <span id="movies-container" style="display:none;"><strong>Любимые фильмы:</strong> <span id="movies"></span></span>
+            <button onclick="window.location.href='edit-profile.html'" class="edit-button">
+                Настройки аккаунта
+            </button>
+        </div>
+    </div>
 
-<script>
-    // Use JavaScript to fetch and insert the modular HTML files
-    async function includeHtml(containerId, filePath) {
-        const container = document.getElementById(containerId);
-        try {
-            const res = await fetch(filePath);
-            if (!res.ok) throw new Error(`Failed to load ${filePath}`);
-            const html = await res.text();
-            container.innerHTML = html;
+    <div class="tab-panel">
+        <div class="tab-header">
+            <div class="tab active" data-tab="recent">Недавнее</div>
+            <div class="tab" data-tab="albums">Альбомы</div>
+            <div class="tab" data-tab="liked">Понравилось</div>
+            <div class="tab" data-tab="wishlist">Список желаний</div>
+            <div class="tab" data-tab="trackratings">Оценки треков</div>
+        </div>
+        <div class="tab-content active" id="recent">
+        </div>
+        <div class="tab-content" id="albums"></div>
+        <div class="tab-content" id="liked"></div>
+        <div class="tab-content" id="wishlist"></div>
+        <div class="tab-content" id="trackratings">
+            <h3>Альбомы с оценками треков</h3>
+            <div id="track-ratings-container"></div>
+        </div>
+    </div>
 
-            // Execute scripts within the loaded HTML
-            const scripts = container.querySelectorAll('script');
-            scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript);
-            });
-        } catch (err) {
-            console.error('Error loading component:', err);
-            container.innerHTML = `<p style="color: #ff6b6b;">Error loading ${filePath}</p>`;
-        }
-    }
+    <div class="right">
+        <div class="notifications">
+            <h3>Уведомления <a href="#" class="view-all">Посмотреть все</a></h3>
+            <div>Пользователь подписался на вас</div>
+            <div>Новый альбом от Lorem Impact</div>
+            <div>Пример</div>
+            <div>Пример</div>
+            <div>Пример</div>
+            <div>Пример</div>
+            <div>Пример</div>
+            <div>Пример</div>
+        </div>
+        <div class="user-stats">
+            <h3>Статистика пользователя</h3>
+            <div class="average-rating">
+                <span class="stars">★★★★<span style="color:#777">☆</span></span>
+                <span class="score">7.92</span>
+            </div>
+            <div class="graph-display">
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+                <div class="graph-bar"></div>
+            </div>
+            <div class="detailed-stats">
+                <div class="detailed-stat-item">
+                    <span class="icon">❤</span>
+                    <span class="value">123</span>
+                </div>
+                <div class="detailed-stat-item">
+                    <span class="icon">🎧</span>
+                    <span class="value">792</span>
+                </div>
+                <div class="detailed-stat-item">
+                    <span class="icon">📋</span>
+                    <span class="value">9</span>
+                </div>
+            </div>
+        </div>
+        <div class="user-lists">
+            <h3>Списки пользователя <a href="#" class="view-all">Посмотреть все</a></h3>
+            <div>By User1337</div>
+            <div>By krhdall</div>
+            <div>By Daymer</div>
+            <div>By User12112</div>
+            <div>By 228dima337</div>
+        </div>
+    </div>
+</div>
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Load the navbar first, as it's a common component
-        fetch('/navbar.html')
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('navbar-container').innerHTML = html;
-                const navbarScripts = document.getElementById('navbar-container').querySelectorAll('script');
-                navbarScripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    newScript.textContent = script.textContent;
-                    document.body.appendChild(newScript);
-                });
-                if (typeof initNavbar === 'function') {
-                    initNavbar();
-                }
-            })
-            .catch(err => console.error('Failed to load navbar: ', err));
+<script src="/js/profile.js"></script>
 
-        // Load the other components
-        await includeHtml('user-info-panel-container', 'user-info-panel.html');
-        await includeHtml('tabs-panel-container', 'tabs-panel.html');
-        await includeHtml('right-panel-container', 'right-panel.html');
-    });
-</script>
+
 </body>
 </html>

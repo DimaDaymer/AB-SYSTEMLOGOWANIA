@@ -178,10 +178,28 @@ select.form-control {
     gap: 12px;
     margin-bottom: 12px;
     align-items: center;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    transition: background-color 0.2s;
 }
 
-.track-item input[type="number"] {
+.track-item:hover {
+    background-color: #3a3a3a;
+}
+
+.track-item .track-number {
     width: 70px;
+    text-align: center;
+}
+
+.track-item .track-title {
+    flex-grow: 1;
+}
+
+.track-item .track-duration {
+    width: 120px;
     flex-shrink: 0;
 }
 

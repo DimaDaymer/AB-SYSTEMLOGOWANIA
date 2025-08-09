@@ -56,7 +56,7 @@ export async function loadComponent(containerId, componentPath) {
 export function getStarDisplay(score) {
     const fullStars = Math.floor(score);
     const halfStar = score % 1 >= 0.5 ? '★' : '';
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    const emptyStars = 10 - fullStars - (halfStar ? 1 : 0);
     return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
 }
 
@@ -76,7 +76,7 @@ window.components.ratingTab = {
         tracks.forEach(track => {
             const trackRating = userRatings[track.id] || 0;
             let starsHtml = '';
-            for (let i = 5; i >= 1; i--) {
+            for (let i = 10; i >= 1; i--) {
                 starsHtml += `
                     <input type="radio" id="track-${track.id}-star${i}" name="track-rating-${track.id}" value="${i}" ${trackRating === i ? 'checked' : ''}>
                     <label for="track-${track.id}-star${i}">★</label>
@@ -93,7 +93,7 @@ window.components.ratingTab = {
                         <div class="track-stars">
                             ${starsHtml}
                         </div>
-                        <div class="track-rating-value">${trackRating}/5</div>
+                        <div class="track-rating-value">${trackRating}/10</div>
                     </div>
                 </li>
             `;
@@ -111,7 +111,7 @@ window.components.ratingTab = {
                 // Обновляем UI
                 const ratingValueEl = trackItem.querySelector('.track-rating-value');
                 if (ratingValueEl) {
-                    ratingValueEl.textContent = `${rating}/5`;
+                    ratingValueEl.textContent = `${rating}/10`;
                 }
 
                 // Сохраняем на сервере
@@ -172,6 +172,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('[Albums] Initialization error:', error);
         showMessage('Error loading page: ' + error.message, true);
+    }
+
+    // ДОБАВЛЕННЫЙ КОД ДЛЯ КНОПКИ РЕДАКТИРОВАНИЯ
+    const editAlbumBtn = document.getElementById('edit-album-btn');
+    if (editAlbumBtn) {
+        editAlbumBtn.addEventListener('click', () => {
+            const slug = getSlugFromURL();
+            if (slug) {
+                window.location.href = `/edit_album.html?slug=${slug}`;
+            } else {
+                showMessage('Album slug not found', true);
+            }
+        });
     }
 });
 
@@ -376,7 +389,7 @@ function updateScoresDisplay() {
     const userRatingsCountEl = document.querySelector('.score-block:first-of-type .score-ratings');
 
     // Эти данные пока что хардкодированы, но в будущем их нужно получать с сервера
-    const userAvgScore = 4.09;
+    const userAvgScore = 8.1;
     const userTotalRatings = 50980;
 
     if (userScoreEl && userRatingsCountEl) {

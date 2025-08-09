@@ -103,6 +103,14 @@
 
             tracks.forEach(track => {
                 const trackRating = userRatings[track.id] || 0;
+                let starsHtml = '';
+                for (let i = 10; i >= 1; i--) {
+                    starsHtml += `
+                        <input type="radio" id="track-${track.id}-star-${i}" name="track-${track.id}-rating" value="${i}" ${trackRating === i ? 'checked' : ''}>
+                        <label for="track-${track.id}-star-${i}"></label>
+                    `;
+                }
+
                 const trackHtml = `
                     <li class="track-rating-item" data-track-id="${track.id}">
                         <div class="track-info">
@@ -111,11 +119,7 @@
                         </div>
                         <div class="track-rating">
                             <div class="rating-stars">
-                                <input type="radio" id="track-${track.id}-star-5" name="track-${track.id}-rating" value="5" ${trackRating === 5 ? 'checked' : ''}><label for="track-${track.id}-star-5"></label>
-                                <input type="radio" id="track-${track.id}-star-4" name="track-${track.id}-rating" value="4" ${trackRating === 4 ? 'checked' : ''}><label for="track-${track.id}-star-4"></label>
-                                <input type="radio" id="track-${track.id}-star-3" name="track-${track.id}-rating" value="3" ${trackRating === 3 ? 'checked' : ''}><label for="track-${track.id}-star-3"></label>
-                                <input type="radio" id="track-${track.id}-star-2" name="track-${track.id}-rating" value="2" ${trackRating === 2 ? 'checked' : ''}><label for="track-${track.id}-star-2"></label>
-                                <input type="radio" id="track-${track.id}-star-1" name="track-${track.id}-rating" value="1" ${trackRating === 1 ? 'checked' : ''}><label for="track-${track.id}-star-1"></label>
+                                ${starsHtml}
                             </div>
                         </div>
                     </li>
