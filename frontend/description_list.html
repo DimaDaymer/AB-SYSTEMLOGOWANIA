@@ -1,0 +1,112 @@
+<div id="description-list-content">
+    <h3>All description</h3>
+    <a href="#" id="back-to-filters" style="display: block; margin-bottom: 15px; color: #00ffcc;">← Back to filters</a>
+    <div className="description-container" id="description-list-grid">
+        <p>Loading description...</p>
+    </div>
+</div>
+<style>
+    .description-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+    }
+
+    .description-item {
+        display: block;
+        padding: 8px;
+        background-color: #444;
+        color: #ccc;
+        text-align: center;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .description-item:hover {
+        background-color: #555;
+        color: #fff;
+    }
+
+    .description-item.active {
+        background-color: #00ffcc;
+        color: #1a1a1a;
+        font-weight: bold;
+    }
+</style>
+<script>
+    window.initDescriptionList = async function () {
+        const descriptionContainer = document.getElementById('description-list-grid');
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedDescription = urlParams.get('description');
+        let selectedDescriptionArray = selectedDescription ? selectedDescription.split(',').map(g => g.trim()) : [];
+
+        try {
+            const response = await fetch('/api/filters/all-description');
+            if (!response.ok) throw new Error('Failed to fetch description');
+            const description = await response.json();
+
+            descriptionContainer.innerHTML = '';
+            if (description.length > 0) {
+                description.forEach(description => {
+                    const descriptionItem = document.createElement('a');
+                    descriptionItem.href = '#';
+                    descriptionItem.className = 'description-item';
+                    descriptionItem.textContent = description;
+
+                    if (selectedDescriptionArray.includes(description)) {
+                        descriptionItem.classList.add('active');
+                    }
+
+                    descriptionItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const isCurrentlyActive = descriptionItem.classList.contains('active');
+                        if (isCurrentlyActive) {
+                            descriptionItem.classList.remove('active');
+                            const index = selectedDescriptionArray.indexOf(description);
+                            if (index > -1) {
+                                selectedDescriptionArray.splice(index, 1);
+                            }
+                        } else {
+                            descriptionItem.classList.add('active');
+                            selectedDescriptionArray.push(description);
+                        }
+
+                        const newUrl = new URL(window.location);
+                        if (selectedDescriptionArray.length > 0) {
+                            newUrl.searchParams.set('description', selectedDescriptionArray.join(','));
+                        } else {
+                            newUrl.searchParams.delete('description');
+                        }
+
+                        window.history.pushState({}, '', newUrl);
+
+                        if (window.applyFilters) {
+                            window.applyFilters();
+                        }
+                    });
+                    descriptionContainer.appendChild(descriptionItem);
+                });
+            } else {
+                descriptionContainer.innerHTML = '<p>No description found.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching description:', error);
+            descriptionContainer.innerHTML = '<p>Failed to load description.</p>';
+        }
+    };
+
+    document.getElementById('back-to-filters').addEventListener('click', (e) => {
+        e.preventDefault();
+        const sidebar = document.getElementById('filter-sidebar-container');
+        if (sidebar && typeof window.loadFilterSidebar === 'function') {
+            window.loadFilterSidebar();
+        } else {
+            console.error('loadFilterSidebar function is not defined or container not found.');
+        }
+    });
+
+    if (typeof window.initDescriptionList === 'function') {
+        window.initDescriptionList();
+    }
+</script>

@@ -26,6 +26,8 @@ export function showMessage(message, isError = false) {
         setTimeout(() => messageDiv.remove(), 300);
     }, 5000);
 }
+// Добавляем функцию в глобальный объект window
+window.showMessage = showMessage;
 
 // Функция для загрузки компонентов
 export async function loadComponent(containerId, componentPath) {
@@ -37,13 +39,13 @@ export async function loadComponent(containerId, componentPath) {
         if (!container) throw new Error(`Container with ID '${containerId}' not found.`);
         container.innerHTML = html;
         const scripts = container.querySelectorAll('script');
-        for (const script of scripts) {
+        scripts.forEach(script => {
             const newScript = document.createElement('script');
             if (script.src) newScript.src = script.src;
             else newScript.textContent = script.textContent;
-            document.body.appendChild(newScript);
+            document.head.appendChild(newScript);
             script.remove();
-        }
+        });
         return true;
     } catch (error) {
         console.error(`Error loading component ${containerId}:`, error);
@@ -51,106 +53,13 @@ export async function loadComponent(containerId, componentPath) {
         return false;
     }
 }
-
-// Функция для отображения звездного рейтинга
-export function getStarDisplay(score) {
-    const fullStars = Math.floor(score);
-    const halfStar = score % 1 >= 0.5 ? '★' : '';
-    const emptyStars = 10 - fullStars - (halfStar ? 1 : 0);
-    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
-}
+// Добавляем функцию в глобальный объект window
+window.loadComponent = loadComponent;
 
 // Глобальные переменные
 let currentAlbumId = null;
 let albumDataCache = null;
 window.components = window.components || {};
-
-// Компонент для вкладки с рейтингами треков (новый дизайн)
-window.components.ratingTab = {
-    update: function(tracks, userRatings) {
-        const container = document.getElementById('track-ratings-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        tracks.forEach(track => {
-            const trackRating = userRatings[track.id] || 0;
-            let starsHtml = '';
-            for (let i = 10; i >= 1; i--) {
-                starsHtml += `
-                    <input type="radio" id="track-${track.id}-star${i}" name="track-rating-${track.id}" value="${i}" ${trackRating === i ? 'checked' : ''}>
-                    <label for="track-${track.id}-star${i}">★</label>
-                `;
-            }
-
-            const trackHtml = `
-                <li class="track-rating-item" data-track-id="${track.id}">
-                    <div class="track-info">
-                        <div class="track-title">${track.track_number}. ${track.title}</div>
-                        <div class="track-duration">${track.duration || ''}</div>
-                    </div>
-                    <div class="track-rating">
-                        <div class="track-stars">
-                            ${starsHtml}
-                        </div>
-                        <div class="track-rating-value">${trackRating}/10</div>
-                    </div>
-                </li>
-            `;
-            container.innerHTML += trackHtml;
-        });
-
-        // Добавляем один обработчик событий на родительский контейнер
-        container.addEventListener('change', async (e) => {
-            const ratingInput = e.target;
-            if (ratingInput.type === 'radio' && ratingInput.name.startsWith('track-rating-')) {
-                const trackItem = ratingInput.closest('.track-rating-item');
-                const trackId = trackItem.dataset.trackId;
-                const rating = parseInt(ratingInput.value);
-
-                // Обновляем UI
-                const ratingValueEl = trackItem.querySelector('.track-rating-value');
-                if (ratingValueEl) {
-                    ratingValueEl.textContent = `${rating}/10`;
-                }
-
-                // Сохраняем на сервере
-                await saveTrackRating(trackId, rating);
-            }
-        });
-    }
-};
-
-// Функция для сохранения рейтинга трека
-async function saveTrackRating(trackId, rating) {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            showMessage('Please log in to rate tracks', true);
-            setTimeout(() => window.location.href = '/login.html', 2000);
-            return;
-        }
-
-        const res = await fetch(`/api/track-ratings/${trackId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ rating })
-        });
-
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Failed to save track rating');
-        }
-
-        showMessage('Track rating saved!');
-    } catch (err) {
-        console.error('Error saving track rating:', err);
-        showMessage('Error: ' + err.message, true);
-    }
-}
 
 // Основная функция инициализации страницы
 document.addEventListener('DOMContentLoaded', async () => {
@@ -162,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         albumDataCache = await fetchAlbum(slug);
         currentAlbumId = albumDataCache.id;
-        window.currentAlbumId = currentAlbumId;
+        window.currentAlbumId = currentAlbumId; // 💡 Устанавливаем глобальный ID здесь
         window.albumDataCache = albumDataCache;
 
         updateComponents(albumDataCache);
@@ -174,7 +83,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showMessage('Error loading page: ' + error.message, true);
     }
 
-    // ДОБАВЛЕННЫЙ КОД ДЛЯ КНОПКИ РЕДАКТИРОВАНИЯ
     const editAlbumBtn = document.getElementById('edit-album-btn');
     if (editAlbumBtn) {
         editAlbumBtn.addEventListener('click', () => {
@@ -196,13 +104,6 @@ async function loadNavbar() {
         const navbarContainer = document.getElementById('navbar-container');
         if (!navbarContainer) return;
         navbarContainer.innerHTML = html;
-
-        const navbarScripts = navbarContainer.querySelectorAll('script');
-        navbarScripts.forEach(script => {
-            const newScript = document.createElement('script');
-            newScript.textContent = script.textContent;
-            document.body.appendChild(newScript);
-        });
 
         if (typeof initNavbar === 'function') initNavbar();
     } catch (err) {
@@ -232,7 +133,8 @@ export async function loadAllComponents() {
         { id: 'tabs-container', path: '/components/albums/tabs-container.html' },
         { id: 'user-actions-container', path: '/components/albums/user-actions.html' },
         { id: 'album-ratings-container', path: '/components/albums/album-ratings.html' },
-        { id: 'album-rating-stars-container', path: '/components/albums/album-rating-stars.html' },
+        { id: 'album-rating-tab-container', path: '/components/albums/album-rating-tab.html'},
+        { id: 'track-ratings-tab-container', path: '/components/albums/track-ratings-tab.html'},
         { id: 'histogram-container', path: '/components/albums/histogram.html' },
         { id: 'media-links-container', path: '/components/albums/media-links.html' }
     ];
@@ -271,11 +173,12 @@ function updateComponents(albumData) {
     if (window.components && window.components.albumInfo)
         window.components.albumInfo.update(albumData);
 
-    // Инициализация рейтинга треков
-    // Обратите внимание, что здесь мы передаем пустой объект для userRatings,
-    // так как они будут загружены позже в loadUserData
-    if (window.components && window.components.ratingTab && albumData.tracks) {
-        window.components.ratingTab.update(albumData.tracks, {});
+    if (window.components && window.components.trackRatingsTab && albumData.tracks) {
+        window.components.trackRatingsTab.update(albumData.tracks, {});
+    }
+
+    if (window.components && window.components.albumRatingTab) {
+        window.components.albumRatingTab.init(albumData.tracks);
     }
 }
 
@@ -285,16 +188,13 @@ async function loadUserData(albumId) {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        // Загрузка рейтинга альбома
         await loadUserRating(albumId);
-        // Проверка действий пользователя (like, listen, etc.)
         await checkUserAction(albumId);
 
-        // Загрузка и обновление рейтингов треков
         if (albumDataCache?.tracks?.length > 0) {
             const userTrackRatings = await loadUserTrackRatings(albumId);
-            if (window.components && window.components.ratingTab) {
-                window.components.ratingTab.update(albumDataCache.tracks, userTrackRatings);
+            if (window.components && window.components.trackRatingsTab) {
+                window.components.trackRatingsTab.update(albumDataCache.tracks, userTrackRatings);
             }
         }
     } catch (error) {
@@ -302,7 +202,6 @@ async function loadUserData(albumId) {
     }
 }
 
-// Функция, которая загружает и отображает рейтинг пользователя при загрузке страницы.
 async function loadUserRating(albumId) {
     try {
         const token = localStorage.getItem('token');
@@ -322,6 +221,7 @@ async function loadUserRating(albumId) {
             const exactMatch = document.querySelector(`.rating-stars input[value="${data.score}"]`);
             if (exactMatch) {
                 exactMatch.checked = true;
+                exactMatch.dispatchEvent(new Event('change')); // Add this line
             } else {
                 const allStars = document.querySelectorAll('.rating-stars input');
                 const ratingValue = parseFloat(data.score);
@@ -329,6 +229,7 @@ async function loadUserRating(albumId) {
                 for (const star of allStars) {
                     if (Math.abs(parseFloat(star.value) - ratingValue) < 0.3) {
                         star.checked = true;
+                        star.dispatchEvent(new Event('change')); // Add this line
                         break;
                     }
                 }
@@ -340,7 +241,6 @@ async function loadUserRating(albumId) {
     }
 }
 
-// Проверка действий пользователя
 async function checkUserAction(albumId) {
     try {
         const token = localStorage.getItem('token');
@@ -352,17 +252,21 @@ async function checkUserAction(albumId) {
 
         if (res.ok) {
             const actions = await res.json();
-            actions.forEach(action => {
-                const button = document.querySelector(`.user-actions div[data-action="${action.action_type}"]`);
-                if (button) button.classList.add('active');
-            });
+            // Corrected logic to handle object instead of array
+            if (actions) {
+                for (const actionType in actions) {
+                    if (actions[actionType]) {
+                        const button = document.querySelector(`.user-actions div[data-action="${actionType}"]`);
+                        if (button) button.classList.add('active');
+                    }
+                }
+            }
         }
     } catch (err) {
         console.error('Error checking user actions:', err);
     }
 }
 
-// Загрузка рейтингов треков пользователя
 async function loadUserTrackRatings(albumId) {
     try {
         const token = localStorage.getItem('token');
@@ -383,22 +287,19 @@ async function loadUserTrackRatings(albumId) {
     }
 }
 
-// Обновление отображения рейтингов
 function updateScoresDisplay() {
     const userScoreEl = document.querySelector('.score-block:first-of-type .score-value');
     const userRatingsCountEl = document.querySelector('.score-block:first-of-type .score-ratings');
 
-    // Эти данные пока что хардкодированы, но в будущем их нужно получать с сервера
     const userAvgScore = 8.1;
     const userTotalRatings = 50980;
 
     if (userScoreEl && userRatingsCountEl) {
-        userScoreEl.innerHTML = `${userAvgScore} <span class="star-display">${getStarDisplay(userAvgScore)}</span>`;
+        userScoreEl.innerHTML = `${userAvgScore} <span class="star-display"></span>`;
         userRatingsCountEl.textContent = `from ${userTotalRatings.toLocaleString()} ratings`;
     }
 }
 
-// Сохранение рейтинга альбома
 async function rateAlbum(rating) {
     try {
         const token = localStorage.getItem('token');
@@ -430,20 +331,6 @@ async function rateAlbum(rating) {
     }
 }
 
-// Обработчик оценки альбома
-document.addEventListener('click', async (e) => {
-    if (e.target.closest('.rating-stars')) {
-        const ratingInput = e.target.closest('input') ||
-            (e.target.tagName === 'LABEL' ? document.getElementById(e.target.htmlFor) : null);
-
-        if (!ratingInput || !currentAlbumId) return;
-
-        const rating = parseFloat(ratingInput.value);
-        await rateAlbum(rating);
-    }
-});
-
-// Отправка действия пользователя
 async function sendAlbumAction(actionType) {
     if (!currentAlbumId) return;
 
@@ -487,18 +374,112 @@ async function sendAlbumAction(actionType) {
     }
 }
 
-// Обработчик действий пользователя
 document.addEventListener('click', async (e) => {
+    // ВНИМАНИЕ: ЭТОТ ОБРАБОТЧИК БОЛЬШЕ НЕ НУЖЕН ДЛЯ КНОПКИ "ADD TO LIST"
+    // ПОСКОЛЬКУ МЫ ИСПОЛЬЗУЕМ ONCLICK НАПРЯМУЮ В HTML
     if (e.target.closest('.user-actions div[data-action]')) {
         const button = e.target.closest('.user-actions div[data-action]');
         const actionType = button.dataset.action;
-        await sendAlbumAction(actionType);
+        // Проверяем, если это не кнопка "Add to list", то выполняем sendAlbumAction
+        if (actionType !== 'add-to-list') {
+            await sendAlbumAction(actionType);
+        }
     }
 });
 
-// Глобальные переменные
+// Реализация debounce для оптимизации поиска
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
+// 💡 Новая, исправленная функция для открытия окна списка
+async function openListWindow() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showMessage('Please log in to add to a list', true);
+            setTimeout(() => window.location.href = '/login.html', 2000);
+            return;
+        }
+
+        // 1. Загружаем HTML-код модального окна
+        const response = await fetch('/list_window.html');
+        if (!response.ok) {
+            throw new Error('Failed to load list window component.');
+        }
+        const html = await response.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // 2. Извлекаем и добавляем стили
+        const styleElement = doc.querySelector('style');
+        if (styleElement) {
+            const head = document.head || document.getElementsByTagName('head')[0];
+            const existingStyle = head.querySelector('#list-window-styles');
+            if (!existingStyle) {
+                const newStyle = document.createElement('style');
+                newStyle.id = 'list-window-styles';
+                newStyle.textContent = styleElement.textContent;
+                head.appendChild(newStyle);
+            }
+        }
+
+        // 3. Извлекаем и добавляем оверлей
+        const overlay = doc.querySelector('.overlay');
+        if (!overlay) {
+            throw new Error('Could not find .overlay element in list_window.html');
+        }
+
+        let existingOverlay = document.getElementById('list-overlay');
+        if (!existingOverlay) {
+            overlay.id = 'list-overlay';
+            document.body.appendChild(overlay);
+        } else {
+            existingOverlay.innerHTML = overlay.innerHTML;
+        }
+
+        // 4. Извлекаем и исполняем скрипты
+        const scripts = doc.querySelectorAll('script');
+        let scriptPromises = [];
+        scripts.forEach(script => {
+            const newScript = document.createElement('script');
+            if (script.src) {
+                newScript.src = script.src;
+            } else {
+                newScript.textContent = script.textContent;
+            }
+            document.body.appendChild(newScript);
+        });
+
+        // Добавленная задержка для гарантированной загрузки скриптов
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // 5. Отображаем оверлей и предотвращаем прокрутку
+        const targetOverlay = document.getElementById('list-overlay');
+        if (targetOverlay) {
+            targetOverlay.style.display = 'flex';
+            document.body.classList.add('no-scroll');
+
+            // Вызываем функции инициализации только после того, как скрипты гарантированно загружены
+            // Используем window.loadUserLists и window.setupTabSwitching, чтобы быть уверенными, что функции доступны
+            if (window.loadUserLists) window.loadUserLists();
+            if (window.setupTabSwitching) window.setupTabSwitching();
+        }
+    } catch (err) {
+        console.error('Error opening list window:', err);
+        showMessage('Error opening list window: ' + err.message, true);
+    }
+}
+
+// Добавляем функцию в глобальный объект window для доступа из HTML
+window.openListWindow = openListWindow;
 window.sendAlbumAction = sendAlbumAction;
 window.rateAlbum = rateAlbum;
 window.currentAlbumId = currentAlbumId;
 window.albumDataCache = albumDataCache;
-window.getStarDisplay = getStarDisplay;

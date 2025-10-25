@@ -51,7 +51,8 @@ function populateForm(album) {
     document.getElementById('album-genre').value = (Array.isArray(album.genres) ? album.genres.join(', ') : album.genres) || '';
     document.getElementById('album-label').value = (Array.isArray(album.label) ? album.label.join(', ') : album.label) || '';
     document.getElementById('album-language').value = (Array.isArray(album.language) ? album.language.join(', ') : album.language) || '';
-    document.getElementById('album-description').value = album.description || '';
+    document.getElementById('album-description').value = (Array.isArray(album.description) ? album.description.join(', ') : album.description) || '';
+
 
     const tracklistContainer = document.getElementById('tracks-container');
     tracklistContainer.innerHTML = '';
@@ -138,9 +139,11 @@ async function handleEditFormSubmit(event) {
             throw new Error(errorData.error || 'Failed to update album');
         }
 
+        const responseData = await response.json();
         showMessage('Album updated successfully!', false);
         setTimeout(() => {
-            window.location.href = `/release/album/${currentAlbumSlug}`;
+            // Используем новый слаг, возвращенный сервером, для перенаправления
+            window.location.href = `/release/album/${responseData.slug}`;
         }, 2000);
     } catch (error) {
         console.error('Error updating album:', error);

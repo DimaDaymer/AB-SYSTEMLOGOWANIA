@@ -92,4 +92,23 @@ router.get('/album/:albumId/track-ratings', authenticate, async (req, res) => {
     }
 });
 
+router.get('/album/:id/stats', async (req, res) => {
+    try {
+        const { id: albumId } = req.params;
+        const [stats] = await pool.execute(
+            `SELECT AVG(score) as average_score, COUNT(score) as total_ratings
+             FROM ratings
+             WHERE album_id = ?`,
+            [albumId]
+        );
+        res.json({
+            average_score: stats[0]?.average_score || null,
+            total_ratings: stats[0]?.total_ratings || 0
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to get album stats' });
+    }
+});
+
 module.exports = router;

@@ -1,479 +1,458 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Filter Sidebar</title>
-    <style>
-        .filter-section {
-            margin-bottom: 20px;
-        }
-        .filter-options-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .filter-option-button {
-            padding: 6px 10px;
-            background: #333;
-            border-radius: 4px;
-            cursor: pointer;
-            text-align: center;
-            transition: background 0.2s;
-        }
-        .filter-option-button:hover {
-            background: #444;
-        }
-        .filter-option-button.active {
-            background: #555;
-            font-weight: bold;
-        }
-        .subgenre-panel {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            background: #222;
-            border-radius: 4px;
-        }
-        .subgenre-toggle {
-            color: #1a73e8;
-            cursor: pointer;
-            margin-top: 5px;
-            display: inline-block;
-        }
-    </style>
-</head>
-<body>
-<div class="filter-header">Add filters</div>
-<div class="filter-dropdowns">
-    <select class="filter-dropdown" id="sort-by-dropdown">
-        <option value="rating">Top</option>
-        <option value="popularity">Popularity</option>
-        <option value="release_date">Release Date</option>
-    </select>
-    <select class="filter-dropdown" id="order-dropdown">
-        <option value="desc">Descending</option>
-        <option value="asc">Ascending</option>
-    </select>
-</div>
-
-<div class="filter-search-container">
-    <input type="text" class="filter-search-input" placeholder="Search filters..." id="filter-search-input">
-    <span class="filter-search-icon">🔍</span>
-</div>
-
-<div class="filter-section">
-    <h3>Format</h3>
-    <div class="filter-options-grid" id="format-filter-options">
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="LP">LP</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="EP">EP</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="mixtape">Mixtape</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="DJ Mix">DJ Mix</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="single">Single</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="video">Video</div>
-        <div class="filter-option-button" data-filter-type="format" data-filter-value="compilation">Compilation</div>
+<div class="filter-sidebar">
+    <div class="filter-header">Add filters</div>
+    <div class="filter-dropdowns">
+        <select class="filter-dropdown" id="sort-by">
+            <option value="">- Default (Date) -</option>
+            <option value="rating">Top</option>
+            <option value="popularity">Popularity</option>
+        </select>
+        <select class="filter-dropdown" id="sort-order">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+        </select>
     </div>
-</div>
 
-<div class="filter-section">
-    <h3>Genres</h3>
-    <div class="filter-options-grid" id="genres-filter-options">
-        <!-- Основные жанры -->
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Rock">Rock</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Electronic">Electronic</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Hip Hop">Hip Hop</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Jazz">Jazz</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Classical">Classical</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Pop">Pop</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Metal">Metal</div>
-        <div class="filter-option-button" data-filter-type="genre" data-filter-value="Folk">Folk</div>
+    <div class="filter-search-container">
+        <input type="text" class="filter-search-input" placeholder="Examples of filters" id="filter-search-input">
+        <span class="filter-search-icon">🔍</span>
+    </div>
 
-        <!-- Кнопка для поджанров -->
-        <div class="subgenre-toggle" id="show-subgenres">Show all genres (2528) ▶</div>
-        <div class="subgenre-panel" id="subgenre-panel">
-            <div class="subgenre-categories">
-                <div class="subgenre-category">
-                    <h4 id="descriptors-count">Descriptors (223)</h4>
-                    <div class="filter-options-grid" id="descriptors-options"></div>
-                </div>
-                <div class="subgenre-category">
-                    <h4 id="locations-count">Locations (257)</h4>
-                    <div class="filter-options-grid" id="locations-options"></div>
-                </div>
-                <div class="subgenre-category">
-                    <h4 id="languages-count">Languages (286)</h4>
-                    <div class="filter-options-grid" id="languages-options"></div>
-                </div>
-            </div>
+    <div class="filter-section">
+        <h3>Format</h3>
+        <div class="filter-options-grid" id="format-filter-options">
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Album">Albums</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="EP">EP</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Mixtape">Mixtape</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="DJ Mix">DJ Mix</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Single">Singles</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Video">Video</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Compilation">Compilations</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Unauthorized">Unauthorized</div>
+            <div class="filter-option-button" data-filter-type="format" data-filter-value="Song">Songs</div>
         </div>
     </div>
-</div>
 
-<div class="filter-section">
-    <h3>Timeframe</h3>
-    <div class="year-filter-options">
-        <div>
-            <input type="radio" id="time-all-time" name="timeframe" value="all-time" checked>
-            <label for="time-all-time">All-time</label>
+    <div class="filter-section">
+        <h3>Genres</h3>
+        <p class="metadata"><span id="genres-count">...</span> genres</p>
+        <a href="#" id="browse-genres-button" class="filter-link-button">Browse genres ▶</a>
+    </div>
+
+    <div class="filter-section">
+        <h3>Descriptors</h3>
+        <p class="metadata"><span id="description-count">...</span> description</p>
+        <a href="#" id="browse-description-button" class="filter-link-button">Browse description ▶</a>
+    </div>
+
+    <div class="filter-section">
+        <h3>Languages</h3>
+        <p class="metadata"><span id="language-count">...</span> language</p>
+        <a href="#" id="browse-language-button" class="filter-link-button">Browse language ▶</a>
+    </div>
+
+    <div class="filter-section">
+        <h3>Locations</h3>
+        <p class="metadata">257 locations</p>
+        <a href="#" class="filter-link-button">Browse locations ▶</a>
+    </div>
+
+
+
+    <div class="filter-section">
+        <h3>Timeframe</h3>
+        <div class="year-filter-options">
+            <label><input type="radio" id="time-all-time" name="timeframe" value="all-time" checked> All-time</label>
+            <label><input type="radio" id="time-specific-year" name="timeframe" value="specific-year"> Specific year or decade</label>
+            <input type="text" id="specific-year-input" placeholder="Ex: 1982, 2010s" class="year-input">
+            <label><input type="radio" id="time-year-range" name="timeframe" value="year-range"> Year range</label>
+            <input type="text" id="year-range-input" placeholder="Ex: 1970-2000" class="year-input">
         </div>
-        <div>
-            <input type="radio" id="time-specific-year" name="timeframe" value="specific-year">
-            <label for="time-specific-year">Specific year</label>
-            <input type="number" id="specific-year-input" placeholder="Ex: 1982">
-        </div>
-        <div>
-            <input type="radio" id="time-year-range" name="timeframe" value="year-range">
-            <label for="time-year-range">Year range</label>
-            <input type="text" id="year-range-input" placeholder="Ex: 1970-2000">
-        </div>
-        <div>
-            <input type="radio" id="time-decade" name="timeframe" value="decade">
-            <label for="time-decade">Decade</label>
-            <select id="decade-select">
-                <option value="">Select decade</option>
-                <option value="1950s">1950s</option>
-                <option value="1960s">1960s</option>
-                <option value="1970s">1970s</option>
-                <option value="1980s">1980s</option>
-                <option value="1990s">1990s</option>
-                <option value="2000s">2000s</option>
-                <option value="2010s">2010s</option>
-                <option value="2020s">2020s</option>
-            </select>
+        <div class="year-grid" id="year-grid">
+            <div class="filter-option-button" data-year-range="2020-2029">2020s</div>
+            <div class="filter-option-button" data-year="2024">24</div>
+            <div class="filter-option-button" data-year="2023">23</div>
+            <div class="filter-option-button" data-year="2022">22</div>
+            <div class="filter-option-button" data-year="2021">21</div>
+            <div class="filter-option-button" data-year="2020">20</div>
+            <div class="filter-option-button" data-year="2019">19</div>
+            <div class="filter-option-button" data-year-range="2010-2019">2010s</div>
+            <div class="filter-option-button" data-year="2018">18</div>
+            <div class="filter-option-button" data-year="2000">00</div>
+            <div class="filter-option-button" data-year-range="1990-1999">1990s</div>
+            <div class="filter-option-button" data-year="1999">99</div>
+            <div class="filter-option-button" data-year="1998">98</div>
+            <div class="filter-option-button" data-year="1997">97</div>
+            <div class="filter-option-button" data-year="1996">96</div>
+            <div class="filter-option-button" data-year="1995">95</div>
+            <div class="filter-option-button" data-year="1994">94</div>
+            <div class="filter-option-button" data-year="1993">93</div>
+            <div class="filter-option-button" data-year="1992">92</div>
+            <div class="filter-option-button" data-year="1991">91</div>
+            <div class="filter-option-button" data-year="1990">90</div>
+            <div class="filter-option-button" data-year-range="1980-1989">1980s</div>
+            <div class="filter-option-button" data-year="1989">89</div>
+            <div class="filter-option-button" data-year="1988">88</div>
+            <div class="filter-option-button" data-year="1987">87</div>
+            <div class="filter-option-button" data-year="1986">86</div>
+            <div class="filter-option-button" data-year="1985">85</div>
+            <div class="filter-option-button" data-year="1984">84</div>
+            <div class="filter-option-button" data-year="1983">83</div>
+            <div class="filter-option-button" data-year="1982">82</div>
+            <div class="filter-option-button" data-year="1981">81</div>
+            <div class="filter-option-button" data-year="1980">80</div>
+            <div class="filter-option-button" data-year-range="1970-1979">1970s</div>
+            <div class="filter-option-button" data-year="1979">79</div>
+            <div class="filter-option-button" data-year="1978">78</div>
+            <div class="filter-option-button" data-year="1977">77</div>
+            <div class="filter-option-button" data-year="1976">76</div>
+            <div class="filter-option-button" data-year="1975">75</div>
+            <div class="filter-option-button" data-year="1974">74</div>
+            <div class="filter-option-button" data-year="1973">73</div>
+            <div class="filter-option-button" data-year="1972">72</div>
+            <div class="filter-option-button" data-year="1971">71</div>
+            <div class="filter-option-button" data-year="1970">70</div>
+            <div class="filter-option-button" data-year-range="1960-1969">1960s</div>
+            <div class="filter-option-button" data-year="1969">69</div>
+            <div class="filter-option-button" data-year="1968">68</div>
+            <div class="filter-option-button" data-year="1967">67</div>
+            <div class="filter-option-button" data-year="1966">66</div>
+            <div class="filter-option-button" data-year="1965">65</div>
+            <div class="filter-option-button" data-year="1964">64</div>
+            <div class="filter-option-button" data-year="1963">63</div>
+            <div class="filter-option-button" data-year="1962">62</div>
+            <div class="filter-option-button" data-year="1961">61</div>
+            <div class="filter-option-button" data-year="1960">60</div>
+            <div class="filter-option-button" data-year-range="1950-1959">1950s</div>
+            <div class="filter-option-button" data-year="1959">59</div>
+            <div class="filter-option-button" data-year="1958">58</div>
+            <div class="filter-option-button" data-year="1957">57</div>
+            <div class="filter-option-button" data-year="1956">56</div>
+            <div class="filter-option-button" data-year="1955">55</div>
+            <div class="filter-option-button" data-year="1954">54</div>
+            <div class="filter-option-button" data-year="1953">53</div>
+            <div class="filter-option-button" data-year="1952">52</div>
+            <div class="filter-option-button" data-year="1951">51</div>
+            <div class="filter-option-button" data-year="1950">50</div>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Инициализация фильтров
-        initFilters();
+    function updateUrl() {
+        const params = new URLSearchParams();
 
-        // Обработчик для поджанров
-        document.getElementById('show-subgenres').addEventListener('click', function() {
-            const panel = document.getElementById('subgenre-panel');
-            if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-                this.textContent = 'Show all genres (2528) ▶';
-            } else {
-                panel.style.display = 'block';
-                this.textContent = 'Hide genres ▼';
-                if (!panel.dataset.loaded) {
-                    loadSubgenres();
-                    panel.dataset.loaded = true;
-                }
+        // Sorting
+        const sortBy = document.getElementById('sort-by').value;
+        if (sortBy) params.set('sort', sortBy);
+
+        const sortOrder = document.getElementById('sort-order').value;
+        if (sortOrder) params.set('order', sortOrder);
+
+        // Search
+        const searchInput = document.getElementById('filter-search-input').value;
+        if (searchInput) params.set('search', searchInput);
+
+        // Format (multiple selection)
+        const formats = Array.from(document.querySelectorAll('#format-filter-options .filter-option-button.active'))
+            .map(btn => btn.dataset.filterValue);
+        if (formats.length > 0) params.set('format', formats.join(','));
+
+        // Genres (multiple selection)
+        if (window.selectedGenresArray && window.selectedGenresArray.length > 0) {
+            params.set('genres', window.selectedGenresArray.join(','));
+        }
+
+        // Description (multiple selection)
+        if (window.selectedDescriptionArray && window.selectedDescriptionArray.length > 0) {
+            params.set('description', window.selectedDescriptionArray.join(','));
+        }
+        // language (multiple selection)
+        if (window.selectedLanguageArray && window.selectedLanguageArray.length > 0) {
+            params.set('language', window.selectedLanguageArray.join(','));
+        }
+
+
+        // Years
+        const activeYearButton = document.querySelector('#year-grid .filter-option-button.active');
+        const timeframe = document.querySelector('input[name="timeframe"]:checked').value;
+
+        if (activeYearButton) {
+            if (activeYearButton.dataset.year) {
+                params.set('year', activeYearButton.dataset.year);
+            } else if (activeYearButton.dataset.yearRange) {
+                params.set('yearRange', activeYearButton.dataset.yearRange);
             }
-        });
-    });
+        } else {
+            if (timeframe === 'specific-year') {
+                const yearOrDecade = document.getElementById('specific-year-input').value;
+                if (yearOrDecade) {
+                    if (yearOrDecade.endsWith('s')) {
+                        params.set('yearRange', yearOrDecade);
+                    } else {
+                        params.set('year', yearOrDecade);
+                    }
+                }
+            } else if (timeframe === 'year-range') {
+                const yearRange = document.getElementById('year-range-input').value;
+                if (yearRange) params.set('yearRange', yearRange);
+            }
+        }
+
+        history.pushState(null, '', `/new_releases.html?${params.toString()}`);
+        if (window.applyFilters) window.applyFilters();
+    }
+
+
+    async function fetchGenreCount() {
+        try {
+            const response = await fetch('/api/filters/genres-count');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('genres-count').textContent = data.count.toLocaleString();
+            } else {
+                document.getElementById('genres-count').textContent = '...';
+            }
+        } catch (error) {
+            console.error('Error fetching genre count:', error);
+            document.getElementById('genres-count').textContent = '...';
+        }
+    }
+
+    async function fetchDescriptionCount() {
+        try {
+            const response = await fetch('/api/filters/description-count');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('description-count').textContent = data.count.toLocaleString();
+            } else {
+                document.getElementById('description-count').textContent = '...';
+            }
+        } catch (error) {
+            console.error('Error fetching description count:', error);
+            document.getElementById('description-count').textContent = '...';
+        }
+    }
+
+    async function fetchLanguageCount() {
+        try {
+            const response = await fetch('/api/filters/language-count');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('language-count').textContent = data.count.toLocaleString();
+            } else {
+                document.getElementById('language-count').textContent = '...';
+            }
+        } catch (error) {
+            console.error('Error fetching language count:', error);
+            document.getElementById('language-count').textContent = '...';
+        }
+    }
+
+    function loadDynamicContent(url, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Container with ID '${containerId}' not found.`);
+            return;
+        }
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                container.innerHTML = html;
+                const scripts = container.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.textContent = script.textContent;
+                    }
+                    // It's crucial to append scripts to the body to ensure they execute
+                    document.body.appendChild(newScript);
+                    script.remove();
+                });
+            })
+            .catch(err => console.error(`Failed to load content from ${url}: `, err));
+    }
+
+    function loadGenresList() {
+        loadDynamicContent('/genres_list.html', 'filter-sidebar-container');
+    }
+
+    function loadDescriptionList() {
+        loadDynamicContent('/description_list.html', 'filter-sidebar-container');
+    }
+
+    function loadLanguageList() {
+        loadDynamicContent('/language_list.html', 'filter-sidebar-container');
+    }
 
     function initFilters() {
-        const sortByDropdown = document.getElementById('sort-by-dropdown');
-        const orderDropdown = document.getElementById('order-dropdown');
-        const formatFilterOptions = document.getElementById('format-filter-options');
-        const genresFilterOptions = document.getElementById('genres-filter-options');
-        const yearFilterRadios = document.querySelectorAll('input[name="timeframe"]');
-        const specificYearInput = document.getElementById('specific-year-input');
-        const yearRangeInput = document.getElementById('year-range-input');
-        const decadeSelect = document.getElementById('decade-select');
+        const params = new URLSearchParams(window.location.search);
 
-        let currentFilters = {
-            sort: sortByDropdown.value,
-            order: orderDropdown.value,
-            format: [],
-            genres: [],
-            subgenres: [],
-            year: null,
-            yearRange: null,
-            decade: null,
-            timeframe: document.querySelector('input[name="timeframe"]:checked').value,
-        };
+        document.getElementById('sort-by').value = params.get('sort') || '';
+        document.getElementById('sort-order').value = params.get('order') || 'desc';
 
-        // Применение фильтров
-        async function applyFilters() {
-            const queryParams = new URLSearchParams();
-
-            // Добавляем параметры в URL
-            queryParams.append('sort', currentFilters.sort);
-            queryParams.append('order', currentFilters.order);
-
-            if (currentFilters.format.length > 0) {
-                queryParams.append('format', currentFilters.format.join(','));
-            }
-
-            if (currentFilters.genres.length > 0) {
-                queryParams.append('genres', currentFilters.genres.join(','));
-            }
-
-            if (currentFilters.subgenres.length > 0) {
-                queryParams.append('subgenres', currentFilters.subgenres.join(','));
-            }
-
-            if (currentFilters.timeframe === 'specific-year' && currentFilters.year) {
-                queryParams.append('year', currentFilters.year);
-            } else if (currentFilters.timeframe === 'year-range' && currentFilters.yearRange) {
-                queryParams.append('yearRange', currentFilters.yearRange);
-            } else if (currentFilters.timeframe === 'decade' && currentFilters.decade) {
-                queryParams.append('decade', currentFilters.decade);
-            }
-
-            // Обновляем URL без перезагрузки страницы
-            window.history.pushState(null, null, `?${queryParams.toString()}`);
-
-            // Загружаем альбомы с новыми фильтрами
-            await fetchAlbums(queryParams);
+        const searchInput = document.getElementById('filter-search-input');
+        if (searchInput) {
+            searchInput.value = params.get('search') || '';
         }
 
-        // Загрузка альбомов с сервера
-        async function fetchAlbums(params) {
-            try {
-                const response = await fetch(`/api/albums?${params}`);
-                if (!response.ok) throw new Error('Failed to fetch albums');
-                const albums = await response.json();
-                displayAlbums(albums);
-            } catch (error) {
-                console.error('Error fetching albums:', error);
-            }
-        }
+        const year = params.get('year');
+        const yearRange = params.get('yearRange');
 
-        // Отображение альбомов
-        function displayAlbums(albums) {
-            const container = document.getElementById('albums-container');
-            if (!container) return;
-
-            container.innerHTML = '';
-
-            if (albums.length === 0) {
-                container.innerHTML = '<p>No albums found matching your criteria.</p>';
-                return;
-            }
-
-            albums.forEach(album => {
-                const albumElement = document.createElement('div');
-                albumElement.className = 'album-card';
-                albumElement.innerHTML = `
-                    <a href="/album/${album.slug}">
-                        <img src="${album.cover_url || '/placeholder.png'}" alt="${album.title}">
-                        <div class="album-info">
-                            <h3>${album.title}</h3>
-                            <p>${album.artist}</p>
-                            <div class="album-meta">
-                                <span>${album.release_date || 'Unknown year'}</span>
-                                <span>${album.genres || ''}</span>
-                            </div>
-                            <div class="album-rating">
-                                ${getStarRating(album.average_rating || 0)}
-                                <span>${album.likes || 0} likes</span>
-                            </div>
-                        </div>
-                    </a>
-                `;
-                container.appendChild(albumElement);
-            });
-        }
-
-        // Вспомогательная функция для отображения рейтинга звездами
-        function getStarRating(rating) {
-            const fullStars = Math.floor(rating);
-            const hasHalfStar = rating % 1 >= 0.5;
-            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-            return '★'.repeat(fullStars) +
-                (hasHalfStar ? '½' : '') +
-                '☆'.repeat(emptyStars);
-        }
-
-        // Загрузка поджанров
-        async function loadSubgenres() {
-            try {
-                const [descriptors, locations, languages] = await Promise.all([
-                    fetch('/api/genres/descriptors').then(res => res.json()),
-                    fetch('/api/genres/locations').then(res => res.json()),
-                    fetch('/api/genres/languages').then(res => res.json())
-                ]);
-
-                populateSubgenres('descriptors-options', descriptors);
-                populateSubgenres('locations-options', locations);
-                populateSubgenres('languages-options', languages);
-            } catch (error) {
-                console.error('Error loading subgenres:', error);
-            }
-        }
-
-        function populateSubgenres(containerId, items) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            container.innerHTML = '';
-
-            items.forEach(item => {
-                const button = document.createElement('div');
-                button.className = 'filter-option-button';
-                button.dataset.filterType = 'subgenre';
-                button.dataset.filterValue = item.name;
-                button.textContent = item.name;
-                button.addEventListener('click', toggleSubgenreFilter);
-                container.appendChild(button);
-            });
-        }
-
-        // Обработчики событий для фильтров
-        function toggleSubgenreFilter(e) {
-            const button = e.target;
-            const value = button.dataset.filterValue;
-
-            if (currentFilters.subgenres.includes(value)) {
-                currentFilters.subgenres = currentFilters.subgenres.filter(g => g !== value);
-                button.classList.remove('active');
+        if (year) {
+            document.getElementById('time-specific-year').checked = true;
+            document.getElementById('specific-year-input').value = year;
+        } else if (yearRange) {
+            if (yearRange.endsWith('s')) {
+                document.getElementById('time-specific-year').checked = true;
+                document.getElementById('specific-year-input').value = yearRange;
             } else {
-                currentFilters.subgenres.push(value);
-                button.classList.add('active');
+                document.getElementById('time-year-range').checked = true;
+                document.getElementById('year-range-input').value = yearRange;
             }
-
-            applyFilters();
+        } else {
+            document.getElementById('time-all-time').checked = true;
         }
 
-        // Остальные обработчики событий...
-        sortByDropdown.addEventListener('change', (e) => {
-            currentFilters.sort = e.target.value;
-            applyFilters();
-        });
-
-        orderDropdown.addEventListener('change', (e) => {
-            currentFilters.order = e.target.value;
-            applyFilters();
-        });
-
-        formatFilterOptions.addEventListener('click', (e) => {
-            const button = e.target.closest('.filter-option-button');
-            if (button) {
-                const value = button.dataset.filterValue;
-                if (currentFilters.format.includes(value)) {
-                    currentFilters.format = currentFilters.format.filter(f => f !== value);
-                    button.classList.remove('active');
+        const setButtonsActive = (containerId, paramName) => {
+            const paramValue = params.get(paramName) || '';
+            const values = paramValue.split(',').map(v => v.trim());
+            document.querySelectorAll(`#${containerId} .filter-option-button`).forEach(btn => {
+                const buttonValue = btn.dataset.filterValue || btn.dataset.year || btn.dataset.yearRange;
+                if (values.includes(buttonValue)) {
+                    btn.classList.add('active');
                 } else {
-                    currentFilters.format.push(value);
-                    button.classList.add('active');
+                    btn.classList.remove('active');
                 }
-                applyFilters();
-            }
-        });
+            });
+        };
+        setButtonsActive('format-filter-options', 'format');
 
-        genresFilterOptions.addEventListener('click', (e) => {
-            const button = e.target.closest('.filter-option-button');
-            if (button && button.dataset.filterType === 'genre') {
-                const value = button.dataset.filterValue;
-                if (currentFilters.genres.includes(value)) {
-                    currentFilters.genres = currentFilters.genres.filter(g => g !== value);
-                    button.classList.remove('active');
+        if (year || yearRange) {
+            const yearGridButtons = document.querySelectorAll('#year-grid .filter-option-button');
+            yearGridButtons.forEach(btn => {
+                const btnYear = btn.dataset.year;
+                const btnYearRange = btn.dataset.yearRange;
+                if ((btnYear && btnYear === year) || (btnYearRange && btnYearRange === yearRange)) {
+                    btn.classList.add('active');
                 } else {
-                    currentFilters.genres.push(value);
-                    button.classList.add('active');
+                    btn.classList.remove('active');
                 }
-                applyFilters();
-            }
+            });
+        }
+
+        document.querySelectorAll('.filter-dropdown').forEach(dropdown => {
+            dropdown.addEventListener('change', updateUrl);
         });
 
-        yearFilterRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                currentFilters.timeframe = e.target.value;
-                if (e.target.value !== 'specific-year') specificYearInput.value = '';
-                if (e.target.value !== 'year-range') yearRangeInput.value = '';
-                if (e.target.value !== 'decade') decadeSelect.value = '';
-                currentFilters.year = null;
-                currentFilters.yearRange = null;
-                currentFilters.decade = null;
-                applyFilters();
+        const searchInputEl = document.getElementById('filter-search-input');
+        if (searchInputEl) {
+            searchInputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') updateUrl();
+            });
+        }
+
+        document.querySelectorAll('input[name="timeframe"]').forEach(radio => {
+            radio.addEventListener('change', updateUrl);
+        });
+
+        const specificYearInput = document.getElementById('specific-year-input');
+        if (specificYearInput) {
+            specificYearInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('time-specific-year').checked = true;
+                    updateUrl();
+                }
+            });
+        }
+
+        const yearRangeInput = document.getElementById('year-range-input');
+        if (yearRangeInput) {
+            yearRangeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('time-year-range').checked = true;
+                    updateUrl();
+                }
+            });
+        }
+
+        const yearGridButtons = document.querySelectorAll('#year-grid .filter-option-button');
+        yearGridButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const wasActive = e.target.classList.contains('active');
+                document.querySelectorAll('#year-grid .filter-option-button').forEach(btn => btn.classList.remove('active'));
+                if (!wasActive) {
+                    e.target.classList.add('active');
+                }
+                document.getElementById('time-all-time').checked = true;
+                document.getElementById('specific-year-input').value = '';
+                document.getElementById('year-range-input').value = '';
+                updateUrl();
             });
         });
 
-        specificYearInput.addEventListener('input', (e) => {
-            if (e.target.value) {
-                document.getElementById('time-specific-year').checked = true;
-                currentFilters.timeframe = 'specific-year';
-                currentFilters.year = e.target.value;
-                currentFilters.yearRange = null;
-                currentFilters.decade = null;
-                applyFilters();
-            }
-        });
-
-        yearRangeInput.addEventListener('input', (e) => {
-            if (e.target.value) {
-                document.getElementById('time-year-range').checked = true;
-                currentFilters.timeframe = 'year-range';
-                currentFilters.yearRange = e.target.value;
-                currentFilters.year = null;
-                currentFilters.decade = null;
-                applyFilters();
-            }
-        });
-
-        decadeSelect.addEventListener('change', (e) => {
-            if (e.target.value) {
-                document.getElementById('time-decade').checked = true;
-                currentFilters.timeframe = 'decade';
-                currentFilters.decade = e.target.value;
-                currentFilters.year = null;
-                currentFilters.yearRange = null;
-                applyFilters();
-            }
-        });
-
-        // Загрузка начальных фильтров из URL
-        function loadInitialFilters() {
-            const params = new URLSearchParams(window.location.search);
-
-            if (params.has('sort')) currentFilters.sort = params.get('sort');
-            if (params.has('order')) currentFilters.order = params.get('order');
-
-            if (params.has('format')) {
-                currentFilters.format = params.get('format').split(',');
-                currentFilters.format.forEach(format => {
-                    const button = document.querySelector(`.filter-option-button[data-filter-value="${format}"]`);
-                    if (button) button.classList.add('active');
-                });
-            }
-
-            if (params.has('genres')) {
-                currentFilters.genres = params.get('genres').split(',');
-                currentFilters.genres.forEach(genre => {
-                    const button = document.querySelector(`.filter-option-button[data-filter-value="${genre}"]`);
-                    if (button) button.classList.add('active');
-                });
-            }
-
-            if (params.has('subgenres')) {
-                currentFilters.subgenres = params.get('subgenres').split(',');
-                // Поджанры будут отмечены при загрузке
-            }
-
-            if (params.has('year')) {
-                document.getElementById('time-specific-year').checked = true;
-                currentFilters.timeframe = 'specific-year';
-                currentFilters.year = params.get('year');
-                specificYearInput.value = params.get('year');
-            }
-
-            if (params.has('yearRange')) {
-                document.getElementById('time-year-range').checked = true;
-                currentFilters.timeframe = 'year-range';
-                currentFilters.yearRange = params.get('yearRange');
-                yearRangeInput.value = params.get('yearRange');
-            }
-
-            if (params.has('decade')) {
-                document.getElementById('time-decade').checked = true;
-                currentFilters.timeframe = 'decade';
-                currentFilters.decade = params.get('decade');
-                decadeSelect.value = params.get('decade');
-            }
-
-            // Применяем начальные фильтры
-            applyFilters();
+        const genreLinkButton = document.getElementById('browse-genres-button');
+        if (genreLinkButton) {
+            genreLinkButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                loadGenresList();
+            });
         }
 
-        loadInitialFilters();
+        fetchGenreCount();
+
+        const descriptionLinkButton = document.getElementById('browse-description-button');
+        if (descriptionLinkButton) {
+            descriptionLinkButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                loadDescriptionList();
+            });
+        }
+
+        const languageLinkButton = document.getElementById('browse-language-button');
+        if (languageLinkButton) {
+            languageLinkButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                loadLanguageList();
+            });
+        }
+
+        document.querySelectorAll('#format-filter-options .filter-option-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.target.classList.toggle('active');
+                updateUrl();
+            });
+        });
     }
+    fetchDescriptionCount();
+    fetchLanguageCount();
+
+    window.loadFilterSidebar = function() {
+        const sidebarContainer = document.getElementById('filter-sidebar-container');
+        if (sidebarContainer) {
+            fetch('/filter_sidebar.html')
+                .then(response => response.text())
+                .then(html => {
+                    sidebarContainer.innerHTML = html;
+                    const scripts = sidebarContainer.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        if (script.src) {
+                            newScript.src = script.src;
+                        } else {
+                            newScript.textContent = script.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                        script.remove();
+                    });
+                    initFilters();
+                })
+                .catch(err => console.error('Failed to load filter sidebar: ', err));
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', initFilters);
+
 </script>
-</body>
-</html>

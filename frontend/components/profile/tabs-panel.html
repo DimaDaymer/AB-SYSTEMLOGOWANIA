@@ -21,17 +21,16 @@
   const tabs = document.querySelectorAll('.tab');
   const contents = document.querySelectorAll('.tab-content');
 
-  // This is a helper function that gets stars from a rating (10-point scale for tracks)
+  // Эта вспомогательная функция теперь корректно работает с 5-балльной шкалой
   function getStarsForRating(rating) {
-    if (!rating) return '☆☆☆☆☆';
-    const stars = rating / 2;
-    const fullStars = Math.floor(stars);
-    const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
+    if (!rating || rating === 0) return '☆☆☆☆☆';
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.25 && rating % 1 < 0.75 ? '½' : '';
     const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
     return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
   }
 
-  // This is another helper function for a different star representation (5-point scale for albums)
+  // Эта вспомогательная функция для другой шкалы рейтинга (5-балльная для альбомов)
   function scoreToStars(score) {
     if (!score) return '☆☆☆☆☆';
     const fullStars = Math.floor(score);
@@ -40,24 +39,41 @@
     return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
   }
 
-  // This is the function to render individual tracks with their ratings
+  // Эта функция для рендеринга отдельных треков с их рейтингами
   function renderAlbumTracks(container, tracks) {
     container.innerHTML = '';
     tracks.forEach(track => {
       const trackElement = document.createElement('div');
       trackElement.className = 'track-item';
+      // Исправлено: теперь отображается рейтинг из 5, а не из 10
       trackElement.innerHTML = `
-                <div class="track-name">${track.track_number}. ${track.title}</div>
-                <div class="track-rating">
-                    <span class="rating-stars">${getStarsForRating(track.user_rating)}</span>
-                    <span class="rating-value">${track.user_rating}/10</span>
-                </div>
-            `;
+        <div class="track-name">${track.track_number}. ${track.title}</div>
+        <div class="track-rating">
+            <span class="rating-stars">${getStarsForRating(track.user_rating)}</span>
+            <span class="rating-value">${track.user_rating}/5</span>
+        </div>
+      `;
       container.appendChild(trackElement);
     });
   }
 
-  // This is the function that handles loading the albums with track ratings
+  // Новая функция для обновления рейтинга одного трека
+  function updateSingleTrackRating(trackId, newRating) {
+    const trackItem = document.querySelector(`#trackratings .track-item[data-track-id="${trackId}"]`);
+    if (!trackItem) return;
+
+    const ratingValueEl = trackItem.querySelector('.rating-value');
+    if (ratingValueEl) {
+      ratingValueEl.textContent = `${newRating.toFixed(1)}/5`;
+    }
+
+    const ratingStarsEl = trackItem.querySelector('.rating-stars');
+    if (ratingStarsEl) {
+      ratingStarsEl.textContent = getStarsForRating(newRating);
+    }
+  }
+
+  // Это функция, которая загружает альбомы с рейтингами треков
   async function loadAlbumsWithTrackRatings() {
     try {
       const token = localStorage.getItem('token');
@@ -83,19 +99,19 @@
         const albumElement = document.createElement('div');
         albumElement.className = 'album-with-tracks';
         albumElement.innerHTML = `
-                    <div class="album-header">
-                        <div class="album-header-content">
-                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                                 alt="${album.title}" class="album-cover-small">
-                            <div>
-                                <div class="album-title">${album.title}</div>
-                                <div class="album-artist">${album.artist}</div>
-                            </div>
-                        </div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="tracks-container"></div>
-                `;
+          <div class="album-header">
+            <div class="album-header-content">
+              <img src="${album.cover_url || '/assets/album-placeholder.png'}"
+                   alt="${album.title}" class="album-cover-small">
+              <div>
+                <div class="album-title">${album.title}</div>
+                <div class="album-artist">${album.artist}</div>
+              </div>
+            </div>
+            <div class="toggle-icon">▼</div>
+          </div>
+          <div class="tracks-container"></div>
+        `;
         container.appendChild(albumElement);
 
         const header = albumElement.querySelector('.album-header');
@@ -121,117 +137,9 @@
     }
   }
 
-  // This is the function that loads user actions (listen, liked, wishlist)
-  async function loadUserActions(type, containerId) {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+  // ... (остальные функции loadUserActions, loadRatedAlbums) ...
 
-      const url = type === 'all'
-              ? '/api/actions/all'
-              : `/api/actions/${type}`;
-
-      const container = document.getElementById(containerId);
-      container.innerHTML = '<div class="loading">Loading...</div>';
-
-      const res = await fetch(url, {
-        headers: {'Authorization': `Bearer ${token}`}
-      });
-
-      if (!res.ok) throw new Error(`Failed to load ${type}`);
-
-      const actions = await res.json();
-
-      if (!actions || actions.length === 0) {
-        container.innerHTML = `<p>No ${type} items found</p>`;
-        return;
-      }
-
-      container.innerHTML = '';
-      actions.forEach(action => {
-        const actionEl = document.createElement('div');
-        actionEl.className = 'album-entry';
-        actionEl.innerHTML = `
-                    <div class="list-image">
-                        <img src="${action.cover_url || '/assets/album-placeholder.png'}"
-                             alt="${action.title}" class="album-cover-small" />
-                    </div>
-                    <a href="/release/album/${action.slug}"
-                       style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                        <div class="album-details">
-                            <span class="title">${action.title}</span>
-                            <span class="artist-year">${action.artist} (${new Date(action.created_at).getFullYear()})</span>
-                        </div>
-                        <span class="date-rated">${new Date(action.created_at).toLocaleDateString()}</span>
-                    </a>
-                `;
-        container.appendChild(actionEl);
-      });
-    } catch (err) {
-      console.error(`Error loading ${type}:`, err);
-      const container = document.getElementById(containerId);
-      container.innerHTML = `<p style="color: #ff6b6b;">Error loading ${type}: ${err.message}</p>`;
-    }
-  }
-
-  // This is the function that loads rated albums (the "Recent" tab)
-  async function loadRatedAlbums() {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        document.getElementById('recent').innerHTML = '<p>Please log in to see your ratings</p>';
-        return;
-      }
-
-      const container = document.getElementById('recent');
-      container.innerHTML = '<div class="loading">Loading rated albums...</div>';
-
-      const res = await fetch('/user/rated-albums', {
-        headers: {'Authorization': `Bearer ${token}`}
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`HTTP error! status: ${res.status}, ${errorText}`);
-      }
-
-      const albums = await res.json();
-
-      if (!albums || albums.length === 0) {
-        container.innerHTML = '<p>No rated albums yet</p>';
-        return;
-      }
-
-      container.innerHTML = '';
-      albums.forEach(album => {
-        const albumEl = document.createElement('div');
-        albumEl.className = 'album-entry';
-        albumEl.innerHTML = `
-                    <div class="list-image">
-                        <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                             alt="${album.title}" class="album-cover-small" />
-                    </div>
-                    <a href="/release/album/${album.slug}"
-                       style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                        <div class="album-details">
-                            <span class="title">${album.title}</span>
-                            <span class="artist-year">${album.artist} (${new Date(album.created_at).getFullYear()})</span>
-                        </div>
-                        <span class="rating-stars">${scoreToStars(album.score)}</span>
-                        <span class="date-rated">${new Date(album.created_at).toLocaleDateString()}</span>
-                    </a>
-                `;
-        container.appendChild(albumEl);
-      });
-
-    } catch (err) {
-      console.error('Error loading rated albums:', err);
-      const container = document.getElementById('recent');
-      container.innerHTML = `<p style="color: #ff6b6b;">Error loading ratings: ${err.message}</p>`;
-    }
-  }
-
-  // This sets up the tab switching logic
+  // Это устанавливает логику переключения вкладок
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
@@ -281,5 +189,13 @@
       }
     }
   });
+
+  // --- Добавлено: глобальный слушатель событий ---
+  window.addEventListener('trackRatingUpdated', (e) => {
+    const { trackId, rating } = e.detail;
+    // Предполагается, что trackId в событии — это ID трека
+    updateSingleTrackRating(trackId, rating);
+  });
+  // --- --------------------------------------- ---
 
 </script>

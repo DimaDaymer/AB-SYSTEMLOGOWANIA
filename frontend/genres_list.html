@@ -1,0 +1,113 @@
+<div id="genres-list-content">
+    <h3>All Genres</h3>
+    <a href="#" id="back-to-filters" style="display: block; margin-bottom: 15px; color: #00ffcc;">← Back to filters</a>
+    <div className="genres-container" id="genres-list-grid">
+        <p>Loading genres...</p>
+    </div>
+</div>
+<style>
+    .genres-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+    }
+
+    .genre-item {
+        display: block;
+        padding: 8px;
+        background-color: #444;
+        color: #ccc;
+        text-align: center;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .genre-item:hover {
+        background-color: #555;
+        color: #fff;
+    }
+
+    .genre-item.active {
+        background-color: #00ffcc;
+        color: #1a1a1a;
+        font-weight: bold;
+    }
+</style>
+<script>
+    window.initGenresList = async function () {
+        const genresContainer = document.getElementById('genres-list-grid');
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedGenres = urlParams.get('genres');
+        let selectedGenresArray = selectedGenres ? selectedGenres.split(',').map(g => g.trim()) : [];
+
+        try {
+            const response = await fetch('/api/filters/all-genres');
+            if (!response.ok) throw new Error('Failed to fetch genres');
+            const genres = await response.json();
+
+            genresContainer.innerHTML = '';
+            if (genres.length > 0) {
+                genres.forEach(genre => {
+                    const genreItem = document.createElement('a');
+                    genreItem.href = '#';
+                    genreItem.className = 'genre-item';
+                    genreItem.textContent = genre;
+
+                    if (selectedGenresArray.includes(genre)) {
+                        genreItem.classList.add('active');
+                    }
+
+                    genreItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const isCurrentlyActive = genreItem.classList.contains('active');
+                        if (isCurrentlyActive) {
+                            genreItem.classList.remove('active');
+                            const index = selectedGenresArray.indexOf(genre);
+                            if (index > -1) {
+                                selectedGenresArray.splice(index, 1);
+                            }
+                        } else {
+                            genreItem.classList.add('active');
+                            selectedGenresArray.push(genre);
+                        }
+
+                        const newUrl = new URL(window.location);
+                        if (selectedGenresArray.length > 0) {
+                            newUrl.searchParams.set('genres', selectedGenresArray.join(','));
+                        } else {
+                            newUrl.searchParams.delete('genres');
+                        }
+
+                        window.history.pushState({}, '', newUrl);
+
+                        if (window.applyFilters) {
+                            window.applyFilters();
+                        }
+                    });
+                    genresContainer.appendChild(genreItem);
+                });
+            } else {
+                genresContainer.innerHTML = '<p>No genres found.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching genres:', error);
+            genresContainer.innerHTML = '<p>Failed to load genres.</p>';
+        }
+    };
+
+    document.getElementById('back-to-filters').addEventListener('click', (e) => {
+        e.preventDefault();
+        const sidebar = document.getElementById('filter-sidebar-container');
+        if (sidebar && typeof window.loadFilterSidebar === 'function') {
+            window.loadFilterSidebar();
+        } else {
+            console.error('loadFilterSidebar function is not defined or container not found.');
+        }
+    });
+
+    // Added a simple function call to run when the script is loaded
+    if (typeof window.initGenresList === 'function') {
+        window.initGenresList();
+    }
+</script>

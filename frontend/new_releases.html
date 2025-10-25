@@ -3,37 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>New Releases</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/filter_styles.css">
     <style>
         body {
             font-family: sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        #navbar-container {
+            width: 100%;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: row;
             max-width: 1200px;
             margin: 20px auto;
             padding: 0 20px;
-            background-color: #1a1a1a;
-            color: #f0f0f0;
+            gap: 20px;
         }
+
         h1 {
             color: #f0f0f0;
             margin-bottom: 20px;
         }
 
-        /* Main content layout */
         .main-content-wrapper {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-        }
-        #album-list-container {
             flex-grow: 1;
-            min-width: 0;
         }
-        #filter-sidebar-container {
-            width: 300px;
-            flex-shrink: 0;
-            background-color: #2a2a2a;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+
+        #album-list-container {
+            width: 100%;
         }
 
         .album-list {
@@ -41,14 +45,16 @@
             flex-direction: column;
             gap: 15px;
         }
+
         .album-card {
             display: flex;
             background-color: #2a2a2a;
             border-radius: 8px;
             padding: 15px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             align-items: center;
         }
+
         .album-card a {
             display: flex;
             text-decoration: none;
@@ -56,29 +62,34 @@
             width: 100%;
             align-items: center;
         }
+
         .album-card img {
-            width: 80px;
-            height: 80px;
+            width: 120px;
+            height: 120px;
             border-radius: 4px;
             margin-right: 15px;
             object-fit: cover;
         }
+
         .album-details {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
         }
+
         .album-card h2 {
             font-size: 1.2em;
             margin: 0 0 5px 0;
             color: #e0e0e0;
         }
+
         .album-card p {
             font-size: 0.85em;
             color: #b0b0b0;
             margin: 0;
             line-height: 1.4;
         }
+
         .album-card .rating-info {
             display: flex;
             align-items: center;
@@ -88,18 +99,16 @@
             flex-wrap: wrap;
             gap: 10px;
         }
+
         .album-card .rating-info span {
             margin-right: 15px;
         }
+
         .album-card .rating-info .score {
             font-weight: bold;
             color: #f5c518;
         }
-        .album-card ul {
-            display: none;
-        }
 
-        /* Album actions */
         .album-actions {
             display: flex;
             gap: 8px;
@@ -128,354 +137,20 @@
             transform: scale(1.05);
             box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
         }
-
-        .filter-header {
-            font-size: 1.5em;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #f0f0f0;
-        }
-        .filter-dropdowns {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .filter-dropdown {
-            background-color: #444;
-            color: #f0f0f0;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 0.9em;
-            cursor: pointer;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23f0f0f0%22%20d%3D%22M208.5%2089.5L128%20169L47.5%2089.5L59%2078L128%20147L197%2078L208.5%2089.5z%22%2F%3E%3C%2Fsvg%3E');
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 12px;
-            padding-right: 25px;
-        }
-        .filter-search-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .filter-search-input {
-            width: calc(100% - 40px);
-            padding: 10px 15px;
-            padding-right: 40px;
-            border: 1px solid #555;
-            border-radius: 5px;
-            background-color: #333;
-            color: #f0f0f0;
-            font-size: 0.9em;
-        }
-        .filter-search-input::placeholder {
-            color: #bbb;
-        }
-        .filter-search-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #bbb;
-            cursor: pointer;
-        }
-        .filter-section {
-            margin-bottom: 20px;
-            background-color: #333;
-            border-radius: 8px;
-            padding: 15px;
-        }
-        .filter-section h3 {
-            font-size: 1.1em;
-            color: #e0e0e0;
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        .filter-options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .filter-option-button {
-            background-color: #444;
-            color: #f0f0f0;
-            border: 1px solid #555;
-            border-radius: 5px;
-            padding: 8px 10px;
-            font-size: 0.85em;
-            cursor: pointer;
-            text-align: center;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        .filter-option-button:hover {
-            background-color: #555;
-            border-color: #777;
-        }
-        .filter-option-button.active {
-            background-color: #00ffcc;
-            color: #1a1a1a;
-            border-color: #00ffcc;
-            font-weight: 600;
-        }
-        .filter-link-button {
-            background-color: #444;
-            color: #00ffcc;
-            border: 1px solid #00ffcc;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 0.85em;
-            cursor: pointer;
-            text-align: center;
-            margin-top: 10px;
-            display: block;
-            text-decoration: none;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .filter-link-button:hover {
-            background-color: #00ffcc;
-            color: #1a1a1a;
-        }
-        .year-filter-options {
-            padding: 10px 0;
-        }
-        .year-filter-options label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-            color: #e0e0e0;
-            cursor: pointer;
-        }
-        .year-filter-options input[type="radio"] {
-            margin-right: 8px;
-        }
-        .year-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 5px;
-            margin-top: 10px;
-            text-align: center;
-        }
-        .year-grid div {
-            background-color: #444;
-            padding: 5px 0;
-            border-radius: 4px;
-            font-size: 0.8em;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .year-grid div:hover {
-            background-color: #555;
-        }
-        .year-grid div.active {
-            background-color: #00ffcc;
-            color: #1a1a1a;
-            font-weight: 600;
-        }
-
-        @media (max-width: 900px) {
-            .main-content-wrapper {
-                flex-direction: column;
-                align-items: center;
-            }
-            #filter-sidebar-container {
-                width: 90%;
-                max-width: 600px;
-                order: -1;
-                margin-bottom: 20px;
-            }
-            #album-list-container {
-                width: 100%;
-            }
-        }
     </style>
 </head>
 <body>
 <div id="navbar-container"></div>
-<div class="main-content-wrapper">
-    <div id="album-list-container">
-        <h1>New Releases</h1>
-        <div id="newReleasesContainer" class="album-list">
-            <p>Loading new releases...</p>
-        </div>
-    </div>
-    <div id="filter-sidebar-container">
-        <div class="filter-header">Add filters</div>
-        <div class="filter-dropdowns">
-            <select class="filter-dropdown" id="sort-by-dropdown">
-                <option value="average-rating">Top</option>
-                <option value="popularity">Popularity</option>
-            </select>
-            <select class="filter-dropdown" id="format-dropdown">
-                <option value="albums">Albums</option>
-                <option value="EP">EP</option>
-                <option value="mixtape">Mixtape</option>
-                <option value="video">Video</option>
-                <option value="single">Single</option>
-                <option value="compilation">Compilation</option>
-                <option value="unauthorized">Unauthorized</option>
-                <option value="songs">Songs</option>
-            </select>
-            <select class="filter-dropdown" id="time-range-dropdown">
-                <option value="all-time">All-time</option>
-                <option value="specific-year">Specific Year</option>
-                <option value="year-range">Year Range</option>
-                <option value="decade">Decade</option>
-            </select>
-        </div>
-
-        <div class="filter-search-container">
-            <input type="text" class="filter-search-input" placeholder="Examples of filters" id="filter-search-input">
-            <span class="filter-search-icon">🔍</span>
-        </div>
-
-        <div class="filter-section">
-            <h3>Format</h3>
-            <div class="filter-options-grid" id="format-filter-options">
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="albums">albums</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="EP">EP</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="mixtape">mixtape</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="DJ Mix">DJ Mix</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="singles">singles</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="video">video</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="compilations">compilations</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="unauthorized">unauthorized</div>
-                <div class="filter-option-button" data-filter-type="format" data-filter-value="songs">songs</div>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h3>Genres</h3>
-            <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">2,528 genres</p>
-            <a href="#" class="filter-link-button">Browse genres ▶</a>
-        </div>
-
-        <div class="filter-section">
-            <h3>Descriptors</h3>
-            <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">223 descriptors</p>
-            <a href="#" class="filter-link-button">Browse descriptors ▶</a>
-        </div>
-
-        <div class="filter-section">
-            <h3>Locations</h3>
-            <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">257 locations</p>
-            <a href="#" class="filter-link-button">Browse locations ▶</a>
-        </div>
-
-        <div class="filter-section">
-            <h3>Languages</h3>
-            <p style="font-size: 0.85em; color: #ccc; margin-bottom: 10px;">286 languages</p>
-            <a href="#" class="filter-link-button">Browse languages ▶</a>
-        </div>
-
-        <div class="filter-section">
-            <h3>Timeframe</h3>
-            <div class="year-filter-options">
-                <div>
-                    <input type="radio" id="time-all-time" name="timeframe" value="all-time" checked>
-                    <label for="time-all-time">All-time</label>
-                </div>
-                <div>
-                    <input type="radio" id="time-specific-year" name="timeframe" value="specific-year">
-                    <label for="time-specific-year">Specific year or decade</label>
-                    <input type="text" id="specific-year-input" placeholder="Ex: 1982, 2010s" style="width: calc(100% - 10px); padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #f0f0f0;">
-                </div>
-                <div>
-                    <input type="radio" id="time-year-range" name="timeframe" value="year-range">
-                    <label for="time-year-range">Year range</label>
-                    <input type="text" id="year-range-input" placeholder="Ex: 1970-2000" style="width: calc(100% - 10px); padding: 5px; margin-top: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: #f0f0f0;">
-                </div>
-            </div>
-            <div class="year-grid">
-                <div data-year-range="2020s">2020s</div>
-                <div data-year="2020">20</div>
-                <div data-year="2021">21</div>
-                <div data-year="2022">22</div>
-                <div data-year="2023">23</div>
-                <div data-year="2024">24</div>
-                <div data-year="2025">25</div>
-                <div data-year-range="2010s">2010s</div>
-                <div data-year="2010">10</div>
-                <div data-year="2011">11</div>
-                <div data-year="2012">12</div>
-                <div data-year="2013">13</div>
-                <div data-year="2014">14</div>
-                <div data-year="2015">15</div>
-                <div data-year="2016">16</div>
-                <div data-year="2017">17</div>
-                <div data-year="2018">18</div>
-                <div data-year="2019">19</div>
-                <div data-year-range="2000s">2000s</div>
-                <div data-year="2000">00</div>
-                <div data-year="2001">01</div>
-                <div data-year="2002">02</div>
-                <div data-year="2003">03</div>
-                <div data-year="2004">04</div>
-                <div data-year="2005">05</div>
-                <div data-year="2006">06</div>
-                <div data-year="2007">07</div>
-                <div data-year="2008">08</div>
-                <div data-year="2009">09</div>
-                <div data-year-range="1990s">1990s</div>
-                <div data-year="1990">90</div>
-                <div data-year="1991">91</div>
-                <div data-year="1992">92</div>
-                <div data-year="1993">93</div>
-                <div data-year="1994">94</div>
-                <div data-year="1995">95</div>
-                <div data-year="1996">96</div>
-                <div data-year="1997">97</div>
-                <div data-year="1998">98</div>
-                <div data-year="1999">99</div>
-                <div data-year-range="1980s">1980s</div>
-                <div data-year="1980">80</div>
-                <div data-year="1981">81</div>
-                <div data-year="1982">82</div>
-                <div data-year="1983">83</div>
-                <div data-year="1984">84</div>
-                <div data-year="1985">85</div>
-                <div data-year="1986">86</div>
-                <div data-year="1987">87</div>
-                <div data-year="1988">88</div>
-                <div data-year="1989">89</div>
-                <div data-year-range="1970s">1970s</div>
-                <div data-year="1970">70</div>
-                <div data-year="1971">71</div>
-                <div data-year="1972">72</div>
-                <div data-year="1973">73</div>
-                <div data-year="1974">74</div>
-                <div data-year="1975">75</div>
-                <div data-year="1976">76</div>
-                <div data-year="1977">77</div>
-                <div data-year="1978">78</div>
-                <div data-year="1979">79</div>
-                <div data-year-range="1960s">1960s</div>
-                <div data-year="1960">60</div>
-                <div data-year="1961">61</div>
-                <div data-year="1962">62</div>
-                <div data-year="1963">63</div>
-                <div data-year="1964">64</div>
-                <div data-year="1965">65</div>
-                <div data-year="1966">66</div>
-                <div data-year="1967">67</div>
-                <div data-year="1968">68</div>
-                <div data-year="1969">69</div>
-                <div data-year-range="1950s">1950s</div>
-                <div data-year="1950">50</div>
-                <div data-year="1951">51</div>
-                <div data-year="1952">52</div>
-                <div data-year="1953">53</div>
-                <div data-year="1954">54</div>
-                <div data-year="1955">55</div>
-                <div data-year="1956">56</div>
-                <div data-year="1957">57</div>
-                <div data-year="1958">58</div>
-                <div data-year="1959">59</div>
+<div class="content-wrapper">
+    <div class="main-content-wrapper">
+        <div id="album-list-container">
+            <h1>New Releases</h1>
+            <div id="newReleasesContainer" class="album-list">
+                <p>Loading new releases...</p>
             </div>
         </div>
     </div>
+    <div id="filter-sidebar-container"></div>
 </div>
 
 <script>
@@ -495,175 +170,55 @@
         })
         .catch(err => console.error('Failed to load navbar: ', err));
 
-    let currentFilters = {
-        sortBy: 'average-rating',
-        format: [],
-        timeframe: 'all-time',
-        year: null,
-        yearRange: null
-    };
+    window.loadFilterSidebar = function () {
+        fetch('/filter_sidebar.html')
+            .then(response => response.text())
+            .then(html => {
+                const container = document.getElementById('filter-sidebar-container');
+                container.innerHTML = html;
+                const sidebarScripts = container.querySelectorAll('script');
+                sidebarScripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) newScript.src = script.src;
+                    else newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
+                });
+                if (typeof initFilters === 'function') {
+                    initFilters();
+                }
+                loadAlbums();
+            })
+            .catch(err => console.error('Failed to load filter sidebar: ', err));
+    }
 
     const newReleasesContainer = document.getElementById('newReleasesContainer');
-    const sortByDropdown = document.getElementById('sort-by-dropdown');
-    const formatDropdown = document.getElementById('format-dropdown');
-    const timeRangeDropdown = document.getElementById('time-range-dropdown');
-    const formatFilterOptions = document.getElementById('format-filter-options');
-    const yearFilterRadios = document.querySelectorAll('input[name="timeframe"]');
-    const specificYearInput = document.getElementById('specific-year-input');
-    const yearRangeInput = document.getElementById('year-range-input');
-    const yearGridYears = document.querySelectorAll('.year-grid div[data-year]');
-    const yearGridDecades = document.querySelectorAll('.year-grid div[data-year-range]');
 
     function showMessage(msg, isError = false) {
         const msgEl = document.createElement('div');
         msgEl.textContent = msg;
         msgEl.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background: ${isError ? '#ffdddd' : '#ddffdd'};
-            color: ${isError ? '#ff0000' : '#008800'};
-            border: 1px solid ${isError ? '#ff0000' : '#008800'};
-            border-radius: 5px;
-            z-index: 1000;
-            font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        `;
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 20px;
+                background: ${isError ? '#ffdddd' : '#ddffdd'};
+                color: ${isError ? '#ff0000' : '#008800'};
+                border: 1px solid ${isError ? '#ff0000' : '#008800'};
+                border-radius: 5px;
+                z-index: 1000;
+                font-weight: bold;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
         document.body.appendChild(msgEl);
         setTimeout(() => msgEl.remove(), 3000);
-    }
-
-    function initFilters() {
-        sortByDropdown.value = currentFilters.sortBy;
-        formatDropdown.value = 'albums';
-
-        sortByDropdown.addEventListener('change', handleSortChange);
-        formatDropdown.addEventListener('change', handleFormatChange);
-        timeRangeDropdown.addEventListener('change', handleTimeRangeChange);
-
-        if (formatFilterOptions) {
-            formatFilterOptions.addEventListener('click', handleFormatButtonClick);
-        }
-
-        yearFilterRadios.forEach(radio => {
-            radio.addEventListener('change', handleTimeframeChange);
-        });
-
-        yearGridYears.forEach(yearDiv => {
-            yearDiv.addEventListener('click', handleYearClick);
-        });
-
-        yearGridDecades.forEach(decadeDiv => {
-            decadeDiv.addEventListener('click', handleDecadeClick);
-        });
-
-        specificYearInput.addEventListener('change', handleSpecificYearInput);
-        yearRangeInput.addEventListener('change', handleYearRangeInput);
-    }
-
-    function handleSortChange(e) {
-        currentFilters.sortBy = e.target.value;
-        loadAlbums();
-    }
-
-    function handleFormatChange(e) {
-        const selectedFormat = e.target.value;
-        if (selectedFormat === 'albums') {
-            currentFilters.format = [];
-        } else if (!currentFilters.format.includes(selectedFormat)) {
-            currentFilters.format = [selectedFormat];
-        }
-        updateFormatButtons();
-        loadAlbums();
-    }
-
-    function handleFormatButtonClick(e) {
-        const button = e.target.closest('.filter-option-button[data-filter-type="format"]');
-        if (button) {
-            const value = button.dataset.filterValue;
-            if (currentFilters.format.includes(value)) {
-                currentFilters.format = currentFilters.format.filter(f => f !== value);
-                button.classList.remove('active');
-            } else {
-                currentFilters.format.push(value);
-                button.classList.add('active');
-            }
-            loadAlbums();
-        }
-    }
-
-    function handleTimeRangeChange(e) {
-        currentFilters.timeframe = e.target.value;
-        loadAlbums();
-    }
-
-    function handleTimeframeChange(e) {
-        currentFilters.timeframe = e.target.value;
-        loadAlbums();
-    }
-
-    function handleSpecificYearInput(e) {
-        if (document.getElementById('time-specific-year').checked) {
-            currentFilters.year = e.target.value;
-            loadAlbums();
-        }
-    }
-
-    function handleYearRangeInput(e) {
-        if (document.getElementById('time-year-range').checked) {
-            currentFilters.yearRange = e.target.value;
-            loadAlbums();
-        }
-    }
-
-    function handleYearClick(e) {
-        const year = e.target.dataset.year;
-        document.getElementById('time-specific-year').checked = true;
-        currentFilters.timeframe = 'specific-year';
-        currentFilters.year = year;
-        currentFilters.yearRange = null;
-
-        yearGridYears.forEach(div => div.classList.remove('active'));
-        e.target.classList.add('active');
-        yearGridDecades.forEach(div => div.classList.remove('active'));
-
-        loadAlbums();
-    }
-
-    function handleDecadeClick(e) {
-        const decadeRange = e.target.dataset.yearRange;
-        const startYear = parseInt(decadeRange.substring(0, 4));
-        const endYear = startYear + 9;
-        document.getElementById('time-year-range').checked = true;
-        currentFilters.timeframe = 'year-range';
-        currentFilters.yearRange = `${startYear}-${endYear}`;
-        currentFilters.year = null;
-
-        yearGridDecades.forEach(div => div.classList.remove('active'));
-        yearGridYears.forEach(div => div.classList.remove('active'));
-        e.target.classList.add('active');
-
-        loadAlbums();
-    }
-
-    function updateFormatButtons() {
-        document.querySelectorAll('.filter-option-button[data-filter-type="format"]').forEach(btn => {
-            btn.classList.remove('active');
-            if (currentFilters.format.includes(btn.dataset.filterValue)) {
-                btn.classList.add('active');
-            }
-        });
     }
 
     async function handleAlbumAction(e) {
         const button = e.target.closest('.action-button');
         if (!button) return;
-
         const albumId = button.dataset.albumId;
         const actionType = button.dataset.action;
-
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -671,13 +226,11 @@
                 setTimeout(() => window.location.href = '/login.html', 2000);
                 return;
             }
-
             const isActive = button.classList.contains('active');
             const method = isActive ? 'DELETE' : 'POST';
             const url = isActive
                 ? `/api/actions?albumId=${albumId}&actionType=${actionType}`
                 : '/api/actions';
-
             const res = await fetch(url, {
                 method,
                 headers: {
@@ -688,9 +241,7 @@
                     ? JSON.stringify({ albumId, actionType })
                     : null
             });
-
             if (!res.ok) throw new Error('Action failed');
-
             button.classList.toggle('active');
             showMessage(isActive
                 ? `Removed from ${actionType}`
@@ -705,14 +256,11 @@
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-
             const res = await fetch('/api/actions/all', {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {'Authorization': `Bearer ${token}`}
             });
-
             if (!res.ok) throw new Error('Failed to get actions');
             const actions = await res.json();
-
             actions.forEach(action => {
                 const button = document.querySelector(
                     `.action-button[data-album-id="${action.id}"][data-action="${action.action_type}"]`
@@ -727,34 +275,12 @@
     async function loadAlbums() {
         try {
             newReleasesContainer.innerHTML = '<p>Loading albums...</p>';
-
-            const params = new URLSearchParams();
-
-            if (currentFilters.sortBy) {
-                if (currentFilters.sortBy === 'average-rating') {
-                    params.append('sort', 'rating');
-                    params.append('order', 'desc');
-                } else if (currentFilters.sortBy === 'popularity') {
-                    params.append('sort', 'popularity');
-                    params.append('order', 'desc');
-                }
-            }
-
-            if (currentFilters.format.length > 0) {
-                params.append('format', currentFilters.format.join(','));
-            }
-
-            if (currentFilters.timeframe === 'specific-year' && currentFilters.year) {
-                params.append('year', currentFilters.year);
-            } else if (currentFilters.timeframe === 'year-range' && currentFilters.yearRange) {
-                params.append('yearRange', currentFilters.yearRange);
-            }
-
-            const response = await fetch(`/api/albums?${params.toString()}`);
+            const params = new URLSearchParams(window.location.search);
+            const queryUrl = `/api/albums?${params.toString()}`;
+            const response = await fetch(queryUrl);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
             const albums = await response.json();
             renderAlbums(albums);
         } catch (error) {
@@ -763,64 +289,61 @@
         }
     }
 
+    window.applyFilters = function () {
+        loadAlbums();
+    };
+
     function renderAlbums(albums) {
         if (albums.length === 0) {
-            newReleasesContainer.innerHTML = '<p>No albums found matching your filters.</p>';
+            newReleasesContainer.innerHTML = '<p>No albums found.</p>';
             return;
         }
-
         newReleasesContainer.innerHTML = '';
-
         albums.forEach(album => {
             const albumCard = document.createElement('div');
             albumCard.classList.add('album-card');
-
             const albumUrl = `/release/album/${album.slug}`;
             const releaseYear = album.release_date ?
                 new Date(album.release_date).getFullYear() :
                 (album.release_year || 'N/A');
-
             const rating = album.rating ? `${album.rating.toFixed(2)} / 5.0` : "N/A";
-
             albumCard.innerHTML = `
-                <a href="${albumUrl}">
-                    ${album.cover_url ?
+                    <a href="${albumUrl}">
+                        ${album.cover_url ?
                 `<img src="${album.cover_url}" alt="${album.title} cover">` :
                 '<img src="https://via.placeholder.com/80" alt="Placeholder cover">'}
-                    <div class="album-details">
-                        <h2>${album.title}</h2>
-                        <p><strong>Artist:</strong> ${album.artist}</p>
-                        <p><strong>Year:</strong> ${releaseYear}</p>
-                        <p><strong>Genres:</strong> ${album.genres || 'N/A'}</p>
-                        <div class="rating-info">
-                            <span class="score">${rating}</span>
-                            <span>❤️ ${album.likes.toLocaleString()}</span>
-                            <span>⭐ ${album.wishlist_count.toLocaleString()}</span>
-                            <span>📜 ${album.in_lists_count.toLocaleString()}</span>
-                            <span>💬 ${album.reviews_count.toLocaleString()}</span>
+                        <div class="album-details">
+                            <h2>${album.title}</h2>
+                            <p><strong>Artist:</strong> ${album.artist}</p>
+                            <p><strong>Year:</strong> ${releaseYear}</p>
+                            <p><strong>Genres:</strong> ${album.genres || 'N/A'}</p>
+                            <p><strong>Descriptors:</strong> ${album.description || 'N/A'}</p>
+                            <div class="rating-info">
+                                <span class="score">${rating}</span>
+                                <span>❤️ ${album.likes.toLocaleString()}</span>
+                                <span>⭐ ${album.wishlist_count.toLocaleString()}</span>
+                                <span>📜 ${album.in_lists_count.toLocaleString()}</span>
+                                <span>💬 ${album.reviews_count.toLocaleString()}</span>
+                            </div>
+                            <div class="album-actions">
+                                <button class="action-button" data-album-id="${album.id}" data-action="listen">🎧 Listen</button>
+                                <button class="action-button" data-album-id="${album.id}" data-action="like">❤️ Like</button>
+                                <button class="action-button" data-album-id="${album.id}" data-action="wishlist">⭐ Wishlist</button>
+                                <button class="action-button" data-album-id="${album.id}" data-action="add-to-list">➕ List</button>
+                            </div>
                         </div>
-                        <div class="album-actions">
-                            <button class="action-button" data-album-id="${album.id}" data-action="like">❤️ Like</button>
-                            <button class="action-button" data-album-id="${album.id}" data-action="wishlist">⭐ Wishlist</button>
-                            <button class="action-button" data-album-id="${album.id}" data-action="add-to-list">➕ List</button>
-                        </div>
-                    </div>
-                </a>
-            `;
+                    </a>
+                `;
             newReleasesContainer.appendChild(albumCard);
         });
-
-        // Add event listeners to action buttons
         document.querySelectorAll('.action-button').forEach(button => {
             button.addEventListener('click', handleAlbumAction);
         });
+        checkUserActions();
     }
 
-    // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
-        initFilters();
-        loadAlbums();
-        checkUserActions();
+        window.loadFilterSidebar();
     });
 </script>
 </body>

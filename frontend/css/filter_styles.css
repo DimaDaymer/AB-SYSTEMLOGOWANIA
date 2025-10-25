@@ -1,0 +1,165 @@
+/* Styles for Filter Sidebar */
+#filter-sidebar-container {
+    width: 300px;
+    flex-shrink: 0;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.filter-header {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #f0f0f0;
+}
+.filter-dropdowns {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.filter-dropdown {
+    background-color: #444;
+    color: #f0f0f0;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23f0f0f0%22%20d%3D%22M208.5%2089.5L128%20169L47.5%2089.5L59%2078L128%20147L197%2078L208.5%2089.5z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
+    padding-right: 25px;
+}
+.filter-search-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+.filter-search-input {
+    width: calc(100% - 40px);
+    padding: 10px 15px;
+    padding-right: 40px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #333;
+    color: #f0f0f0;
+    font-size: 0.9em;
+}
+.filter-search-input::placeholder {
+    color: #bbb;
+}
+.filter-search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #bbb;
+    cursor: pointer;
+}
+.filter-section {
+    margin-bottom: 20px;
+    background-color: #333;
+    border-radius: 8px;
+    padding: 15px;
+}
+.filter-section h3 {
+    font-size: 1.1em;
+    color: #e0e0e0;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+.filter-options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+.filter-option-button {
+    background-color: #444;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    border-radius: 5px;
+    padding: 8px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.filter-option-button:hover {
+    background-color: #555;
+    border-color: #777;
+}
+.filter-option-button.active {
+    background-color: #00ffcc;
+    color: #1a1a1a;
+    border-color: #00ffcc;
+    font-weight: 600;
+}
+.filter-link-button {
+    background-color: #444;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 10px;
+    display: block;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
+}
+.filter-link-button:hover {
+    background-color: #00ffcc;
+    color: #1a1a1a;
+}
+.year-filter-options {
+    padding: 10px 0;
+}
+.year-filter-options label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: #e0e0e0;
+    cursor: pointer;
+}
+.year-filter-options input[type="radio"] {
+    margin-right: 8px;
+}
+.year-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
+.year-grid div {
+    background-color: #444;
+    padding: 5px 0;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.year-grid div:hover {
+    background-color: #555;
+}
+.year-grid div.active {
+    background-color: #00ffcc;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+@media (max-width: 900px) {
+    body {
+        flex-direction: column;
+    }
+    #filter-sidebar-container {
+        width: 90%;
+        max-width: 600px;
+        order: -1;
+        margin-bottom: 20px;
+    }
+}

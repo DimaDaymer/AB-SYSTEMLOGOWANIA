@@ -13,22 +13,21 @@ console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Настройка CORS для маршрутов API
 app.use(cors({
-    origin: '*', // Разрешаем все источники временно
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Импортируем маршруты и передаем им объект pool
 const albumsRoute = require('./routes/albums')(pool);
 const authRoute = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const uploadRoute = require('./routes/upload');
 const ratingsRoute = require('./routes/ratings');
 const actionsRoute = require('./routes/actions');
-const trackRatingsRoute = require('./routes/trackRatings');
-const genresRoute = require('./routes/genres');
+const trackRatingsRoute = require('./routes/trackRatings')(pool);
+const filtersRoute = require('./routes/filters')(pool);
+const userListsRoute = require('./routes/userLists');
 
 app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
@@ -37,7 +36,9 @@ app.use('/user', userRoutes);
 app.use('/user', uploadRoute);
 app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
-app.use('/api/genres', genresRoute);
+app.use('/api/filters', filtersRoute);
+app.use('/api/user-lists', userListsRoute);
+
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
@@ -67,10 +68,37 @@ app.get('/edit_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/edit_album.html'));
 });
 
+app.get('/genre_page.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/genres_list.html'));
+});
+
+app.get('/descripstion_list.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/genres_list.html'));
+});
+
+app.get('/language_list.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/language_list.html'));
+});
+
+app.get('/list.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+});
+
+app.get('/list_window.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/list_window.html'));
+});
+
+app.get('/lists_page.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+});
+
+app.get('/list/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
 
-// Middleware для логирования запросов
 app.use((req, res, next) => {
     const start = Date.now();
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -81,7 +109,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Роут для проверки базы данных
 app.get('/api/debug/db-check', async (req, res) => {
     try {
         const [rows] = await pool.execute('SELECT 1 + 1 AS solution');
@@ -95,12 +122,10 @@ app.get('/api/debug/db-check', async (req, res) => {
     }
 });
 
-// Отправка index.html для всех остальных запросов
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Проверка подключения к базе данных
 pool.query('SELECT 1')
     .then(() => console.log('✅ DB connection verified'))
     .catch(err => {
@@ -108,7 +133,6 @@ pool.query('SELECT 1')
         process.exit(1);
     });
 
-// Запуск сервера
 async function setupServer() {
     try {
         await initializeDatabase();

@@ -12,17 +12,33 @@ router.post('/', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Invalid action type' });
         }
 
-        await pool.execute(
-            `INSERT INTO user_album_actions (user_id, album_id, action_type)
-             VALUES (?, ?, ?)
-                 ON DUPLICATE KEY UPDATE created_at = CURRENT_TIMESTAMP`,
+        // Проверяем, существует ли уже это действие
+        const [existingAction] = await pool.execute(
+            `SELECT id FROM user_album_actions
+             WHERE user_id = ? AND album_id = ? AND action_type = ?`,
             [userId, albumId, actionType]
         );
 
-        res.json({ success: true });
+        if (existingAction.length > 0) {
+            // Если действие существует, удаляем его (отменяем)
+            await pool.execute(
+                `DELETE FROM user_album_actions
+                 WHERE user_id = ? AND album_id = ? AND action_type = ?`,
+                [userId, albumId, actionType]
+            );
+            res.json({ success: true, message: 'Action removed' });
+        } else {
+            // Если действия нет, добавляем его
+            await pool.execute(
+                `INSERT INTO user_album_actions (user_id, album_id, action_type)
+                 VALUES (?, ?, ?)`,
+                [userId, albumId, actionType]
+            );
+            res.json({ success: true, message: 'Action added' });
+        }
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to add action' });
+        res.status(500).json({ error: 'Failed to add/remove action' });
     }
 });
 
@@ -52,14 +68,15 @@ router.get('/album/:albumId', authenticate, async (req, res) => {
         const { albumId } = req.params;
         const userId = req.user.id;
 
-        const [action] = await pool.execute(
+        const [actions] = await pool.execute(
             `SELECT action_type
              FROM user_album_actions
              WHERE user_id = ? AND album_id = ?`,
             [userId, albumId]
         );
 
-        res.json(action[0] || null);
+        // Возвращаем массив всех действий
+        res.json(actions);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to get action' });

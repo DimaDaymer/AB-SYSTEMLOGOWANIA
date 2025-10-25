@@ -84,13 +84,34 @@ CREATE TABLE IF NOT EXISTS album_genres (
                                             FOREIGN KEY (genre_id) REFERENCES genres(id)
 );
 
+-- Таблица для хранения действий пользователей с альбомами
 CREATE TABLE IF NOT EXISTS user_album_actions (
                                                   id INT AUTO_INCREMENT PRIMARY KEY,
                                                   user_id INT NOT NULL,
                                                   album_id INT NOT NULL,
-                                                  action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
+                                                  action_type ENUM('listen', 'wishlist', 'like', 'add-to-list') NOT NULL,
                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                                   UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
                                                   FOREIGN KEY (user_id) REFERENCES users(id),
                                                   FOREIGN KEY (album_id) REFERENCES albums(id)
+);
+
+-- Таблица для хранения списков
+CREATE TABLE IF NOT EXISTS lists (
+                                     id INT AUTO_INCREMENT PRIMARY KEY,
+                                     user_id INT NOT NULL,
+                                     name VARCHAR(255) NOT NULL,
+                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Таблица для связывания альбомов со списками
+CREATE TABLE IF NOT EXISTS list_items (
+                                          id INT AUTO_INCREMENT PRIMARY KEY,
+                                          list_id INT NOT NULL,
+                                          album_id INT NOT NULL,
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                          FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
+                                          FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                          UNIQUE (list_id, album_id) -- Гарантирует, что один альбом не может быть добавлен в один и тот же список дважды
 );

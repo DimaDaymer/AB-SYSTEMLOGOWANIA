@@ -47,67 +47,40 @@ async function initializeDatabase() {
                 genres VARCHAR(255),
                 label VARCHAR(255),
                 language VARCHAR(50),
-                description VARCHAR(255),
+                description TEXT,
                 slug VARCHAR(255) UNIQUE NOT NULL,
                 likes INT DEFAULT 0,
                 wishlist_count INT DEFAULT 0,
                 in_lists_count INT DEFAULT 0,
-                reviews_count INT DEFAULT 0
+                reviews_count INT DEFAULT 0,
+                popularity INT DEFAULT 0,
+                avg_rating DECIMAL(3,2) DEFAULT NULL,
+                rating_count INT DEFAULT 0
             );
         `);
 
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS tracks (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                album_id INT NOT NULL,
-                track_number INT NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                duration VARCHAR(50),
-                FOREIGN KEY (album_id) REFERENCES albums(id)
-            );
-        `);
-
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS ratings (
+            CREATE TABLE IF NOT EXISTS user_lists (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                slug VARCHAR(255) UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+        `);
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS user_list_albums (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                list_id INT NOT NULL,
                 album_id INT NOT NULL,
-                score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 10),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_rating (user_id, album_id),
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (album_id) REFERENCES albums(id)
-            );
-        `);
-
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS track_ratings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                track_id INT NOT NULL,
-                rating FLOAT NOT NULL CHECK (rating BETWEEN 0.5 AND 10.0),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY (user_id, track_id),
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
-            );
-        `);
-
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS genres (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(50) UNIQUE NOT NULL
-            );
-        `);
-
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS album_genres (
-                album_id INT,
-                genre_id INT,
-                PRIMARY KEY (album_id, genre_id),
-                FOREIGN KEY (album_id) REFERENCES albums(id),
-                FOREIGN KEY (genre_id) REFERENCES genres(id)
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                sort_order INT,
+                FOREIGN KEY (list_id) REFERENCES user_lists(id) ON DELETE CASCADE,
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_list_album (list_id, album_id)
             );
         `);
 
@@ -116,11 +89,11 @@ async function initializeDatabase() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
                 album_id INT NOT NULL,
-                action_type ENUM('listen', 'wishlist', 'like') NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (album_id) REFERENCES albums(id)
+                action_type VARCHAR(50) NOT NULL,
+                action_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                UNIQUE (user_id, album_id, action_type)
             );
         `);
 
@@ -145,6 +118,6 @@ const pool = mysql.createPool({
 });
 
 module.exports = {
-    pool,
-    initializeDatabase
+    initializeDatabase,
+    pool
 };

@@ -2,7 +2,7 @@
   <div data-action="listen">🎧 Listen</div>
   <div data-action="wishlist">❤️ Wishlist</div>
   <div data-action="like">⭐ Like</div>
-  <div>➕ Add to List</div>
+  <div data-action="add-to-list" onclick="openListWindow()">➕ Add to List</div>
   <div>🏷️ Tag</div>
   <div>🔁 Recommend</div>
   <div>✍️ Write a review</div>
@@ -46,24 +46,3 @@
     box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
   }
 </style>
-
-<script>
-  window.components = window.components || {};
-  window.components.userActions = {
-    init: function() {
-      document.querySelectorAll('.user-actions div[data-action]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const action = btn.dataset.action;
-          window.sendAlbumAction(action);
-        });
-      });
-    }
-  };
-
-  // Инициализация при загрузке
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.components.userActions) {
-      window.components.userActions.init();
-    }
-  });
-</script>

@@ -1,50 +1,73 @@
 const express = require('express');
 const router = express.Router();
+const slugify = require('slugify'); // Импортируем библиотеку slugify
 
 module.exports = (pool) => {
   /**
    * Маршрут для получения списка альбомов с фильтрацией и сортировкой.
    * Параметры запроса:
-   * - sort: 'rating', 'popularity'
+   * - sort: 'rating', 'popularity', 'release_date'
    * - order: 'asc', 'desc'
    * - format: 'LP', 'EP', 'Single' (через запятую)
    * - year: Год выпуска (например, '2024')
    * - yearRange: Диапазон лет (например, '2010-2019')
    * - genres: Жанры (через запятую, например, 'rock,pop')
+   * - search: Поиск по названию или исполнителю
    */
   router.get('/', async (req, res) => {
     let connection;
     try {
-      const { sort, order, format, year, yearRange, genres } = req.query;
+      const { sort, order, format, year, yearRange, genres, description, language, search } = req.query;
 
       connection = await pool.getConnection();
 
-      // Базовый запрос с LEFT JOIN для подсчета рейтингов и лайков
       let query = `
-        SELECT
-          a.*,
-          AVG(r.score) AS average_rating,
-          COUNT(DISTINCT uaa1.id) AS likes
-        FROM albums a
-               LEFT JOIN ratings r ON a.id = r.album_id
-               LEFT JOIN user_album_actions uaa1 ON a.id = uaa1.album_id AND uaa1.action_type = 'like'
-      `;
+                SELECT
+                    a.*,
+                    AVG(r.score) AS average_rating,
+                    COUNT(DISTINCT uaa1.id) AS likes,
+                    (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'wishlist') AS wishlist_count,
+                    (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'add-to-list') AS in_lists_count,
+                    (SELECT COUNT(id) FROM reviews WHERE album_id = a.id) AS reviews_count
+                FROM albums a
+                LEFT JOIN ratings r ON a.id = r.album_id
+                LEFT JOIN user_album_actions uaa1 ON a.id = uaa1.album_id AND uaa1.action_type = 'like'
+            `;
 
       const whereClauses = [];
       const params = [];
       const groupClauses = ['a.id'];
-      let orderByClause = '';
 
-      // Фильтрация по жанрам. Используем INNER JOIN для фильтрации.
+      // Фильтрация по жанрам
       if (genres) {
-        const genreNames = genres.split(',').map(g => g.trim());
-        if (genreNames.length > 0) {
-          query += `
-            INNER JOIN album_genres ag ON a.id = ag.album_id
-            INNER JOIN genres g ON ag.genre_id = g.id
-          `;
-          whereClauses.push(`g.name IN (${genreNames.map(() => '?').join(',')})`);
-          params.push(...genreNames);
+        const genreArray = genres.split(',').map(g => g.trim());
+        if (genreArray.length > 0) {
+          const findInSetConditions = genreArray.map(genre => `FIND_IN_SET(?, REPLACE(TRIM(a.genres), ' ', ''))`).join(' OR ');
+          whereClauses.push(`(${findInSetConditions})`);
+          const cleanedGenreArray = genreArray.map(g => g.replace(/ /g, ''));
+          params.push(...cleanedGenreArray);
+        }
+      }
+
+      // Фильтрация по описанию (исправлено)
+      if (description) {
+        const descriptionArray = description.split(',').map(d => d.trim());
+        if (descriptionArray.length > 0) {
+          const findInSetConditions = descriptionArray.map(d => `FIND_IN_SET(?, REPLACE(TRIM(a.description), ' ', ''))`).join(' OR ');
+          whereClauses.push(`(${findInSetConditions})`);
+          const cleanedDescriptionArray = descriptionArray.map(d => d.replace(/ /g, ''));
+          params.push(...cleanedDescriptionArray);
+        }
+      }
+
+      // Фильтрация по языку (исправлено)
+      if (language) {
+        const languageArray = language.split(',').map(l => l.trim());
+        if (languageArray.length > 0) {
+          const findInSetConditions = languageArray.map(l => `FIND_IN_SET(?, REPLACE(TRIM(a.language), ' ', ''))`).join(' OR ');
+          whereClauses.push(`(${findInSetConditions})`);
+          const cleanedLanguageArray = languageArray.map(l => l.replace(/ /g, ''));
+          params.push(...cleanedLanguageArray);
         }
       }
 
@@ -65,11 +88,23 @@ module.exports = (pool) => {
 
       // Фильтрация по диапазону лет
       if (yearRange) {
-        const [startYear, endYear] = yearRange.split('-').map(y => parseInt(y.trim(), 10));
-        if (!isNaN(startYear) && !isNaN(endYear)) {
+        const yearMatch = yearRange.match(/(\d{4})-(\d{4})/);
+        if (yearMatch) {
+          const [_, startYear, endYear] = yearMatch;
           whereClauses.push('YEAR(a.release_date) BETWEEN ? AND ?');
-          params.push(startYear, endYear);
+          params.push(parseInt(startYear, 10), parseInt(endYear, 10));
+        } else if (yearRange.endsWith('s')) {
+          const decadeStart = parseInt(yearRange.slice(0, 4), 10);
+          const decadeEnd = decadeStart + 9;
+          whereClauses.push('YEAR(a.release_date) BETWEEN ? AND ?');
+          params.push(decadeStart, decadeEnd);
         }
+      }
+
+      // Поиск по названию или исполнителю
+      if (search) {
+        whereClauses.push('(a.title LIKE ? OR a.artist LIKE ?)');
+        params.push(`%${search}%`, `%${search}%`);
       }
 
       // Добавляем все условия WHERE
@@ -83,19 +118,23 @@ module.exports = (pool) => {
       // Сортировка
       const orderDirection = order && ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'DESC';
 
+      let orderByClause = '';
       if (sort === 'rating') {
         orderByClause = `ORDER BY average_rating ${orderDirection}, likes DESC, a.release_date DESC`;
       } else if (sort === 'popularity') {
         orderByClause = `ORDER BY likes ${orderDirection}, average_rating DESC, a.release_date DESC`;
       } else {
-        orderByClause = `ORDER BY a.release_date DESC`;
+        orderByClause = `ORDER BY a.release_date ${orderDirection}`;
       }
 
       query += ` ${orderByClause}`;
 
+      // Логирование для отладки
+      console.log('Final SQL Query:', query);
+      console.log('Query Parameters:', params);
+
       const [albums] = await connection.execute(query, params);
 
-      // Дополнительная обработка данных для каждого альбома
       const finalAlbums = albums.map(album => ({
         ...album,
         rating: album.average_rating ? parseFloat(album.average_rating) : 0,
@@ -111,7 +150,88 @@ module.exports = (pool) => {
     }
   });
 
-  // Маршрут для получения альбома по ID
+  // НОВЫЙ МАРШРУТ: Получение всех уникальных жанров
+  router.get('/genres', async (req, res) => {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const [rows] = await connection.execute('SELECT genres FROM albums WHERE genres IS NOT NULL AND genres != ""');
+
+      const allGenres = new Set();
+      rows.forEach(row => {
+        row.genres.split(',').forEach(genre => {
+          const trimmedGenre = genre.trim();
+          if (trimmedGenre) {
+            allGenres.add(trimmedGenre);
+          }
+        });
+      });
+
+      const sortedGenres = Array.from(allGenres).sort();
+      res.json(sortedGenres);
+    } catch (err) {
+      console.error('GET /api/albums/genres error:', err);
+      res.status(500).json({ error: 'Failed to fetch genres' });
+    } finally {
+      if (connection) connection.release();
+    }
+  });
+
+  // НОВЫЙ МАРШРУТ: Получение всех уникальных дескрипторов
+  router.get('/description', async (req, res) => {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const [rows] = await connection.execute('SELECT description FROM albums WHERE description IS NOT NULL AND description != ""');
+
+      const allDescription = new Set();
+      rows.forEach(row => {
+        row.description.split(',').forEach(description => {
+          const trimmedDescription = description.trim();
+          if (trimmedDescription) {
+            allDescription.add(trimmedDescription);
+          }
+        });
+      });
+
+      const sortedDescriptors = Array.from(allDescription).sort();
+      res.json(sortedDescriptors);
+    } catch (err) {
+      console.error('GET /api/albums/description error:', err);
+      res.status(500).json({ error: 'Failed to fetch description' });
+    } finally {
+      if (connection) connection.release();
+    }
+  });
+
+  // НОВЫЙ МАРШРУТ: Получение всех уникальных дескрипторов
+  router.get('/language', async (req, res) => {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const [rows] = await connection.execute('SELECT language FROM albums WHERE language IS NOT NULL AND language != ""');
+
+      const allLanguage = new Set();
+      rows.forEach(row => {
+        row.language.split(',').forEach(language => {
+          const trimmedLanguage = language.trim();
+          if (trimmedLanguage) {
+            allLanguage.add(trimmedLanguage);
+          }
+        });
+      });
+
+      const sortedLanguage = Array.from(allLanguage).sort();
+      res.json(sortedLanguage);
+    } catch (err) {
+      console.error('GET /api/albums/language error:', err);
+      res.status(500).json({ error: 'Failed to fetch language' });
+    } finally {
+      if (connection) connection.release();
+    }
+  });
+
+  // Остальные маршруты (без изменений)
   router.get('/:id', async (req, res) => {
     let connection;
     try {
@@ -140,7 +260,6 @@ module.exports = (pool) => {
     }
   });
 
-  // Маршрут для обновления альбома по ID
   router.put('/:id', async (req, res) => {
     let connection;
     try {
@@ -151,6 +270,13 @@ module.exports = (pool) => {
         return res.status(400).json({ error: 'Title and artist are required' });
       }
 
+      // Генерируем новый слаг на основе обновленных данных
+      const slug = slugify(`${artist}-${title}`, {
+        lower: true,
+        strict: true,
+        locale: 'ru'
+      });
+
       connection = await pool.getConnection();
       await connection.beginTransaction();
 
@@ -158,9 +284,9 @@ module.exports = (pool) => {
 
       await connection.execute(
           `UPDATE albums SET
-                           title = ?, artist = ?, cover_url = ?, type = ?, release_date = ?, genres = ?, label = ?, language = ?, description = ?
+                           title = ?, artist = ?, cover_url = ?, type = ?, release_date = ?, genres = ?, label = ?, language = ?, description = ?, slug = ?
            WHERE id = ?`,
-          [title, artist, safeValue(cover_url), safeValue(type), safeValue(release_date), safeValue(genres), safeValue(label), safeValue(language), safeValue(description), id]
+          [title, artist, safeValue(cover_url), safeValue(type), safeValue(release_date), safeValue(genres), safeValue(label), safeValue(language), safeValue(description), slug, id]
       );
 
       await connection.execute('DELETE FROM tracks WHERE album_id = ?', [id]);
@@ -178,7 +304,8 @@ module.exports = (pool) => {
       }
 
       await connection.commit();
-      res.json({ message: 'Album updated successfully', id });
+      // Возвращаем новый слаг в ответе
+      res.json({ message: 'Album updated successfully', id, slug });
 
     } catch (err) {
       if (connection) {
@@ -191,7 +318,6 @@ module.exports = (pool) => {
     }
   });
 
-  // Маршрут для создания альбома
   router.post('/', async (req, res) => {
     let connection;
     try {
@@ -207,13 +333,13 @@ module.exports = (pool) => {
       connection = await pool.getConnection();
       await connection.beginTransaction();
 
-      const slug = `${artist}-${title}`
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-');
+      // Используем slugify для генерации слага
+      const slug = slugify(`${artist}-${title}`, {
+        lower: true,
+        strict: true,
+        locale: 'ru'
+      });
 
-// ... existing code ...
       const albumParams = [
         title,
         artist,
@@ -235,7 +361,7 @@ module.exports = (pool) => {
           `INSERT INTO albums
            (title, artist, release_date, cover_url, type, genres, label, language, description, slug,
             likes, wishlist_count, in_lists_count, reviews_count)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, // Добавлен 14-й заполнитель '?'
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           albumParams
       );
 
@@ -281,7 +407,6 @@ module.exports = (pool) => {
     }
   });
 
-  // Маршрут для получения альбома по SLUG
   router.get('/by-slug/:slug', async (req, res) => {
     let connection;
     try {
@@ -302,7 +427,6 @@ module.exports = (pool) => {
       const albumData = albums[0];
       console.log(`Album found: ${albumData.title} by ${albumData.artist}`);
 
-      // Преобразование строковых полей в массивы
       const stringToArray = (str) => (typeof str === 'string' ? str.split(',').map(s => s.trim()) : (str || []));
 
       albumData.artist = stringToArray(albumData.artist);

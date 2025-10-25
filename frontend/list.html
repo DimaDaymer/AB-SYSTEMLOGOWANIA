@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Список</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        #navbar-container {
+            width: 100%;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: column; /* Исправлено: теперь элементы будут располагаться в столбец */
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            gap: 20px;
+        }
+
+        h1 {
+            color: #f0f0f0;
+            margin-bottom: 20px;
+        }
+
+        .main-content-wrapper {
+            flex-grow: 1;
+        }
+
+        #album-list-container {
+            width: 100%;
+        }
+
+        .album-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Обновленные стили для карточек альбомов */
+        .album-card {
+            display: flex;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            align-items: center;
+        }
+
+        .album-card a {
+            display: flex;
+            text-decoration: none;
+            color: inherit;
+            width: 100%;
+            align-items: center;
+        }
+
+        .album-card img {
+            width: 120px;
+            height: 120px;
+            border-radius: 4px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .album-details {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .album-card h2 {
+            font-size: 1.2em;
+            margin: 0 0 5px 0;
+            color: #e0e0e0;
+        }
+
+        .album-card p {
+            font-size: 0.85em;
+            color: #b0b0b0;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .album-card .rating-info {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .album-card .rating-info span {
+            margin-right: 15px;
+        }
+
+        .album-card .rating-info .score {
+            font-weight: bold;
+            color: #f5c518;
+        }
+
+        .album-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .action-button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #444;
+            color: #f0f0f0;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s ease;
+        }
+
+        .action-button:hover {
+            background-color: #555;
+        }
+
+        .action-button.active {
+            background-color: #00ffcc;
+            color: #1a1a1a;
+            font-weight: bold;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+    </style>
+</head>
+<body>
+<div class="content-wrapper">
+    <div class="list-header">
+        <h1>Название Списка</h1>
+        <p>Автор списка • Дата создания</p>
+    </div>
+    <div class="list-controls">
+        <label for="sort-by">Сортировать по:</label>
+        <select id="sort-by">
+            <option value="sort_order_asc">Вручную</option>
+            <option value="title_asc">Названию (А-Я)</option>
+            <option value="popularity_desc">Популярности</option>
+            <option value="rating_desc">Рейтингу</option>
+            <option value="added_desc" selected>Последние добавленные</option>
+        </select>
+    </div>
+    <div class="album-list-container">
+    </div>
+</div>
+<script src="/js/lists1.js"></script>
+</body>
+</html>

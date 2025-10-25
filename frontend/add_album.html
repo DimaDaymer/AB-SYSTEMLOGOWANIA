@@ -6,7 +6,6 @@
     <title>Add New Album | MelodyRater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
-    <link rel="stylesheet" href="css/add_album.css">
 </head>
 <body>
 <div class="form-container">
@@ -138,11 +137,12 @@
                 }
             }
 
-            const slug = `${formData.get('artist')}-${formData.get('title')}`
-                .toLowerCase()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-');
+            // Client-side slug generation is now handled by the server with the slugify library.
+            // const slug = `${formData.get('artist')}-${formData.get('title')}`
+            //     .toLowerCase()
+            //     .replace(/[^\w\s-]/g, '')
+            //     .replace(/\s+/g, '-')
+            //     .replace(/-+/g, '-');
 
             const albumData = {
                 title: formData.get('title'),
@@ -154,7 +154,7 @@
                 label: formData.get('label'),
                 language: formData.get('language'),
                 description: formData.get('description'),
-                slug: slug,
+                // REMOVED: slug: slug,
                 tracks: []
             };
 
@@ -178,7 +178,8 @@
                 if (response.ok) {
                     const data = await response.json();
                     alert('Альбом успешно добавлен!');
-                    window.location.href = `/release/album/${slug}`;
+                    // Используем слаг, возвращенный сервером, для перенаправления
+                    window.location.href = `/release/album/${data.slug}`;
                 } else {
                     const errorData = await response.json();
                     alert('Ошибка при добавлении альбома: ' + errorData.error);
