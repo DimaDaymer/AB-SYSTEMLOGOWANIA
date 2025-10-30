@@ -97,6 +97,49 @@ async function initializeDatabase() {
             );
         `);
 
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                album_id INT NOT NULL,
+                title VARCHAR(255),
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_review (user_id, album_id)
+            );
+        `);
+
+        // ... (после CREATE TABLE IF NOT EXISTS albums)
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS tracks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                album_id INT NOT NULL,
+                track_number INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                duration VARCHAR(50),
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_track_in_album (album_id, track_number)
+            );
+        `);
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS ratings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                album_id INT NOT NULL,
+                score DECIMAL(3, 1) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_album_rating (user_id, album_id)
+            );
+        `);
+
         console.log('✅ Database initialized successfully');
     } catch (error) {
         console.error('❌ Database initialization failed:', error);

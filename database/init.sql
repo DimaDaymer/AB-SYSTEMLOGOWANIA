@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS albums (
                                       genres VARCHAR(255),
                                       label VARCHAR(255),
                                       language VARCHAR(50),
+                                      description VARCHAR(250),
                                       slug VARCHAR(255) UNIQUE NOT NULL,
                                       likes INT DEFAULT 0,
                                       wishlist_count INT DEFAULT 0,
@@ -39,24 +40,27 @@ CREATE TABLE IF NOT EXISTS albums (
                                       reviews_count INT DEFAULT 0
 );
 
+-- Таблица для хранения треков
 CREATE TABLE IF NOT EXISTS tracks (
                                       id INT AUTO_INCREMENT PRIMARY KEY,
                                       album_id INT NOT NULL,
                                       track_number INT NOT NULL,
                                       title VARCHAR(255) NOT NULL,
-                                      duration VARCHAR(50),
-                                      FOREIGN KEY (album_id) REFERENCES albums(id)
+                                      duration VARCHAR(50), -- Например, '3:45'
+                                      FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                      UNIQUE KEY unique_track_in_album (album_id, track_number)
 );
 
+-- Таблица для хранения оценок альбомов
 CREATE TABLE IF NOT EXISTS ratings (
                                        id INT AUTO_INCREMENT PRIMARY KEY,
                                        user_id INT NOT NULL,
                                        album_id INT NOT NULL,
-                                       score DECIMAL(2,1) NOT NULL CHECK (score BETWEEN 0.5 AND 5),
+                                       score DECIMAL(3, 1) NOT NULL, -- Оценка, например, 5.0, 4.5
                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                       UNIQUE KEY unique_rating (user_id, album_id),
-                                       FOREIGN KEY (user_id) REFERENCES users(id),
-                                       FOREIGN KEY (album_id) REFERENCES albums(id)
+                                       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                       FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                       UNIQUE KEY unique_user_album_rating (user_id, album_id) -- Один пользователь = одна оценка
 );
 
 CREATE TABLE IF NOT EXISTS track_ratings (
@@ -115,3 +119,22 @@ CREATE TABLE IF NOT EXISTS list_items (
                                           FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
                                           UNIQUE (list_id, album_id) -- Гарантирует, что один альбом не может быть добавлен в один и тот же список дважды
 );
+
+-- Таблица для хранения рецензий пользователей на альбомы
+CREATE TABLE IF NOT EXISTS reviews (
+                                       id INT AUTO_INCREMENT PRIMARY KEY,
+                                       user_id INT NOT NULL,
+                                       album_id INT NOT NULL,
+                                       title VARCHAR(255),
+                                       content TEXT NOT NULL,
+                                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                       FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                       UNIQUE KEY unique_review (user_id, album_id) -- Гарантирует одну рецензию на один альбом от одного пользователя
+);
+
+ALTER TABLE albums
+    ADD COLUMN popularity INT DEFAULT 0,
+    ADD COLUMN avg_rating DECIMAL(3,2) DEFAULT NULL,
+    ADD COLUMN rating_count INT DEFAULT 0;

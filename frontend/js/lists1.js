@@ -45,21 +45,6 @@ function closeListWindow() {
     }
 }
 
-// NEW: Функция для открытия модального окна и загрузки списков
-// Эту функцию удаляем, так как она будет дублировать логику из albums1.js
-/*
-function openListWindow(albumId) {
-    const overlay = document.getElementById('list-overlay');
-    if (overlay) {
-        window.currentAlbumId = albumId; // Сохраняем ID альбома для использования
-        overlay.style.display = 'flex';
-        document.body.classList.add('no-scroll');
-        loadUserLists(); // Загружаем списки только при открытии окна
-        setupTabSwitching(); // Настраиваем переключение вкладок
-    }
-}
-*/
-
 // Функция для обработки переключения вкладок
 function setupTabSwitching() {
     const tabButtons = document.querySelectorAll('.list-tab-button');
@@ -316,6 +301,7 @@ async function addAlbumToList(listId = null) {
         if (window.location.pathname.startsWith('/list/')) {
             const listSlug = window.location.pathname.split('/').pop();
             if (listSlug) {
+                // После добавления альбома обновляем список, чтобы увидеть его
                 await loadListDetails(listSlug);
             }
         }
@@ -329,13 +315,19 @@ async function addAlbumToList(listId = null) {
 // list.html — отдельный список
 // ----------------------------------------------------
 
+// Глобальная переменная для хранения текущего slug списка
+let currentListSlug = null;
+
 async function loadListDetails(listSlug) {
     const listNameElem = document.querySelector('.list-header h1');
     const listMetaElem = document.querySelector('.list-header p');
     const albumListContainer = document.querySelector('.album-list-container');
-    const sortBy = document.getElementById('sort-by')?.value || 'added_desc';
+    const sortBySelect = document.getElementById('sort-by');
+    const sortBy = sortBySelect?.value || 'added_desc';
 
     if (!listNameElem || !albumListContainer) return;
+
+    currentListSlug = listSlug; // Сохраняем slug
 
     listNameElem.textContent = 'Загрузка...';
     listMetaElem.textContent = '';
@@ -357,7 +349,12 @@ async function loadListDetails(listSlug) {
         listNameElem.textContent = listData.name;
         listMetaElem.innerHTML = `Автор списка: ${listData.creator} &bull; Дата создания: ${new Date(listData.created_at).toLocaleDateString()}`;
 
-        renderAlbums(listData.albums, albumListContainer);
+        renderAlbums(listData.albums, albumListContainer, sortBy === 'sort_order_asc');
+
+        // Инициализация перетаскивания, если выбран ручной режим
+        if (sortBy === 'sort_order_asc') {
+            initSortable();
+        }
     } catch (error) {
         console.error('Ошибка загрузки списка:', error);
         listNameElem.textContent = 'Ошибка';
@@ -370,10 +367,12 @@ async function loadListDetails(listSlug) {
 // Функции для отображения альбомов и управления действиями
 // ----------------------------------------------------
 
-function renderAlbums(albums, container) {
-    container.innerHTML = '';
+function renderAlbums(albums, container, isManualSort) {
+    container.innerHTML = `<div class="album-list ${isManualSort ? 'sortable-list' : ''}"></div>`;
+    const albumListDiv = container.querySelector('.album-list');
+
     if (albums.length === 0) {
-        container.innerHTML = '<p>В этом списке пока нет альбомов.</p>';
+        albumListDiv.innerHTML = '<p>В этом списке пока нет альбомов.</p>';
         return;
     }
 
@@ -387,33 +386,34 @@ function renderAlbums(albums, container) {
             (album.release_year || 'N/A');
         const rating = "N/A"; // Изначально ставим "N/A"
         albumCard.innerHTML = `
-                <a href="${albumUrl}">
-                    ${album.cover_url ?
+            ${isManualSort ? '<span class="drag-handle">☰</span>' : ''}
+            <a href="${albumUrl}">
+                ${album.cover_url ?
             `<img src="${album.cover_url}" alt="${album.title} cover">` :
             '<img src="https://via.placeholder.com/80" alt="Placeholder cover">'}
-                    <div class="album-details">
-                        <h2>${album.title}</h2>
-                        <p><strong>Artist:</strong> ${album.artist}</p>
-                        <p><strong>Year:</strong> ${releaseYear}</p>
-                        <p><strong>Genres:</strong> ${album.genres || 'N/A'}</p>
-                        <p><strong>Descriptors:</strong> ${album.description || 'N/A'}</p>
-                        <div class="rating-info">
-                            <span class="score">${rating}</span>
-                            <span>❤️ ${album.likes?.toLocaleString() || 0}</span>
-                            <span>⭐ ${album.wishlist_count?.toLocaleString() || 0}</span>
-                            <span>📜 ${album.in_lists_count?.toLocaleString() || 0}</span>
-                            <span>💬 ${album.reviews_count?.toLocaleString() || 0}</span>
-                        </div>
-                        <div class="album-actions">
-                            <button class="action-button" data-album-id="${album.id}" data-action="listen">🎧 Listen</button>
-                            <button class="action-button" data-album-id="${album.id}" data-action="like">❤️ Like</button>
-                            <button class="action-button" data-album-id="${album.id}" data-action="wishlist">⭐ Wishlist</button>
-                            <button class="action-button" data-album-id="${album.id}" data-action="add-to-list">➕ List</button>
-                        </div>
+                <div class="album-details">
+                    <h2>${album.title}</h2>
+                    <p><strong>Artist:</strong> ${album.artist}</p>
+                    <p><strong>Year:</strong> ${releaseYear}</p>
+                    <p><strong>Genres:</strong> ${album.genres || 'N/A'}</p>
+                    <p><strong>Descriptors:</strong> ${album.description || 'N/A'}</p>
+                    <div class="rating-info">
+                        <span class="score">${rating}</span>
+                        <span>❤️ ${album.likes?.toLocaleString() || 0}</span>
+                        <span>⭐ ${album.wishlist_count?.toLocaleString() || 0}</span>
+                        <span>📜 ${album.in_lists_count?.toLocaleString() || 0}</span>
+                        <span>💬 ${album.reviews_count?.toLocaleString() || 0}</span>
                     </div>
-                </a>
-            `;
-        container.appendChild(albumCard);
+                    <div class="album-actions">
+                        <button class="action-button" data-album-id="${album.id}" data-action="listen">🎧 Listen</button>
+                        <button class="action-button" data-album-id="${album.id}" data-action="like">❤️ Like</button>
+                        <button class="action-button" data-album-id="${album.id}" data-action="wishlist">⭐ Wishlist</button>
+                        <button class="action-button" data-album-id="${album.id}" data-action="add-to-list">➕ List</button>
+                    </div>
+                </div>
+            </a>
+        `;
+        albumListDiv.appendChild(albumCard);
     });
 
     document.querySelectorAll('.action-button').forEach(button => {
@@ -422,6 +422,80 @@ function renderAlbums(albums, container) {
     checkUserActions();
     fetchAndRenderRatings(albums); // 💡 НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ РЕЙТИНГОВ
 }
+
+/**
+ * Инициализирует SortableJS для перетаскивания альбомов.
+ */
+function initSortable() {
+    const list = document.querySelector('.album-list.sortable-list');
+    if (!list || !window.Sortable) return;
+
+    // Проверяем, был ли Sortable уже инициализирован
+    if (list.sortable) {
+        list.sortable.destroy();
+    }
+
+    list.sortable = new Sortable(list, {
+        handle: '.drag-handle', // Элемент, за который можно перетаскивать
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: async function (evt) {
+            // При завершении перетаскивания сохраняем новый порядок
+            await saveSortOrder();
+        },
+    });
+}
+
+/**
+ * Отправляет новый порядок альбомов на сервер.
+ */
+async function saveSortOrder() {
+    const listContainer = document.querySelector('.album-list');
+    const albumCards = listContainer.querySelectorAll('.album-card');
+    const listId = currentListSlug; // Нам нужен list ID, но пока используем slug для поиска
+
+    if (!listId) {
+        showMessage('Ошибка: не удалось определить список для сохранения порядка.', true);
+        return;
+    }
+
+    const newOrder = Array.from(albumCards).map((card, index) => ({
+        albumId: card.dataset.albumId,
+        sortOrder: index + 1
+    }));
+
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showMessage('Пожалуйста, войдите, чтобы сохранить порядок списка.', true);
+            return;
+        }
+
+        // Необходимо получить ID списка по его SLUG
+        const listDataResponse = await fetch(`/api/user-lists/${listId}`);
+        if (!listDataResponse.ok) throw new Error('Не удалось получить ID списка по SLUG.');
+        const listData = await listDataResponse.json();
+        const actualListId = listData.id;
+
+        const response = await fetch(`/api/user-lists/${actualListId}/reorder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ newOrder })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Ошибка сохранения порядка');
+
+        showMessage('Порядок списка успешно сохранен.');
+    } catch (error) {
+        console.error('Ошибка сохранения порядка списка:', error);
+        showMessage('Ошибка сохранения порядка: ' + error.message, true);
+    }
+}
+
 
 // 💡 НОВАЯ ФУНКЦИЯ: Загрузка рейтингов для каждого альбома
 async function fetchAndRenderRatings(albums) {
@@ -523,10 +597,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.pathname.startsWith('/list/')) {
         const listSlug = window.location.pathname.split('/').pop();
         if (listSlug) {
+            // Изначально загружаем, используя сортировку по умолчанию (или из URL)
             loadListDetails(listSlug);
             const sortBySelect = document.getElementById('sort-by');
             if (sortBySelect) {
-                sortBySelect.addEventListener('change', () => loadListDetails(listSlug));
+                sortBySelect.addEventListener('change', (e) => {
+                    const selectedSort = e.target.value;
+                    // Если выбран ручной режим, нужно принудительно обновить список
+                    // Это будет сделано внутри loadListDetails
+                    loadListDetails(listSlug);
+                });
             }
         }
     } else if (document.getElementById('listCardsContainer')) {
