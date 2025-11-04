@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // It's the core logic for the page.
     async function loadUserProfile() {
         const token = localStorage.getItem('token');
-        const username = localStorage.getItem('username');
+        const username = localStorage.getItem('username'); // Используется как резервный ник
 
         if (!token || !username) {
             window.location.href = '/login.html';
@@ -12,12 +12,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            const profileRes = await fetch(`/user/profile?username=${username}`, {
+            // *** ИЗМЕНЕНИЕ: Используем новый роут /user/me для получения своего профиля по токену ***
+            const profileRes = await fetch(`/user/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (profileRes.status === 401) {
                 localStorage.removeItem('token');
+                localStorage.removeItem('username'); // Очищаем и username
                 window.location.href = '/login.html';
                 return;
             }
@@ -37,6 +39,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('location-container').style.display = 'block';
             }
 
+            if (data.country) {
+                document.getElementById('country').textContent = data.country;
+                document.getElementById('country-container').style.display = 'block';
+            }
+
             if (data.description) {
                 document.getElementById('description').textContent = data.description;
                 document.getElementById('description-container').style.display = 'block';
@@ -48,7 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (data.contact_email) {
-                document.getElementById('email').textContent = data.contact_email;
+                // *** ИЗМЕНЕНИЕ: Используем ID 'contactEmail' из HTML, если он там есть.
+                // Если в HTML у вас ID='email', поменяйте эту строку на 'email'
+                document.getElementById('contactEmail').textContent = data.contact_email;
                 document.getElementById('email-container').style.display = 'block';
             }
 
@@ -74,6 +83,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (err) {
             console.error('Error loading profile:', err);
+            // Если ошибка, перенаправляем на логин.
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
             window.location.href = '/login.html';
         }
     }
@@ -196,8 +208,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const url = type === 'all'
-                ? '/api/actions/all'
-                : `/api/actions/${type}`;
+                ? '/api/actions/all' // Предполагаем, что этот роут существует
+                : `/api/actions/${type}`; // Предполагаем, что эти роуты существуют
 
             const container = document.getElementById(containerId);
             container.innerHTML = '<div class="loading">Загрузка...</div>';
@@ -328,22 +340,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial load for the active tab
     const activeTab = document.querySelector('.tab.active');
     if (activeTab) {
-        switch (activeTab.dataset.tab) {
-            case 'recent':
-                loadRatedAlbums();
-                break;
-            case 'albums':
-                loadUserActions('listen', 'albums');
-                break;
-            case 'liked':
-                loadUserActions('like', 'liked');
-                break;
-            case 'wishlist':
-                loadUserActions('wishlist', 'wishlist');
-                break;
-            case 'trackratings':
-                loadAlbumsWithTrackRatings();
-                break;
+        // Убедимся, что начальная загрузка происходит для первого таба, если нет активного
+        if (activeTab.dataset.tab === 'recent') {
+            loadRatedAlbums();
+        } else {
+            // Для остальных табов нужно вызвать соответствующую функцию
+            switch (activeTab.dataset.tab) {
+                case 'albums':
+                    loadUserActions('listen', 'albums');
+                    break;
+                case 'liked':
+                    loadUserActions('like', 'liked');
+                    break;
+                case 'wishlist':
+                    loadUserActions('wishlist', 'wishlist');
+                    break;
+                case 'trackratings':
+                    loadAlbumsWithTrackRatings();
+                    break;
+            }
         }
+    } else {
+        // Загрузить таб "Recent" по умолчанию, если ни один не активен
+        loadRatedAlbums();
     }
 });

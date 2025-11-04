@@ -1,23 +1,17 @@
+// backend/routes/userLists.js
+
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const db = require('../db');
+const { pool } = require('../db');
+const authenticate = require('../authMiddleware');
 const { slugify } = require('transliteration');
 
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (token == null) return res.sendStatus(401);
+// Утилита для преобразования строки исполнителей в массив
+const stringToArray = (str) => (typeof str === 'string' ? str.split(',').map(s => s.trim()).filter(Boolean) : (str || []));
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
-        req.user = user;
-        next();
-    });
-}
 
 // POST /api/user-lists - Создать новый список
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
     try {
         const { name, description } = req.body;
         const userId = req.user.id;
@@ -28,7 +22,7 @@ router.post('/', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Название списка обязательно.' });
         }
 
-        const [result] = await db.pool.query('INSERT INTO user_lists (name, description, user_id, slug) VALUES (?, ?, ?, ?)', [name, description, userId, slug]);
+        const [result] = await pool.execute('INSERT INTO user_lists (name, description, user_id, slug) VALUES (?, ?, ?, ?)', [name, description, userId, slug]);
 
         res.status(201).json({ message: 'Список успешно создан!', listId: result.insertId, slug });
     } catch (error) {
@@ -38,10 +32,10 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // GET /api/user-lists/my-lists - Получить все списки текущего пользователя
-router.get('/my-lists', authenticateToken, async (req, res) => {
+router.get('/my-lists', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
-        const [lists] = await db.pool.query(`
+        const [lists] = await pool.execute(`
             SELECT
                 ul.id,
                 ul.name,
@@ -69,7 +63,7 @@ router.get('/:slug', async (req, res) => {
         const { slug } = req.params;
         const { sortBy = 'added_desc' } = req.query; // Сортировка по умолчанию
 
-        const [lists] = await db.pool.query('SELECT * FROM user_lists WHERE slug = ?', [slug]);
+        const [lists] = await pool.execute('SELECT * FROM user_lists WHERE slug = ?', [slug]);
 
         if (lists.length === 0) {
             return res.status(404).json({ error: 'Список не найден' });
@@ -99,11 +93,12 @@ router.get('/:slug', async (req, res) => {
                 break;
         }
 
-        const [albums] = await db.pool.query(`
+        // ИЗМЕНЕНИЕ SQL-ЗАПРОСА: Добавление ula.sort_order и ula.added_at в SELECT и GROUP BY
+        const [albums] = await pool.execute(`
             SELECT
                 a.id,
                 a.title,
-                a.artist,
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC) AS artists_list,
                 a.release_date,
                 a.cover_url,
                 a.slug,
@@ -114,14 +109,26 @@ router.get('/:slug', async (req, res) => {
                 a.in_lists_count,
                 a.reviews_count,
                 a.avg_rating AS rating,
-                a.rating_count
+                a.rating_count,
+                ula.sort_order,  -- ДОБАВЛЕНО: Для сортировки
+                ula.added_at     -- ДОБАВЛЕНО: Для сортировки
             FROM user_list_albums AS ula
                      JOIN albums AS a ON ula.album_id = a.id
+                     JOIN album_artists AS aa ON a.id = aa.album_id
+                     JOIN artists AS art ON aa.artist_id = art.id
             WHERE ula.list_id = ?
+            GROUP BY a.id, ula.sort_order, ula.added_at -- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Группируем по ID альбома И порядку в списке
                 ${orderByClause}
         `, [list.id]);
 
-        const [creator] = await db.pool.query('SELECT username FROM users WHERE id = ?', [list.user_id]);
+        // ИЗМЕНЕНИЕ: Обработка результатов для клиента
+        const finalAlbums = albums.map(album => ({
+            ...album,
+            artist: stringToArray(album.artists_list), // Маппинг нового поля к старому
+            artists_list: undefined // Удаление промежуточного поля
+        }));
+
+        const [creator] = await pool.execute('SELECT username FROM users WHERE id = ?', [list.user_id]);
 
         res.json({
             id: list.id,
@@ -130,7 +137,7 @@ router.get('/:slug', async (req, res) => {
             description: list.description,
             creator: creator.length > 0 ? creator[0].username : 'Неизвестно',
             created_at: list.created_at,
-            albums: albums
+            albums: finalAlbums // Отправляем finalAlbums
         });
     } catch (error) {
         console.error('Ошибка получения деталей списка:', error);
@@ -139,31 +146,31 @@ router.get('/:slug', async (req, res) => {
 });
 
 // POST /api/user-lists/:listId/add - Добавить альбом в список
-router.post('/:listId/add', authenticateToken, async (req, res) => {
+router.post('/:listId/add', authenticate, async (req, res) => {
     try {
         const { listId } = req.params;
         const { albumId } = req.body;
         const userId = req.user.id;
 
-        const [listCheck] = await db.pool.query('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
+        const [listCheck] = await pool.execute('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
         if (listCheck.length === 0) {
             return res.status(403).json({ error: 'У вас нет прав на редактирование этого списка.' });
         }
 
         // Проверить, есть ли уже альбом в списке
-        const [existing] = await db.pool.query('SELECT 1 FROM user_list_albums WHERE list_id = ? AND album_id = ?', [listId, albumId]);
+        const [existing] = await pool.execute('SELECT 1 FROM user_list_albums WHERE list_id = ? AND album_id = ?', [listId, albumId]);
         if (existing.length > 0) {
             return res.status(409).json({ message: 'Альбом уже есть в списке.' });
         }
 
         // Получить максимальный sort_order для нового элемента
-        const [maxSortOrder] = await db.pool.query('SELECT MAX(sort_order) AS max_order FROM user_list_albums WHERE list_id = ?', [listId]);
+        const [maxSortOrder] = await pool.execute('SELECT MAX(sort_order) AS max_order FROM user_list_albums WHERE list_id = ?', [listId]);
         const newSortOrder = (maxSortOrder[0].max_order || 0) + 1;
 
-        await db.pool.query('INSERT INTO user_list_albums (list_id, album_id, sort_order) VALUES (?, ?, ?)', [listId, albumId, newSortOrder]);
+        await pool.execute('INSERT INTO user_list_albums (list_id, album_id, sort_order) VALUES (?, ?, ?)', [listId, albumId, newSortOrder]);
 
         // Обновить счетчик списков в таблице albums
-        await db.pool.query('UPDATE albums SET in_lists_count = in_lists_count + 1 WHERE id = ?', [albumId]);
+        await pool.execute('UPDATE albums SET in_lists_count = in_lists_count + 1 WHERE id = ?', [albumId]);
 
         res.json({ message: 'Альбом успешно добавлен в список.', sortOrder: newSortOrder });
     } catch (error) {
@@ -173,24 +180,30 @@ router.post('/:listId/add', authenticateToken, async (req, res) => {
 });
 
 // POST /api/user-lists/:listId/reorder - Изменить порядок альбомов
-router.post('/:listId/reorder', authenticateToken, async (req, res) => {
+router.post('/:listId/reorder', authenticate, async (req, res) => {
+    let connection;
     try {
         const { listId } = req.params;
         const { newOrder } = req.body;
         const userId = req.user.id;
 
-        const [listCheck] = await db.pool.query('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
+        // Получить соединение и начать транзакцию
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        // Проверка прав
+        const [listCheck] = await connection.execute('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
         if (listCheck.length === 0) {
+            await connection.rollback();
             return res.status(403).json({ error: 'У вас нет прав на редактирование этого списка.' });
         }
 
-        // Обновленная проверка формата: массив, не пустой, и каждый элемент имеет albumId и sortOrder
+        // Обновленная проверка формата
         if (!Array.isArray(newOrder) || newOrder.length === 0 || !newOrder.every(item => item.albumId && item.sortOrder)) {
+            await connection.rollback();
             return res.status(400).json({ error: 'Неверный или неполный формат нового порядка. Ожидается массив объектов {albumId, sortOrder}.' });
         }
 
-        // Начать транзакцию
-        await db.pool.query('START TRANSACTION');
 
         for (const item of newOrder) {
             const albumId = parseInt(item.albumId);
@@ -200,20 +213,26 @@ router.post('/:listId/reorder', authenticateToken, async (req, res) => {
                 throw new Error('Некорректные значения albumId или sortOrder.');
             }
 
-            await db.pool.query(
+            // Обновление в рамках транзакции
+            await connection.execute(
                 'UPDATE user_list_albums SET sort_order = ? WHERE list_id = ? AND album_id = ?',
                 [sortOrder, listId, albumId]
             );
         }
 
         // Завершить транзакцию
-        await db.pool.query('COMMIT');
-
+        await connection.commit();
         res.json({ message: 'Порядок списка успешно обновлен.' });
     } catch (error) {
-        await db.pool.query('ROLLBACK');
+        if (connection) {
+            await connection.rollback();
+        }
         console.error('Ошибка изменения порядка списка:', error);
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 });
 

@@ -27,6 +27,7 @@ body {
     align-items: flex-start;
 }
 
+/* LEFT PANEL (Avatar and User Info) */
 .left-panel {
     width: 300px;
     flex-shrink: 0;
@@ -38,417 +39,239 @@ body {
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .avatar img {
     width: 100%;
     max-width: 200px;
-    height: auto;
-    border-radius: 8px;
-    background-color: #333;
+    height: 200px;
     object-fit: cover;
-    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    margin-bottom: 15px;
+    border: 3px solid #6c757d;
 }
 
-.avatar input[type="file"] {
-    display: none;
-}
-
-.avatar label {
+.change-avatar-label {
     display: block;
-    margin-top: 15px;
     cursor: pointer;
-    color: #00ffcc;
-    font-size: 0.9rem;
-    padding: 8px 15px;
-    border: 1px solid #00ffcc;
-    border-radius: 6px;
-    transition: background-color 0.3s, color 0.3s;
+    color: #90CAF9;
+    font-weight: 600;
+    margin-top: 10px;
+    transition: color 0.2s;
 }
 
-.avatar label:hover {
-    background-color: #00ffcc;
-    color: #1a1a1a;
+.change-avatar-label:hover {
+    color: #42a5f5;
 }
 
-.user-info {
+.user-info, .user-description, .user-preferences {
     background-color: #1a1a1a;
     padding: 20px;
     border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .user-info h1 {
-    font-size: 2rem;
+    margin-top: 0;
     margin-bottom: 10px;
-    color: #00ffcc;
-    text-align: center;
+    font-size: 2rem;
+    color: #fff;
+    border-bottom: 2px solid #333;
+    padding-bottom: 5px;
 }
 
-.user-info span {
+.user-info span, .info-line {
     display: block;
     margin-bottom: 8px;
     font-size: 0.95rem;
-    line-height: 1.4;
 }
 
-.user-info span strong {
-    color: #bbb;
-    min-width: 90px;
+.user-info strong {
+    color: #aaa;
+    font-weight: 400;
+    min-width: 100px;
     display: inline-block;
 }
 
-.edit-button {
-    margin-top: 20px;
-    background: #00ffcc;
-    border: none;
-    padding: 12px;
-    border-radius: 6px;
-    color: #1a1a1a;
-    font-weight: bold;
-    cursor: pointer;
-    text-align: center;
-    width: 100%;
-    transition: background-color 0.3s, color 0.3s;
+.user-description h3, .user-preferences h3, .user-stats h3, .user-lists h3 {
+    margin-top: 0;
+    color: #90CAF9;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
 }
 
-.edit-button:hover {
-    background-color: #00e0b3;
+.user-description p, .user-preferences p {
+    white-space: pre-wrap;
+    color: #ccc;
+    line-height: 1.6;
 }
 
-.tab-panel {
-    flex: 2;
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-    min-height: 400px;
-}
-
-.tab-header {
-    display: flex;
-    border-bottom: 1px solid #444;
+.preference-item {
     margin-bottom: 15px;
 }
 
-.tab {
-    padding: 10px 20px;
+.edit-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50; /* Green color for action */
+    color: white;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    font-weight: bold;
-    border-bottom: 3px solid transparent;
-    color: #aaa;
-    transition: color 0.3s, border-color 0.3s;
+    font-size: 1rem;
+    transition: background-color 0.3s;
 }
 
-.tab:hover:not(.active) {
-    color: #ddd;
+.edit-button:hover {
+    background-color: #45a049;
+}
+
+/* TAB PANEL (Ratings and Lists) */
+.tab-panel {
+    flex-grow: 1;
+    min-width: 400px;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.tab {
+    flex-grow: 1;
+    text-align: center;
+    padding: 12px 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #ccc;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 0.9rem;
+}
+
+.tab:hover {
+    background-color: #2e2e2e;
 }
 
 .tab.active {
-    border-color: #00ffcc;
-    color: #00ffcc;
+    background-color: #42a5f5;
+    color: white;
 }
 
 .tab-content {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    min-height: 300px;
     display: none;
-    margin-top: 10px;
 }
 
 .tab-content.active {
     display: block;
 }
 
+/* Album Entry in Lists */
 .album-entry {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
-    border-bottom: 1px solid #2a2a2a;
-    background-color: #242424;
-    border-radius: 6px;
-    margin-bottom: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
     transition: background-color 0.2s;
-    gap: 15px;
 }
 
 .album-entry:last-child {
     border-bottom: none;
-    margin-bottom: 0;
 }
 
 .album-entry:hover {
-    background-color: #2a2a2a;
+    background-color: #2e2e2e;
 }
 
-.album-entry a {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    color: inherit;
-    text-decoration: none;
-}
-
-.album-entry .list-image {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    margin-right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8em;
-    color: white;
+.list-image {
+    margin-right: 15px;
     flex-shrink: 0;
-    overflow: hidden;
 }
 
-.album-entry .list-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.album-entry .album-details {
+.album-details {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0;
 }
 
-.album-entry .album-details .title {
-    font-weight: 500;
-    color: #eee;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.album-details .title {
+    font-weight: 600;
+    color: white;
 }
 
-.album-entry .album-details .artist-year {
-    font-size: 0.85em;
-    color: #bbb;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.album-entry .rating-stars {
-    color: gold;
-    margin-left: 10px;
-    white-space: nowrap;
-}
-.album-entry .date-rated {
+.album-details .artist-year {
+    font-size: 0.85rem;
     color: #aaa;
-    font-size: 0.85em;
-    margin-left: 10px;
-    white-space: nowrap;
 }
 
-.right {
-    width: 300px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.notifications, .user-stats, .user-lists {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-.notifications h3, .user-stats h3, .user-lists h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
+.rating-stars {
+    color: #FFD700; /* Gold */
     font-size: 1.2rem;
-    color: #00ffcc;
-    text-align: center;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.notifications h3 .view-all, .user-lists h3 .view-all {
-    font-size: 0.8rem;
-    color: #aaa;
-    text-decoration: none;
     margin-left: auto;
-}
-.notifications h3 .view-all:hover, .user-lists h3 .view-all:hover {
-    color: #eee;
-    text-decoration: underline;
+    margin-right: 15px;
+    flex-shrink: 0;
 }
 
-
-.notifications div, .user-lists div {
-    font-size: 0.9rem;
-    margin-bottom: 8px;
-    padding: 10px;
-    background: #2a2a2a;
-    border-radius: 4px;
-    border-left: 3px solid #00ffcc;
-    transition: background-color 0.2s;
+.date-rated {
+    font-size: 0.8rem;
+    color: #6c757d;
+    min-width: 70px;
+    text-align: right;
+    flex-shrink: 0;
 }
 
-.notifications div:last-child, .user-lists div:last-child {
-    margin-bottom: 0;
-}
-
-.notifications div:hover, .user-lists div:hover {
-    background-color: #333;
-}
-
-.user-stats {
-    position: relative;
-    padding: 20px;
-    border-radius: 8px;
-    padding-top: 50px;
-}
-
-.user-stats h3 {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    text-align: center;
-    font-size: 1.2rem;
-    color: #00ffcc;
-    margin: 0;
-    padding: 0;
-}
-
-.user-stats .average-rating {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    margin-top: 10px;
-}
-
-.user-stats .average-rating .stars {
-    color: gold;
-    font-size: 1.5rem;
-    margin-right: 10px;
-}
-
-.user-stats .average-rating .score {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: white;
-}
-
-.user-stats .graph-display {
-    display: flex;
-    align-items: flex-end;
-    height: 100px;
-    background-color: #2a2a2a;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 15px;
-    padding: 8px 0;
-    gap: 2px;
-}
-
-.user-stats .graph-bar {
-    flex-grow: 1;
-    background-color: #00ffcc;
-    border-radius: 2px;
-    transition: height 0.3s ease-out;
-    min-width: 2px;
-}
-
-.user-stats .graph-bar:nth-child(1) { height: 20%; }
-.user-stats .graph-bar:nth-child(2) { height: 30%; }
-.user-stats .graph-bar:nth-child(3) { height: 40%; }
-.user-stats .graph-bar:nth-child(4) { height: 60%; }
-.user-stats .graph-bar:nth-child(5) { height: 80%; }
-.user-stats .graph-bar:nth-child(6) { height: 70%; }
-.user-stats .graph-bar:nth-child(7) { height: 50%; }
-.user-stats .graph-bar:nth-child(8) { height: 35%; }
-.user-stats .graph-bar:nth-child(9) { height: 25%; }
-.user-stats .graph-bar:nth-child(10) { height: 15%; }
-.user-stats .graph-bar:nth-child(11) { height: 5%; }
-.user-stats .graph-bar:nth-child(12) { height: 10%; }
-
-
-.user-stats .detailed-stats {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 25px;
-    text-align: center;
-    gap: 10px;
-}
-
-.user-stats .detailed-stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #bbb;
-    font-size: 0.9rem;
-}
-
-.user-stats .detailed-stat-item .icon {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-    color: #00ffcc;
-}
-
-.user-stats .detailed-stat-item .value {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: white;
-}
-
-/* User Lists specific styling */
-.user-lists div {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-lists div::before {
-    content: '🎵';
-    color: #00ffcc;
-    font-size: 1.2rem;
-}
-
+/* Track Ratings Section */
 .album-with-tracks {
-    background-color: #2a2a2a;
-    border-radius: 8px;
     margin-bottom: 15px;
+    border: 1px solid #333;
+    border-radius: 4px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .album-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
-    background-color: #333;
+    padding: 10px;
+    background-color: #2e2e2e;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.2s;
 }
 
 .album-header:hover {
-    background-color: #3a3a3a;
+    background-color: #333;
+}
+
+.album-header-content {
+    display: flex;
+    align-items: center;
 }
 
 .album-title {
     font-weight: 600;
-    font-size: 1.1rem;
-    color: #eee;
+    color: white;
 }
 
 .album-artist {
-    color: #bbb;
-    font-size: 0.9rem;
-    margin-top: 2px;
+    font-size: 0.85rem;
+    color: #aaa;
 }
 
 .toggle-icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
     transition: transform 0.3s;
-    color: #00ffcc;
 }
 
 .album-header.expanded .toggle-icon {
@@ -458,52 +281,47 @@ body {
 .tracks-container {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    transition: max-height 0.4s ease-in-out;
 }
 
 .track-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    border-bottom: 1px solid #3a3a3a;
-}
-
-.track-item:last-child {
-    border-bottom: none;
+    padding: 8px 15px;
+    border-top: 1px solid #333;
+    font-size: 0.95rem;
 }
 
 .track-name {
-    flex: 1;
-    color: #ddd;
-    font-size: 0.95rem;
+    flex-grow: 1;
+    color: #ccc;
 }
 
 .track-rating {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.rating-stars {
-    color: gold;
-    font-size: 1rem;
-    white-space: nowrap; /* Added to keep stars on one line */
+    gap: 10px;
 }
 
 .rating-value {
-    min-width: 45px; /* Increased width to accommodate "/10" */
+    min-width: 45px;
     text-align: right;
     font-size: 0.9rem;
     color: #bbb;
 }
 
-.no-ratings {
+.no-ratings, .loading {
     padding: 20px;
     text-align: center;
     color: #aaa;
     font-style: italic;
     font-size: 1rem;
+}
+
+.loading {
+    font-style: normal;
+    font-size: 1.1rem;
 }
 
 .album-cover-small {
@@ -515,31 +333,92 @@ body {
     flex-shrink: 0;
 }
 
-.album-header-content {
-    display: flex;
-    align-items: center;
+/* RIGHT PANEL (Stats and Lists) */
+.right-panel {
+    width: 300px;
+    flex-shrink: 0;
 }
 
-.loading {
+.user-stats, .user-lists {
+    background-color: #1a1a1a;
     padding: 20px;
-    text-align: center;
-    color: #aaa;
-    font-size: 1.1rem;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
+.user-lists > div {
+    padding: 8px 0;
+    border-bottom: 1px dotted #333;
+    color: #ccc;
+    font-size: 0.95rem;
+}
+
+.user-lists > div:last-child {
+    border-bottom: none;
+}
+
+.user-lists .view-all {
+    float: right;
+    color: #90CAF9;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.rating-graph {
+    display: flex;
+    height: 100px;
+    align-items: flex-end;
+    gap: 5px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+    margin-bottom: 15px;
+}
+
+.graph-bar {
+    width: 10%;
+    background-color: #42a5f5;
+    border-radius: 2px;
+    transition: height 0.3s;
+    min-height: 5px; /* ensure bars are visible */
+}
+
+.detailed-stats {
+    display: flex;
+    justify-content: space-around;
+}
+
+.detailed-stat-item {
+    text-align: center;
+}
+
+.detailed-stat-item .icon {
+    font-size: 1.5rem;
+    color: #ff6b6b;
+}
+
+.detailed-stat-item .value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+}
+
+/* RESPONSIVENESS */
 @media (max-width: 1024px) {
     .container {
         flex-direction: column;
         align-items: center;
     }
 
-    .left-panel, .tab-panel, .right {
+    .left-panel, .tab-panel, .right-panel {
         width: 100%;
         max-width: 700px;
     }
 
     .avatar img {
         max-width: 150px;
+        height: 150px;
     }
 }
 
@@ -548,32 +427,38 @@ body {
         padding: 10px;
     }
 
-    .tab-header {
+    .tabs {
         flex-wrap: wrap;
-        justify-content: center;
+        gap: 5px 0;
+        padding: 5px;
+        margin-bottom: 10px;
     }
 
     .tab {
-        flex: 1 1 auto;
-        text-align: center;
-        padding: 8px 10px;
-        font-size: 0.9rem;
+        flex-basis: 48%; /* Two tabs per row */
+        padding: 10px 5px;
+        font-size: 0.85rem;
     }
 
-    .notifications div, .user-lists div {
-        font-size: 0.8rem;
+    .tab:nth-child(odd) {
+        border-right: 1px solid #333;
     }
 
-    .user-stats .detailed-stat-item .value {
-        font-size: 1rem;
+    .album-entry a {
+        flex-direction: column;
+        align-items: flex-start !important;
     }
 
-    .album-entry {
-        flex-wrap: wrap;
-    }
-
-    .album-entry .date-rated {
-        margin-left: 0;
+    .album-details {
         width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .rating-stars {
+        margin-left: 0;
+    }
+
+    .date-rated {
+        margin-left: auto;
     }
 }

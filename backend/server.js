@@ -28,6 +28,7 @@ const actionsRoute = require('./routes/actions');
 const trackRatingsRoute = require('./routes/trackRatings')(pool);
 const filtersRoute = require('./routes/filters')(pool);
 const userListsRoute = require('./routes/userLists');
+const artistRoutes = require('./routes/artist'); // <-- НОВЫЙ ИМПОРТ
 
 app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
@@ -38,7 +39,7 @@ app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
 app.use('/api/filters', filtersRoute);
 app.use('/api/user-lists', userListsRoute);
-
+app.use('/api/artists', artistRoutes);
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
@@ -94,6 +95,10 @@ app.get('/lists_page.html', (req, res) => {
 
 app.get('/list/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/list.html'));
+});
+
+app.get('/artist', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/artist.html'));
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));

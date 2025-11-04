@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль пользователя</title>
     <link rel="stylesheet" href="/css/profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -15,75 +16,84 @@
     <div class="left-panel">
         <div class="avatar">
             <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
-            <label for="avatarUpload">Сменить аватар</label>
-            <input type="file" id="avatarUpload" accept="image/*" />
+            <label for="avatarUpload" class="change-avatar-label">Сменить аватар</label>
+            <input type="file" id="avatarUpload" accept="image/*" style="display: none;" />
         </div>
         <div class="user-info">
             <h1 id="nickname">Никнейм</h1>
             <span><strong>Имя пользователя:</strong> <span id="username">пользователь</span></span>
-            <span id="age-container" style="display:none;"><strong>Возраст:</strong> <span id="age"></span></span>
-            <span id="location-container" style="display:none;"><strong>Местоположение:</strong> <span id="location"></span></span>
-            <span id="description-container" style="display:none;"><strong>Описание:</strong> <span id="description"></span></span>
-            <span id="gender-container" style="display:none;"><strong>Пол:</strong> <span id="gender"></span></span>
-            <span id="email-container" style="display:none;"><strong>Email:</strong> <span id="email"></span></span>
-            <span id="music-container" style="display:none;"><strong>Любимая музыка:</strong> <span id="music"></span></span>
-            <span id="movies-container" style="display:none;"><strong>Любимые фильмы:</strong> <span id="movies"></span></span>
-            <button onclick="window.location.href='edit-profile.html'" class="edit-button">
-                Настройки аккаунта
-            </button>
+
+            <div id="age-container" class="info-line" style="display:none;">
+                <strong>Возраст:</strong> <span id="age"></span>
+            </div>
+            <div id="location-container" class="info-line" style="display:none;">
+                <strong>Местоположение:</strong> <span id="location"></span>
+            </div>
+
+            <div id="country-container" class="info-line" style="display:none;">
+                <strong>Страна:</strong> <span id="country"></span>
+            </div>
+            <div id="gender-container" class="info-line" style="display:none;">
+                <strong>Пол:</strong> <span id="gender"></span>
+            </div>
+            <div id="email-container" class="info-line" style="display:none;">
+                <strong>Email:</strong> <span id="contactEmail"></span> </div>
         </div>
+
+        <div id="description-container" class="user-description" style="display:none;">
+            <h3>О себе</h3>
+            <p id="description"></p>
+        </div>
+
+        <div class="user-preferences">
+            <div id="music-container" class="preference-item" style="display:none;">
+                <h3>Любимая музыка</h3>
+                <p id="music"></p>
+            </div>
+            <div id="movies-container" class="preference-item" style="display:none;">
+                <h3>Любимые фильмы</h3>
+                <p id="movies"></p>
+            </div>
+        </div>
+
+        <button id="editProfileButton" class="edit-button">Редактировать профиль</button>
+
     </div>
 
     <div class="tab-panel">
-        <div class="tab-header">
-            <div class="tab active" data-tab="recent">Недавнее</div>
-            <div class="tab" data-tab="albums">Альбомы</div>
-            <div class="tab" data-tab="liked">Понравилось</div>
-            <div class="tab" data-tab="wishlist">Список желаний</div>
+        <div class="tabs">
+            <div class="tab active" data-tab="recent">Оцененные альбомы</div>
             <div class="tab" data-tab="trackratings">Оценки треков</div>
+            <div class="tab" data-tab="liked">Понравилось (Like)</div>
+            <div class="tab" data-tab="wishlist">Хочу послушать (Wishlist)</div>
+            <div class="tab" data-tab="albums">Прослушано (Listen)</div>
         </div>
-        <div class="tab-content active" id="recent">
+
+        <div id="recent" class="tab-content active">
         </div>
-        <div class="tab-content" id="albums"></div>
-        <div class="tab-content" id="liked"></div>
-        <div class="tab-content" id="wishlist"></div>
-        <div class="tab-content" id="trackratings">
-            <h3>Альбомы с оценками треков</h3>
-            <div id="track-ratings-container"></div>
+
+        <div id="trackratings" class="tab-content">
+            <div id="track-ratings-container">
+            </div>
+        </div>
+
+        <div id="liked" class="tab-content">
+        </div>
+
+        <div id="wishlist" class="tab-content">
+        </div>
+
+        <div id="albums" class="tab-content">
         </div>
     </div>
 
-    <div class="right">
-        <div class="notifications">
-            <h3>Уведомления <a href="#" class="view-all">Посмотреть все</a></h3>
-            <div>Пользователь подписался на вас</div>
-            <div>Новый альбом от Lorem Impact</div>
-            <div>Пример</div>
-            <div>Пример</div>
-            <div>Пример</div>
-            <div>Пример</div>
-            <div>Пример</div>
-            <div>Пример</div>
-        </div>
+    <div class="right-panel">
         <div class="user-stats">
-            <h3>Статистика пользователя</h3>
-            <div class="average-rating">
-                <span class="stars">★★★★<span style="color:#777">☆</span></span>
-                <span class="score">7.92</span>
-            </div>
-            <div class="graph-display">
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
-                <div class="graph-bar"></div>
+            <h3>Статистика</h3>
+            <div class="rating-graph">
+                <div class="graph-bar" style="height: 60%;"></div>
+                <div class="graph-bar" style="height: 90%;"></div>
+                <div class="graph-bar" style="height: 40%;"></div>
             </div>
             <div class="detailed-stats">
                 <div class="detailed-stat-item">
@@ -101,7 +111,7 @@
             </div>
         </div>
         <div class="user-lists">
-            <h3>Списки пользователя <a href="#" class="view-all">Посмотреть все</a></h3>
+            <h3>Списки пользователя <a href="/lists" class="view-all">Посмотреть все</a></h3>
             <div>By User1337</div>
             <div>By krhdall</div>
             <div>By Daymer</div>
@@ -112,7 +122,6 @@
 </div>
 
 <script src="/js/profile.js"></script>
-
 
 </body>
 </html>

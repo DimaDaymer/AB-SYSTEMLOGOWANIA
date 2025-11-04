@@ -9,6 +9,22 @@ const { pool } = require('../db');
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
+
+        // *** ДОБАВЛЕННЫЙ КОД: Валидация ввода ***
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: 'All fields (username, email, password) are required.' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+        }
+
+        // Базовая проверка формата email (можно улучшить более сложным RegEx)
+        if (!/\S+@\S+\.\S+/.test(email)) {
+            return res.status(400).json({ error: 'Invalid email format.' });
+        }
+        // *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await pool.execute(
@@ -19,6 +35,11 @@ router.post('/register', async (req, res) => {
         res.status(201).json({ message: 'User created successfully' });
     } catch (err) {
         console.error(err);
+        // *** ИЗМЕНЕННЫЙ КОД: Обработка конфликта (дублирование) ***
+        if (err.code === 'ER_DUP_ENTRY') {
+            // Код ошибки MySQL для дублирующейся записи
+            return res.status(409).json({ error: 'Username or email already exists' });
+        }
         res.status(500).json({ error: 'Registration failed' });
     }
 });
@@ -27,6 +48,12 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
+
+        // *** ДОБАВЛЕННЫЙ КОД: Валидация логина ***
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required for login.' });
+        }
+        // *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
 
         const [users] = await pool.execute(
             'SELECT * FROM users WHERE username = ?',

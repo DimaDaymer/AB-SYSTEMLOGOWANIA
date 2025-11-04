@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS albums (
                                       id INT AUTO_INCREMENT PRIMARY KEY,
                                       title VARCHAR(255) NOT NULL,
-                                      artist VARCHAR(255) NOT NULL,
+    -- СТОЛБЕЦ 'artist' УДАЛЕН. Теперь он в таблице 'album_artists'.
                                       release_date VARCHAR(100),
                                       cover_url VARCHAR(255),
                                       type VARCHAR(50),
@@ -138,3 +138,30 @@ ALTER TABLE albums
     ADD COLUMN popularity INT DEFAULT 0,
     ADD COLUMN avg_rating DECIMAL(3,2) DEFAULT NULL,
     ADD COLUMN rating_count INT DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS artists (
+                                       id INT AUTO_INCREMENT PRIMARY KEY,
+                                       name VARCHAR(255) NOT NULL UNIQUE, -- Имя исполнителя
+                                       slug VARCHAR(255) UNIQUE NOT NULL, -- Человекопонятный URL-идентификатор
+                                       bio TEXT,                          -- Биография
+                                       picture_url VARCHAR(255),          -- Ссылка на фото
+                                       formed_year VARCHAR(10),           -- Год основания
+                                       origin_country VARCHAR(100),       -- Страна происхождения
+                                       genres_main VARCHAR(255),          -- Основные жанры (для быстрого поиска)
+                                       description TEXT,                  -- Дополнительное описание/дескрипторы
+    -- Статистические счетчики (опционально, для кэширования)
+                                       albums_count INT DEFAULT 0,
+                                       followers_count INT DEFAULT 0,
+                                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Таблица для связи альбомов с исполнителями (основной/приглашенный)
+CREATE TABLE IF NOT EXISTS album_artists (
+                                             album_id INT NOT NULL,
+                                             artist_id INT NOT NULL,
+                                             is_main BOOLEAN DEFAULT TRUE, -- Флаг, является ли исполнитель основным (например, The Main Artist feat. Guest Artist)
+                                             PRIMARY KEY (album_id, artist_id),
+                                             FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                             FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+);
