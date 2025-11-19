@@ -28,13 +28,17 @@ const actionsRoute = require('./routes/actions');
 const trackRatingsRoute = require('./routes/trackRatings')(pool);
 const filtersRoute = require('./routes/filters')(pool);
 const userListsRoute = require('./routes/userLists');
-const artistRoutes = require('./routes/artist'); // <-- НОВЫЙ ИМПОРТ
+const artistRoutes = require('./routes/artist')(pool);
 
 app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
-app.use('/user', userRoutes);
-app.use('/user', uploadRoute);
+
+// *** ВИПРАВЛЕННЯ: Змінено '/user' на '/api/users' та '/api/users/upload' ***
+app.use('/api/users', userRoutes);
+app.use('/api/users/upload', uploadRoute);
+// *************************************************************************
+
 app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
 app.use('/api/filters', filtersRoute);

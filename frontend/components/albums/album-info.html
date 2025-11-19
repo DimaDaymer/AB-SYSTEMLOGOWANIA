@@ -13,88 +13,107 @@
 
 <script>
     window.components = window.components || {};
+
+    // ----------------------------------------------------
+    // 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ----------------------------------------------------
+
+    // Устанавливает простой текст
+    const setText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    // Устанавливает текст и URL для ссылки
+    const setLinkText = (id, text, url) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = text;
+            el.href = url;
+        }
+    };
+
+    // Функция для безопасного извлечения массива из строки (если данные приходят как строка "a, b, c")
+    const getSplitArray = (data) => Array.isArray(data)
+        ? data
+        : (typeof data === 'string'
+                ? data.split(',').map(s => s.trim()).filter(s => s.length > 0)
+                : []
+        );
+
+    // Функция для создания кликабельных ссылок (для Type, Genres, Description и т.д.)
+    function createLinks(containerId, dataArray, paramName, defaultText = 'N/A') {
+        const container = document.getElementById(containerId);
+        const elements = getSplitArray(dataArray);
+
+        if (container && elements.length > 0) {
+            container.innerHTML = elements.map(item => {
+                const encodedItem = encodeURIComponent(item);
+                // Все ссылки ведут на /new_releases.html с соответствующим параметром
+                return `<a href="/new_releases.html?${paramName}=${encodedItem}" class="${paramName}-link">${item}</a>`;
+            }).join(', ');
+        } else {
+            // Если данных нет, просто устанавливаем текст
+            setText(containerId, defaultText);
+        }
+    }
+
+    // ----------------------------------------------------
+    // 2. ГЛАВНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ КОМПОНЕНТА
+    // ----------------------------------------------------
+
     window.components.albumInfo = {
         update: function(albumData) {
-            const setText = (id, text) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = text;
-            };
 
-            const setLinkText = (id, text, url) => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.textContent = text;
-                    el.href = url;
-                }
-            };
-
+            // Заголовок альбома
             setText('album-title', albumData.title || 'Untitled Album');
 
-            // Создаем ссылки для каждого исполнителя
+            // === ВОССТАНОВЛЕННЫЙ КОД ДЛЯ ИСПОЛНИТЕЛЯ (Artist) ===
             const artistContainer = document.getElementById('album-artist');
-            if (artistContainer && Array.isArray(albumData.artist)) {
-                artistContainer.innerHTML = albumData.artist.map(artist => {
-                    return `<a href="/new_releases.html?artist=${encodeURIComponent(artist)}" class="artist-link">${artist}</a>`;
-                }).join(', ');
+            // Ожидаем массив объектов: [{ name: '...', slug: '...' }, ...]
+            const albumArtists = albumData.artists;
+
+            if (artistContainer && Array.isArray(albumArtists) && albumArtists.length > 0) {
+                // Создаем HTML-ссылки для каждого исполнителя
+                artistContainer.innerHTML = albumArtists.map(artist => {
+                    // Используем ссылку на страницу исполнителя с его слагом
+                    // Если slug отсутствует, ссылка будет вести на заглушку
+                    const artistUrl = artist.slug ? `/artist.html?slug=${artist.slug}` : '#';
+                    return `<a href="${artistUrl}" class="artist-link">${artist.name}</a>`;
+                }).join(', '); // Разделяем имена запятыми
             } else {
                 setText('album-artist', 'Unknown artist');
             }
-            // Создаем ссылки для каждого типа
-            const typeContainer = document.getElementById('album-type');
-            if (typeContainer && Array.isArray(albumData.type)) {
-                typeContainer.innerHTML = albumData.type.map(type => {
-                    return `<a href="/new_releases.html?type=${encodeURIComponent(type)}" class="type-link">${type}</a>`;
-                }).join(', ');
-            } else {
-                setText('album-type', 'N/A');
-            }
+            // === КОНЕЦ ВОССТАНОВЛЕННОГО КОДА ДЛЯ ИСПОЛНИТЕЛЯ ===
 
-            // Создаем ссылку для года выпуска
-            if (albumData.release_date) {
-                const year = new Date(albumData.release_date).getFullYear();
-                setLinkText('release-date-link', year, `/new_releases.html?timeframe=specific-year&year=${year}`);
+            // --- Поля, где нужны кликабельные теги (используем новую функцию) ---
+
+            // Тип альбома (теперь кликабельный)
+            createLinks('album-type', albumData.type, 'type', albumData.type || 'N/A');
+
+            // Жанры
+            createLinks('album-genres', albumData.genres, 'genre');
+
+            // Лейбл
+            createLinks('album-label', albumData.label, 'label');
+
+            // Язык
+            createLinks('album-language', albumData.language, 'language');
+
+            // Описание (теперь кликабельные теги)
+            createLinks('album-description', albumData.description, 'description');
+
+            // --- Дата выпуска (ссылка на год) ---
+            const releaseDateLink = document.getElementById('release-date-link');
+            const date = albumData.release_date ? new Date(albumData.release_date) : null;
+
+            if (releaseDateLink && date && !isNaN(date.getTime())) {
+                const year = date.getFullYear();
+                // Используем формат, который у вас был: YYYY-MM-DD
+                const formattedDate = date.toISOString().split('T')[0];
+                setLinkText('release-date-link', formattedDate, `/new_releases.html?year=${year}`);
             } else {
                 setLinkText('release-date-link', 'N/A', '#');
-            }
-
-            // Создаем ссылки для каждого жанра
-            const genresContainer = document.getElementById('album-genres');
-            if (genresContainer && Array.isArray(albumData.genres)) {
-                genresContainer.innerHTML = albumData.genres.map(genre => {
-                    return `<a href="/new_releases.html?genres=${encodeURIComponent(genre)}" class="genre-link">${genre}</a>`;
-                }).join(', ');
-            } else {
-                setText('album-genres', 'N/A');
-            }
-
-            // Создаем ссылки для каждого лейбла
-            const labelContainer = document.getElementById('album-label');
-            if (labelContainer && Array.isArray(albumData.label)) {
-                labelContainer.innerHTML = albumData.label.map(label => {
-                    return `<a href="/new_releases.html?label=${encodeURIComponent(label)}" class="label-link">${label}</a>`;
-                }).join(', ');
-            } else {
-                setText('album-label', 'N/A');
-            }
-
-            // Создаем ссылки для каждого языка
-            const languageContainer = document.getElementById('album-language');
-            if (languageContainer && Array.isArray(albumData.language)) {
-                languageContainer.innerHTML = albumData.language.map(language => {
-                    return `<a href="/new_releases.html?language=${encodeURIComponent(language)}" class="language-link">${language}</a>`;
-                }).join(', ');
-            } else {
-                setText('album-language', 'N/A');
-            }
-
-            // Creates links for each description
-            const descriptionContainer = document.getElementById('album-description');
-            if (descriptionContainer && Array.isArray(albumData.description)) {
-                descriptionContainer.innerHTML = albumData.description.map(description => {
-                    return `<a href="/new_releases.html?description=${encodeURIComponent(description)}" class="description-link">${description}</a>`;
-                }).join(', ');
-            } else {
-                setText('album-description', 'N/A');
             }
         }
     };

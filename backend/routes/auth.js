@@ -6,11 +6,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 
+// --- Маршрут РЕЄСТРАЦІЇ ---
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // *** ДОБАВЛЕННЫЙ КОД: Валидация ввода ***
+        // *** Валідація вводу ***
         if (!username || !email || !password) {
             return res.status(400).json({ error: 'All fields (username, email, password) are required.' });
         }
@@ -19,44 +20,42 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
         }
 
-        // Базовая проверка формата email (можно улучшить более сложным RegEx)
         if (!/\S+@\S+\.\S+/.test(email)) {
             return res.status(400).json({ error: 'Invalid email format.' });
         }
-        // *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
+        // *** Кінець Валідації ***
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Вставка користувача з роллю 'user' за замовчуванням
         await pool.execute(
-            'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-            [username, email, hashedPassword]
+            'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
+            [username, email, hashedPassword, 'user']
         );
 
-        res.status(201).json({ message: 'User created successfully' });
+        res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
-        console.error(err);
-        // *** ИЗМЕНЕННЫЙ КОД: Обработка конфликта (дублирование) ***
         if (err.code === 'ER_DUP_ENTRY') {
-            // Код ошибки MySQL для дублирующейся записи
             return res.status(409).json({ error: 'Username or email already exists' });
         }
+        console.error('Registration error:', err);
         res.status(500).json({ error: 'Registration failed' });
     }
 });
 
 
+// --- Маршрут ВХОДУ ---
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // *** ДОБАВЛЕННЫЙ КОД: Валидация логина ***
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required for login.' });
         }
-        // *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
 
+        // Отримати користувача, включаючи role
         const [users] = await pool.execute(
-            'SELECT * FROM users WHERE username = ?',
+            'SELECT id, username, password_hash, role FROM users WHERE username = ?',
             [username]
         );
 
@@ -64,21 +63,23 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const validPassword = await bcrypt.compare(password, users[0].password_hash);
+        const user = users[0];
+        const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Увеличено время жизни токена до 7 дней
+        // Створення токена, включаючи role
         const token = jwt.sign(
-            { id: users[0].id, username: users[0].username },
+            { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        res.json({ token, username: users[0].username });
+        // Повернення токена та ролі
+        res.json({ token, role: user.role });
     } catch (err) {
-        console.error(err);
+        console.error('Login error:', err);
         res.status(500).json({ error: 'Login failed' });
     }
 });

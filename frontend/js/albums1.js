@@ -61,6 +61,33 @@ let currentAlbumId = null;
 let albumDataCache = null;
 window.components = window.components || {};
 
+// НОВАЯ ФУНКЦИЯ: Проверка роли пользователя
+async function checkUserRole() {
+    const token = localStorage.getItem('token');
+    if (!token) return null; // Пользователь не авторизован
+
+    try {
+        const response = await fetch('/api/users/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            // Ошибка авторизации, неверный токен или ошибка сервера
+            // Если сервер возвращает HTML, то ошибка произойдет здесь:
+            if (response.headers.get('content-type')?.includes('text/html')) {
+                // Тут мы могли бы явно прочитать HTML для отладки, но для продакшна просто возвращаем null
+            }
+            return null;
+        }
+
+        const userData = await response.json(); // <-- СТРОКА, ГДЕ ВЫПАДАЕТ ОШИБКА, ЕСЛИ СЕРВЕР ОТВЕТИЛ HTML
+        return userData.role; // Вернет 'admin', 'user' или что-то другое
+    } catch (err) {
+        console.error('Error fetching user role:', err);
+        return null;
+    }
+}
+
 // Основная функция инициализации страницы
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -78,21 +105,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadUserData(currentAlbumId);
         updateScoresDisplay();
 
+        // *** ИЗМЕНЕНИЕ: Проверка роли администратора и отображение кнопки ***
+        const userRole = await checkUserRole();
+        const editAlbumBtn = document.getElementById('edit-album-btn');
+
+        console.log('User Role Check Result:', userRole);
+
+        if (editAlbumBtn) {
+            // Кнопка уже скрыта в HTML, но здесь гарантируем ее статус
+            editAlbumBtn.style.display = 'none';
+
+            if (userRole === 'admin') {
+                editAlbumBtn.style.display = 'block'; // Показываем кнопку только для админа
+                editAlbumBtn.addEventListener('click', () => {
+                    const slug = getSlugFromURL();
+                    if (slug) {
+                        window.location.href = `/edit_album.html?slug=${slug}`;
+                    } else {
+                        showMessage('Album slug not found', true);
+                    }
+                });
+            }
+        }
+        // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+
     } catch (error) {
         console.error('[Albums] Initialization error:', error);
         showMessage('Error loading page: ' + error.message, true);
-    }
-
-    const editAlbumBtn = document.getElementById('edit-album-btn');
-    if (editAlbumBtn) {
-        editAlbumBtn.addEventListener('click', () => {
-            const slug = getSlugFromURL();
-            if (slug) {
-                window.location.href = `/edit_album.html?slug=${slug}`;
-            } else {
-                showMessage('Album slug not found', true);
-            }
-        });
     }
 });
 

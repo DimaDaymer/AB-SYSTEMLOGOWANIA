@@ -16,8 +16,8 @@ async function initializeDatabase() {
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(50) UNIQUE,
+                                                 id INT AUTO_INCREMENT PRIMARY KEY,
+                                                 username VARCHAR(50) UNIQUE,
                 email VARCHAR(100) UNIQUE,
                 password_hash VARCHAR(255),
                 profile_pic VARCHAR(255),
@@ -32,21 +32,24 @@ async function initializeDatabase() {
                 social VARCHAR(255),
                 contact_email VARCHAR(100),
                 music TEXT,
-                movies TEXT
-            );
+                movies TEXT,
+                role ENUM('user', 'admin') NOT NULL DEFAULT 'user'
+                );
         `);
 
+        // === ИСПРАВЛЕННАЯ ТАБЛИЦА albums ===
+        // 1. УДАЛЕНО: artist VARCHAR(255) NOT NULL
+        // 2. ИЗМЕНЕНО: language VARCHAR(50) -> VARCHAR(255)
         await connection.query(`
             CREATE TABLE IF NOT EXISTS albums (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                artist VARCHAR(255) NOT NULL,
+                                                  id INT AUTO_INCREMENT PRIMARY KEY,
+                                                  title VARCHAR(255) NOT NULL,
                 release_date VARCHAR(100),
                 cover_url VARCHAR(255),
                 type VARCHAR(50),
                 genres VARCHAR(255),
                 label VARCHAR(255),
-                language VARCHAR(50),
+                language VARCHAR(255),
                 description TEXT,
                 slug VARCHAR(255) UNIQUE NOT NULL,
                 likes INT DEFAULT 0,
@@ -56,64 +59,84 @@ async function initializeDatabase() {
                 popularity INT DEFAULT 0,
                 avg_rating DECIMAL(3,2) DEFAULT NULL,
                 rating_count INT DEFAULT 0
-            );
+                );
+        `);
+        // ===================================
+
+        // === ДОБАВЛЕННЫЕ ТАБЛИЦЫ ДЛЯ ИСПОЛНИТЕЛЕЙ (Artist Many-to-Many) ===
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS artists (
+                                                   id INT AUTO_INCREMENT PRIMARY KEY,
+                                                   name VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) UNIQUE NOT NULL,
+                UNIQUE KEY unique_artist_name (name)
+                );
         `);
 
         await connection.query(`
+            CREATE TABLE IF NOT EXISTS album_artists (
+                                                         album_id INT NOT NULL,
+                                                         artist_id INT NOT NULL,
+                                                         PRIMARY KEY (album_id, artist_id),
+                FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+                );
+        `);
+        // =================================================================
+
+        await connection.query(`
             CREATE TABLE IF NOT EXISTS user_lists (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                name VARCHAR(255) NOT NULL,
+                                                      id INT AUTO_INCREMENT PRIMARY KEY,
+                                                      user_id INT NOT NULL,
+                                                      name VARCHAR(255) NOT NULL,
                 description TEXT,
                 slug VARCHAR(255) UNIQUE NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
+                );
         `);
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS user_list_albums (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                list_id INT NOT NULL,
-                album_id INT NOT NULL,
-                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                sort_order INT,
-                FOREIGN KEY (list_id) REFERENCES user_lists(id) ON DELETE CASCADE,
+                                                            id INT AUTO_INCREMENT PRIMARY KEY,
+                                                            list_id INT NOT NULL,
+                                                            album_id INT NOT NULL,
+                                                            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                            sort_order INT,
+                                                            FOREIGN KEY (list_id) REFERENCES user_lists(id) ON DELETE CASCADE,
                 FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_list_album (list_id, album_id)
-            );
+                );
         `);
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS user_album_actions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                album_id INT NOT NULL,
-                action_type VARCHAR(50) NOT NULL,
+                                                              id INT AUTO_INCREMENT PRIMARY KEY,
+                                                              user_id INT NOT NULL,
+                                                              album_id INT NOT NULL,
+                                                              action_type VARCHAR(50) NOT NULL,
                 action_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
                 UNIQUE (user_id, album_id, action_type)
-            );
+                );
         `);
 
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS reviews (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                album_id INT NOT NULL,
-                title VARCHAR(255),
+                                                   id INT AUTO_INCREMENT PRIMARY KEY,
+                                                   user_id INT NOT NULL,
+                                                   album_id INT NOT NULL,
+                                                   title VARCHAR(255),
                 content TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_review (user_id, album_id)
-            );
+                );
         `);
-
-        // ... (после CREATE TABLE IF NOT EXISTS albums)
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS tracks (

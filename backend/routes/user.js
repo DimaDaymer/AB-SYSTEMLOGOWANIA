@@ -5,13 +5,15 @@ const router = express.Router();
 const jwt = require('jsonwebtoken'); // Оставлен на случай, если где-то еще используется
 const { pool } = require('../db');
 const authenticate = require('../authMiddleware'); // Middleware для проверки токена и получения req.user
+const authorizeAdmin = require('../adminAuth'); // <-- НОВИЙ ІМПОРТ
 
 // Поля, общие для публичного и личного профиля
 const PUBLIC_PROFILE_FIELDS = `
-    username, first_name, last_name, birth_date, gender,
+    username, role, first_name, last_name, birth_date, gender,
     location, country, social, description,
     music, movies
-`;
+`; // <--- КРИТИЧНЕ ВИПРАВЛЕННЯ: role ДОДАНО
+
 // Поля, видимые только владельцу профиля (/me)
 const PRIVATE_PROFILE_FIELDS = `${PUBLIC_PROFILE_FIELDS}, contact_email`;
 
@@ -68,6 +70,7 @@ router.get('/me', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // rows[0] теперь содержит поле role, которое будет возвращено клиенту
         res.json(processProfileData(rows[0]));
     } catch (err) {
         console.error('Error fetching user profile (/me):', err);
@@ -75,6 +78,19 @@ router.get('/me', authenticate, async (req, res) => {
     }
 });
 
+router.get('/admin/all-users', authorizeAdmin, async (req, res) => {
+    try {
+        // Запрос к базе данных для получения списка всех пользователей
+        const [rows] = await pool.execute(
+            'SELECT id, username, email, role, created_at FROM users'
+        );
+
+        res.json(rows);
+    } catch (err) {
+        console.error('Error fetching all users (Admin):', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // --------------------------------------------------------------------------------------------------
 // РОУТ 2: ОБНОВЛЕНИЕ ПРОФИЛЯ (/profile/update) - Защищен токеном
@@ -95,10 +111,10 @@ router.put('/profile/update', authenticate, async (req, res) => {
         }
 
         const [result] = await pool.execute(
-            `UPDATE users SET 
-                first_name = ?, last_name = ?, birth_date = ?, gender = ?, 
-                location = ?, country = ?, social = ?, contact_email = ?, 
-                description = ?, music = ?, movies = ?
+            `UPDATE users SET
+                              first_name = ?, last_name = ?, birth_date = ?, gender = ?,
+                              location = ?, country = ?, social = ?, contact_email = ?,
+                              description = ?, music = ?, movies = ?
              WHERE username = ?`,
             [
                 firstName, lastName, birthDate, gender,
@@ -123,10 +139,20 @@ router.get('/rated-albums', authenticate, async (req, res) => {
         const userId = req.user.id; // ID пользователя из токена
 
         const [rows] = await pool.execute(`
-            SELECT a.id, a.title, a.artist, a.cover_url, a.slug, r.score, r.created_at
+            SELECT
+                a.id,
+                a.title,
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ: Получение исполнителя через JOIN и GROUP_CONCAT */
+                a.cover_url,
+                a.slug,
+                r.score,
+                r.created_at
             FROM ratings r
                      JOIN albums a ON r.album_id = a.id
+                     LEFT JOIN album_artists aa ON a.id = aa.album_id
+                     LEFT JOIN artists art ON aa.artist_id = art.id
             WHERE r.user_id = ?
+            GROUP BY a.id, a.title, a.cover_url, a.slug, r.score, r.created_at /* Добавление GROUP BY */
             ORDER BY r.created_at DESC
         `, [userId]);
 
@@ -145,12 +171,19 @@ router.get('/track-ratings', authenticate, async (req, res) => {
         const userId = req.user.id;
 
         const [albums] = await pool.execute(`
-            SELECT a.id, a.title, a.artist, a.cover_url, a.slug
+            SELECT
+                a.id,
+                a.title,
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ: Получение исполнителя через JOIN и GROUP_CONCAT */
+                a.cover_url,
+                a.slug
             FROM albums a
                      JOIN tracks t ON a.id = t.album_id
                      JOIN track_ratings tr ON t.id = tr.track_id
+                     LEFT JOIN album_artists aa ON a.id = aa.album_id
+                     LEFT JOIN artists art ON aa.artist_id = art.id
             WHERE tr.user_id = ?
-            GROUP BY a.id
+            GROUP BY a.id, a.title, a.cover_url, a.slug /* Добавление GROUP BY */
             ORDER BY MAX(tr.created_at) DESC
         `, [userId]);
 

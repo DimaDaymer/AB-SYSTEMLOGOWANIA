@@ -48,10 +48,19 @@ router.get('/:actionType', authenticate, async (req, res) => {
         const userId = req.user.id;
 
         const [actions] = await pool.execute(
-            `SELECT a.id, a.title, a.artist, a.cover_url, a.slug, uaa.created_at
+            `SELECT
+                 a.id,
+                 a.title,
+                 GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ */
+                 a.cover_url,
+                 a.slug,
+                 uaa.created_at
              FROM user_album_actions uaa
                       JOIN albums a ON uaa.album_id = a.id
+                      LEFT JOIN album_artists aa ON a.id = aa.album_id
+                      LEFT JOIN artists art ON aa.artist_id = art.id
              WHERE uaa.user_id = ? AND uaa.action_type = ?
+             GROUP BY a.id, a.title, a.cover_url, a.slug, uaa.created_at /* Добавление GROUP BY */
              ORDER BY uaa.created_at DESC`,
             [userId, actionType]
         );
@@ -88,12 +97,22 @@ router.get('/all', authenticate, async (req, res) => {
         const userId = req.user.id;
 
         const [actions] = await pool.execute(
-            `SELECT a.id, a.title, a.artist, a.cover_url, a.slug, uaa.action_type, uaa.created_at
+            `SELECT
+                 a.id,
+                 a.title,
+                 GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ */
+                 a.cover_url,
+                 a.slug,
+                 uaa.action_type,
+                 uaa.created_at
              FROM user_album_actions uaa
                       JOIN albums a ON uaa.album_id = a.id
+                      LEFT JOIN album_artists aa ON a.id = aa.album_id
+                      LEFT JOIN artists art ON aa.artist_id = art.id
              WHERE uaa.user_id = ?
+             GROUP BY a.id, a.title, a.cover_url, a.slug, uaa.action_type, uaa.created_at /* Добавление GROUP BY */
              ORDER BY uaa.created_at DESC
-             LIMIT 50`,
+                 LIMIT 50`,
             [userId]
         );
 

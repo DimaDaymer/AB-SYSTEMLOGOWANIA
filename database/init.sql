@@ -19,7 +19,10 @@ CREATE TABLE IF NOT EXISTS users (
                                      social VARCHAR(255),
                                      contact_email VARCHAR(100),
                                      music TEXT,
-                                     movies TEXT
+                                     movies TEXT,
+    -- *** ДОБАВЛЕННЫЙ КОД ***
+                                     role ENUM('user', 'admin') NOT NULL DEFAULT 'user'
+    -- *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
 );
 
 CREATE TABLE IF NOT EXISTS albums (
@@ -149,7 +152,6 @@ CREATE TABLE IF NOT EXISTS artists (
                                        origin_country VARCHAR(100),       -- Страна происхождения
                                        genres_main VARCHAR(255),          -- Основные жанры (для быстрого поиска)
                                        description TEXT,                  -- Дополнительное описание/дескрипторы
-    -- Статистические счетчики (опционально, для кэширования)
                                        albums_count INT DEFAULT 0,
                                        followers_count INT DEFAULT 0,
                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

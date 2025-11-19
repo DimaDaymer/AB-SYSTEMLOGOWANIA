@@ -1,0 +1,259 @@
+/* frontend/css/artist.css */
+
+:root {
+    --bg-dark: #121212;
+    --card-bg: #1e1e1e; /* Цвет фона карточек как на скриншоте */
+    --text-main: #ffffff;
+    --text-secondary: #b3b3b3;
+    --accent-green: #76ff03; /* Ярко-зеленый для рейтинга */
+    --accent-cyan: #4dd0e1; /* Бирюзовый для жанров и мета-данных */
+    --hover-bg: #333333;
+    --border-color: #333;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- Layout & Container --- */
+.artist-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+}
+
+/* --- Banner & Header --- */
+#artist-banner-overlay {
+    position: fixed; /* Или absolute, если хотите, чтобы скроллился */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, var(--bg-dark) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, var(--bg-dark) 100%);
+    opacity: 0.4;
+}
+
+#artist-header {
+    display: flex;
+    align-items: flex-end;
+    gap: 30px;
+    margin-top: 150px; /* Отступ, чтобы контент был поверх баннера */
+    margin-bottom: 40px;
+    background: rgba(30, 30, 30, 0.6); /* Полупрозрачная подложка */
+    backdrop-filter: blur(10px);
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+#artist-info {
+    display: flex;
+    gap: 30px;
+    flex: 1;
+}
+
+.artist-picture {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.artist-details h1 {
+    font-size: 3rem;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+#artist-meta {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+/* Стилизация жанров под "теги" из скриншота */
+.artist-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.artist-genre-tag {
+    color: var(--accent-cyan); /* Бирюзовый цвет текста */
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.artist-genre-tag:not(:last-child)::after {
+    content: ",";
+    color: var(--text-secondary);
+}
+
+.artist-stats {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* --- Buttons --- */
+#artist-actions .follow-button {
+    background-color: #2a2a2a;
+    color: white;
+    border: 1px solid var(--border-color);
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+#artist-actions .follow-button:hover {
+    background-color: var(--accent-cyan);
+    color: #000;
+    border-color: var(--accent-cyan);
+}
+
+/* --- Tabs --- */
+.tabs-container {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.tab-button:hover {
+    color: white;
+}
+
+.tab-button.active {
+    color: var(--accent-cyan);
+    border-bottom: 2px solid var(--accent-cyan);
+}
+
+/* --- Content Area --- */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.section-title {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: var(--text-main);
+}
+
+/* --- Discography Grid --- */
+.discography-section {
+    margin-bottom: 40px;
+}
+
+.discography-type-title {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.album-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+}
+
+/* Карточка альбома - дизайн как в New Releases */
+.album-card-wrapper {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid transparent;
+}
+
+.album-card-wrapper:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.5);
+    border-color: #333;
+}
+
+.album-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.album-cover {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    display: block;
+}
+
+.album-info-block {
+    padding: 12px;
+}
+
+.album-title {
+    margin: 0 0 5px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+}
+
+.album-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.album-year {
+    color: var(--text-secondary);
+}
+
+.album-rating {
+    color: var(--accent-green); /* Зеленый рейтинг */
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.album-no-rating {
+    color: #555;
+    font-size: 0.8rem;
+}

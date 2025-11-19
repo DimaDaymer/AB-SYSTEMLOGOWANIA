@@ -1,62 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const slugify = require('slugify');
+const { pool } = require('../db');
+const authenticate = require('../authMiddleware');
 
-// *** ДОБАВЛЕННЫЙ КОД: Константы и утилита для валидации и консистентности ***
 const VALID_SORTS = ['rating', 'popularity', 'release_date', 'title', 'artist'];
 const VALID_ORDERS = ['asc', 'desc'];
 
-// Утилита для преобразования строки в массив. Используется для полей albums
-const stringToArray = (str) => (typeof str === 'string' ? str.split(',').map(s => s.trim()).filter(Boolean) : (str || []));
-
-/**
- * Функция для поиска или создания исполнителя.
- * Использует транзакцию из основного запроса.
- * @param {object} connection - Активное соединение с базой данных (внутри транзакции)
- * @param {string} artistName - Имя исполнителя
- * @returns {Promise<number>} ID исполнителя
- */
-async function findOrCreateArtist(connection, artistName) {
-    const artistSlug = slugify(artistName, { lower: true, strict: true, locale: 'ru' });
-
-    // Поиск существующего исполнителя по имени
-    const [existingArtist] = await connection.execute('SELECT id FROM artists WHERE name = ?', [artistName]);
-
-    if (existingArtist.length > 0) {
-        return existingArtist[0].id;
-    } else {
-        // Создание нового исполнителя
-        try {
-            const [newArtistResult] = await connection.execute(
-                'INSERT INTO artists (name, slug) VALUES (?, ?)',
-                [artistName, artistSlug]
-            );
-            return newArtistResult.insertId;
-        } catch (error) {
-            // Обработка возможной коллизии слага (крайне редко)
-            if (error.code === 'ER_DUP_ENTRY') {
-                console.warn(`Artist slug collision for ${artistName}. Retrying search.`);
-                const [existingArtistAfterCollision] = await connection.execute('SELECT id FROM artists WHERE name = ?', [artistName]);
-                if (existingArtistAfterCollision.length > 0) {
-                    return existingArtistAfterCollision[0].id;
-                }
-            }
-            throw error;
-        }
-    }
-}
-// *** КОНЕЦ ДОБАВЛЕННОГО КОДА ***
+// Утилита для преобразования строки с разделителями в массив строк
+const stringToArray = (str) => (typeof str === 'string' ? str.split(',').map(s => s.trim()).filter(s => s.length > 0) : (str || []));
 
 module.exports = (pool) => {
-    /**
-     * Маршрут для получения списка альбомов с фильтрацией и сортировкой.
-     */
+
+    // ... (router.get('/') - код для получения списка альбомов)
+
     router.get('/', async (req, res) => {
         let connection;
         try {
             const { sort, order, format, year, yearRange, genres, description, language, search } = req.query;
 
-            // Валидация sort и order
             if (sort && !VALID_SORTS.includes(sort.toLowerCase())) {
                 return res.status(400).json({ error: 'Invalid sort parameter. Must be one of: ' + VALID_SORTS.join(', ') });
             }
@@ -70,31 +32,23 @@ module.exports = (pool) => {
             let query = `
                 SELECT
                     a.*,
-                    GROUP_CONCAT(DISTINCT art.name ORDER BY aa.is_main DESC) AS artists_list,
-                    AVG(r.score) AS average_rating,
-                    COUNT(DISTINCT uaa1.id) AS likes
-                -- Статистические счетчики, которые уже есть в таблице albums
-                -- (a.likes, a.wishlist_count, a.in_lists_count, a.reviews_count)
+                    (SELECT GROUP_CONCAT(art.name SEPARATOR ', ') FROM album_artists aa JOIN artists art ON aa.artist_id = art.id WHERE aa.album_id = a.id) AS artist_name,
+                    COALESCE(AVG(r.score), 0) AS average_rating,
+                    (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'like') AS likes,
+                    (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'wishlist') AS wishlist_count,
+                    (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'add-to-list') AS in_lists_count,
+                    (SELECT COUNT(id) FROM reviews WHERE album_id = a.id) AS reviews_count
                 FROM albums a
-                         JOIN album_artists aa ON a.id = aa.album_id
-                         JOIN artists art ON aa.artist_id = art.id
                          LEFT JOIN ratings r ON a.id = r.album_id
-                         LEFT JOIN user_album_actions uaa1 ON a.id = uaa1.album_id AND uaa1.action_type = 'like'
             `;
 
             const whereClauses = [];
             const params = [];
             const groupClauses = ['a.id'];
 
-            // Фильтрация по жанрам, описанию, языку, формату, году, диапазону и поиску
-            // (Логика фильтрации остается прежней, но обратите внимание,
-            // что поле 'genres' в albums должно быть заполнено для фильтрации)
-
-            // ... (Вся логика WHERE clauses, как в предыдущем файле) ...
-
             // Фильтрация по жанрам
             if (genres) {
-                const genreArray = genres.split(',').map(g => g.trim());
+                const genreArray = stringToArray(genres);
                 if (genreArray.length > 0) {
                     const findInSetConditions = genreArray.map(genre => `FIND_IN_SET(?, REPLACE(TRIM(a.genres), ' ', ''))`).join(' OR ');
                     whereClauses.push(`(${findInSetConditions})`);
@@ -105,7 +59,7 @@ module.exports = (pool) => {
 
             // Фильтрация по описанию
             if (description) {
-                const descriptionArray = description.split(',').map(d => d.trim());
+                const descriptionArray = stringToArray(description);
                 if (descriptionArray.length > 0) {
                     const findInSetConditions = descriptionArray.map(d => `FIND_IN_SET(?, REPLACE(TRIM(a.description), ' ', ''))`).join(' OR ');
                     whereClauses.push(`(${findInSetConditions})`);
@@ -116,7 +70,7 @@ module.exports = (pool) => {
 
             // Фильтрация по языку
             if (language) {
-                const languageArray = language.split(',').map(l => l.trim());
+                const languageArray = stringToArray(language);
                 if (languageArray.length > 0) {
                     const findInSetConditions = languageArray.map(l => `FIND_IN_SET(?, REPLACE(TRIM(a.language), ' ', ''))`).join(' OR ');
                     whereClauses.push(`(${findInSetConditions})`);
@@ -127,7 +81,7 @@ module.exports = (pool) => {
 
             // Фильтрация по формату
             if (format) {
-                const formats = format.split(',').map(f => f.trim());
+                const formats = stringToArray(format);
                 if (formats.length > 0) {
                     whereClauses.push(`a.type IN (${formats.map(() => '?').join(',')})`);
                     params.push(...formats);
@@ -155,9 +109,9 @@ module.exports = (pool) => {
                 }
             }
 
-            // Поиск по названию или исполнителю (ищет как в альбоме, так и в таблице artists)
+            // Поиск по названию/исполнителю
             if (search) {
-                whereClauses.push('(a.title LIKE ? OR art.name LIKE ?)');
+                whereClauses.push('(a.title LIKE ? OR (SELECT GROUP_CONCAT(art.name SEPARATOR ", ") FROM album_artists aa JOIN artists art ON aa.artist_id = art.id WHERE aa.album_id = a.id) LIKE ?)');
                 params.push(`%${search}%`, `%${search}%`);
             }
 
@@ -174,62 +128,235 @@ module.exports = (pool) => {
 
             let orderByClause = '';
             if (sort === 'rating') {
-                orderByClause = `ORDER BY average_rating ${orderDirection}, a.popularity DESC, a.release_date DESC`;
+                orderByClause = `ORDER BY average_rating ${orderDirection}, likes DESC, a.release_date DESC`;
             } else if (sort === 'popularity') {
-                orderByClause = `ORDER BY a.popularity ${orderDirection}, average_rating DESC, a.release_date DESC`;
+                orderByClause = `ORDER BY likes ${orderDirection}, average_rating DESC, a.release_date DESC`;
+            } else if (sort === 'release_date') {
+                orderByClause = `ORDER BY a.release_date ${orderDirection}, likes DESC`;
+            } else if (sort === 'title') {
+                orderByClause = `ORDER BY a.title ${orderDirection}`;
             } else if (sort === 'artist') {
-                orderByClause = `ORDER BY artists_list ${orderDirection}`;
-            } else { // release_date, title
-                orderByClause = `ORDER BY a.${sort || 'release_date'} ${orderDirection}`;
+                // Для сортировки по исполнителю нужно добавить artist_name в GROUP BY
+                query += `, artist_name`;
+                orderByClause = `ORDER BY artist_name ${orderDirection}`;
+            } else {
+                // Сортировка по умолчанию
+                orderByClause = `ORDER BY likes DESC, average_rating DESC, a.release_date DESC`;
             }
 
             query += ` ${orderByClause}`;
 
-            // Логирование для отладки
-            // console.log('Final SQL Query:', query);
-            // console.log('Query Parameters:', params);
-
+            // Выполнение запроса
             const [albums] = await connection.execute(query, params);
 
-            const finalAlbums = albums.map(album => ({
-                ...album,
-                // Преобразуем строку исполнителей в массив для консистентности
-                artist: stringToArray(album.artists_list),
-                rating: album.average_rating ? parseFloat(album.average_rating) : 0,
-                // Используем поле 'likes' из таблицы albums для большей производительности
-                likes: album.likes || album.likes_count || 0,
-                // Удаляем временное поле, чтобы не сбивать с толку
-                artists_list: undefined
-            }));
+            res.json(albums);
 
-            res.json(finalAlbums);
         } catch (err) {
             console.error('GET /api/albums error:', err);
-            res.status(500).json({ error: 'Database error', details: err.message });
+            res.status(500).json({ error: 'Failed to fetch albums' });
         } finally {
             if (connection) connection.release();
         }
     });
 
-    // ... (Маршруты для /genres, /description, /language остаются без изменений) ...
+    // ... (router.get('/by-slug/:slug') - код для получения альбома по slug)
 
-    // НОВЫЙ МАРШРУТ: Получение всех уникальных жанров
+    router.get('/by-slug/:slug', async (req, res) => {
+        let connection;
+        try {
+            const { slug } = req.params;
+            connection = await pool.getConnection();
+
+            // Включаем JOIN для получения данных исполнителей через JSON_ARRAYAGG
+            const [albums] = await connection.execute(
+                `SELECT
+                     a.*,
+                     COALESCE(AVG(r.score), 0) AS average_rating,
+                     (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'like') AS likes,
+                     (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'wishlist') AS wishlist_count,
+                     (SELECT COUNT(id) FROM user_album_actions WHERE album_id = a.id AND action_type = 'add-to-list') AS in_lists_count,
+                     (SELECT COUNT(id) FROM reviews WHERE album_id = a.id) AS reviews_count,
+                     JSON_ARRAYAGG(
+                             JSON_OBJECT('name', art.name, 'slug', art.slug)
+                     ) AS artists
+                 FROM albums a
+                          LEFT JOIN ratings r ON a.id = r.album_id
+                          LEFT JOIN album_artists aa ON a.id = aa.album_id
+                          LEFT JOIN artists art ON aa.artist_id = art.id
+                 WHERE a.slug = ?
+                 GROUP BY a.id`,
+                [slug]
+            );
+
+            if (albums.length === 0) {
+                return res.status(404).json({ error: 'Album not found' });
+            }
+
+            const albumData = albums[0];
+            console.log(`Album found: ${albumData.title}`);
+
+            // === ИСПРАВЛЕНИЕ ОШИБКИ JSON.parse ===
+            let artistsData = albumData.artists;
+
+            if (typeof artistsData === 'string') {
+                try {
+                    artistsData = JSON.parse(artistsData);
+                } catch (e) {
+                    console.warn('Could not parse artists JSON string, treating as empty array.', e);
+                    artistsData = null;
+                }
+            }
+
+            albumData.artists = Array.isArray(artistsData)
+                ? artistsData.filter(artist => artist.name !== null)
+                : [];
+            // =====================================
+
+            // Преобразование строковых полей в массивы
+            albumData.genres = stringToArray(albumData.genres);
+            albumData.label = stringToArray(albumData.label);
+            albumData.language = stringToArray(albumData.language);
+            albumData.description = stringToArray(albumData.description);
+
+            // Получение треков
+            const [tracks] = await connection.execute(
+                `SELECT id, track_number, title, duration
+                 FROM tracks WHERE album_id = ?
+                 ORDER BY track_number`,
+                [albumData.id]
+            );
+
+            res.json({
+                ...albumData,
+                tracks: tracks
+            });
+
+        } catch (err) {
+            console.error('Album fetch error:', err);
+            res.status(500).json({
+                error: 'Database error',
+                message: err.message,
+                stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            });
+        } finally {
+            if (connection) connection.release();
+        }
+    });
+
+    // Маршрут для добавления нового альбома
+    router.post('/', authenticate, async (req, res) => {
+        let connection;
+        try {
+            // artist - это строка, которую мы получаем из add_album.html
+            const { title, artist, release_date, cover_url, type, genres, label, language, description, tracks } = req.body;
+
+            // === ИСПРАВЛЕНИЕ 1 (для 400 Bad Request): ПРЕОБРАЗОВАНИЕ СТРОКИ ИСПОЛНИТЕЛЕЙ В МАССИВ ОБЪЕКТОВ ===
+            const artistNames = stringToArray(artist);
+            const artists = artistNames.map(name => ({ name }));
+            // ===============================================================================================
+
+            // Валидация
+            if (!title || !artists || artists.length === 0) {
+                return res.status(400).json({ error: 'Title and at least one artist are required' });
+            }
+
+            // Генерируем слаг, используя название альбома и имя ПЕРВОГО исполнителя
+            const artistNameForSlug = artists[0].name;
+            const slug = slugify(`${artistNameForSlug}-${title}`, { lower: true, strict: true, locale: 'ru' });
+
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            const safeValue = (val) => (val !== undefined && val !== null ? val : null);
+
+            // ИСПРАВЛЕНИЕ 2: Удален 'artist' из INSERT INTO albums.
+            const [albumResult] = await connection.execute(
+                `INSERT INTO albums
+                 (title, release_date, cover_url, type, genres, label, language, description, slug,
+                  likes, wishlist_count, in_lists_count, reviews_count)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    title, safeValue(release_date), safeValue(cover_url), safeValue(type), safeValue(genres),
+                    safeValue(label), safeValue(language), safeValue(description), slug,
+                    0, 0, 0, 0
+                ]
+            );
+            // Если вы применили изменения в db.js (language VARCHAR(255)), этот INSERT не вызовет ошибку Data too long.
+
+            const albumId = albumResult.insertId;
+
+            // ЛОГИКА ДЛЯ ИСПОЛНИТЕЛЕЙ (artists - это массив, созданный выше)
+            for (const artistItem of artists) {
+                const artistSlug = slugify(artistItem.name, { lower: true, strict: true, locale: 'ru' });
+                let artistId;
+
+                // 1. Ищем существующего исполнителя
+                const [existingArtist] = await connection.execute(
+                    'SELECT id FROM artists WHERE slug = ?',
+                    [artistSlug]
+                );
+
+                if (existingArtist.length > 0) {
+                    artistId = existingArtist[0].id;
+                } else {
+                    // 2. Если исполнитель не найден, создаем его
+                    const [newArtistResult] = await connection.execute(
+                        'INSERT INTO artists (name, slug) VALUES (?, ?)',
+                        [artistItem.name, artistSlug]
+                    );
+                    artistId = newArtistResult.insertId;
+                }
+
+                // 3. Связываем альбом с исполнителем
+                await connection.execute(
+                    'INSERT INTO album_artists (album_id, artist_id) VALUES (?, ?)',
+                    [albumId, artistId]
+                );
+            }
+
+            // Добавление треков
+            if (tracks && tracks.length > 0) {
+                // Сортируем треки по номеру, чтобы правильно назначить trackNumber
+                tracks.sort((a, b) => (a.number || Infinity) - (b.number || Infinity));
+                let trackNumber = 1;
+                for (const track of tracks) {
+                    await connection.execute(
+                        `INSERT INTO tracks (album_id, track_number, title, duration) VALUES (?, ?, ?, ?)`,
+                        [albumId, trackNumber, track.title, safeValue(track.duration)]
+                    );
+                    trackNumber++;
+                }
+            }
+
+            await connection.commit();
+            res.status(201).json({ id: albumId, slug: slug, message: 'Album added successfully' });
+
+        } catch (err) {
+            if (connection) await connection.rollback();
+            console.error('POST /api/albums error:', err);
+            res.status(500).json({
+                error: 'Failed to add album',
+                message: err.message,
+                sql: err.sql // Добавляем SQL ошибку для лучшей диагностики
+            });
+        } finally {
+            if (connection) connection.release();
+        }
+    });
+
+    // ... (Остальные маршруты GET /genres, /description, /language, DELETE)
+
     router.get('/genres', async (req, res) => {
         let connection;
         try {
             connection = await pool.getConnection();
             const [rows] = await connection.execute('SELECT genres FROM albums WHERE genres IS NOT NULL AND genres != ""');
-
             const allGenres = new Set();
             rows.forEach(row => {
-                row.genres.split(',').forEach(genre => {
-                    const trimmedGenre = genre.trim();
-                    if (trimmedGenre) {
-                        allGenres.add(trimmedGenre);
-                    }
+                stringToArray(row.genres).forEach(genre => {
+                    if (genre) { allGenres.add(genre); }
                 });
             });
-
             const sortedGenres = Array.from(allGenres).sort();
             res.json(sortedGenres);
         } catch (err) {
@@ -240,23 +367,17 @@ module.exports = (pool) => {
         }
     });
 
-    // НОВЫЙ МАРШРУТ: Получение всех уникальных дескрипторов
     router.get('/description', async (req, res) => {
         let connection;
         try {
             connection = await pool.getConnection();
             const [rows] = await connection.execute('SELECT description FROM albums WHERE description IS NOT NULL AND description != ""');
-
             const allDescription = new Set();
             rows.forEach(row => {
-                row.description.split(',').forEach(description => {
-                    const trimmedDescription = description.trim();
-                    if (trimmedDescription) {
-                        allDescription.add(trimmedDescription);
-                    }
+                stringToArray(row.description).forEach(description => {
+                    if (description) { allDescription.add(description); }
                 });
             });
-
             const sortedDescriptors = Array.from(allDescription).sort();
             res.json(sortedDescriptors);
         } catch (err) {
@@ -267,23 +388,17 @@ module.exports = (pool) => {
         }
     });
 
-    // НОВЫЙ МАРШРУТ: Получение всех уникальных языков
     router.get('/language', async (req, res) => {
         let connection;
         try {
             connection = await pool.getConnection();
             const [rows] = await connection.execute('SELECT language FROM albums WHERE language IS NOT NULL AND language != ""');
-
             const allLanguage = new Set();
             rows.forEach(row => {
-                row.language.split(',').forEach(language => {
-                    const trimmedLanguage = language.trim();
-                    if (trimmedLanguage) {
-                        allLanguage.add(trimmedLanguage);
-                    }
+                stringToArray(row.language).forEach(language => {
+                    if (language) { allLanguage.add(language); }
                 });
             });
-
             const sortedLanguage = Array.from(allLanguage).sort();
             res.json(sortedLanguage);
         } catch (err) {
@@ -294,293 +409,41 @@ module.exports = (pool) => {
         }
     });
 
-
-    // Вспомогательная функция для получения данных альбома по ID или SLUG
-    const getAlbumData = async (connection, albumIdentifier, isSlug = false) => {
-        const query = `
-            SELECT
-                a.*,
-                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC) AS artists_list
-            FROM albums a
-            JOIN album_artists aa ON a.id = aa.album_id
-            JOIN artists art ON aa.artist_id = art.id
-            WHERE a.${isSlug ? 'slug' : 'id'} = ?
-            GROUP BY a.id;
-        `;
-
-        const [albums] = await connection.execute(query, [albumIdentifier]);
-
-        if (albums.length === 0) {
-            return null;
-        }
-
-        const albumData = albums[0];
-
-        // Преобразование полей в массивы
-        albumData.artist = stringToArray(albumData.artists_list); // Теперь artist берется из artists_list
-        albumData.type = stringToArray(albumData.type);
-        albumData.genres = stringToArray(albumData.genres);
-        albumData.label = stringToArray(albumData.label);
-        albumData.language = stringToArray(albumData.language);
-        albumData.description = stringToArray(albumData.description);
-        albumData.artists_list = undefined; // Удаляем промежуточное поле
-
-        const [tracks] = await connection.execute(
-            'SELECT * FROM tracks WHERE album_id = ? ORDER BY track_number',
-            [albumData.id]
-        );
-
-        return {
-            ...albumData,
-            tracks: tracks
-        };
-    };
-
-    /**
-     * Маршрут для получения альбома по ID
-     */
-    router.get('/:id', async (req, res) => {
-        let connection;
-        try {
-            connection = await pool.getConnection();
-            const album = await getAlbumData(connection, req.params.id, false);
-
-            if (!album) {
-                return res.status(404).json({ error: 'Album not found' });
-            }
-
-            res.json(album);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: 'Database error' });
-        } finally {
-            if (connection) connection.release();
-        }
-    });
-
-    /**
-     * Маршрут для получения альбома по SLUG
-     */
-    router.get('/by-slug/:slug', async (req, res) => {
-        let connection;
-        try {
-            connection = await pool.getConnection();
-            const album = await getAlbumData(connection, req.params.slug, true);
-
-            if (!album) {
-                return res.status(404).json({ error: 'Album not found' });
-            }
-
-            res.json(album);
-        } catch (err) {
-            console.error('Album fetch error:', err);
-            res.status(500).json({
-                error: 'Database error',
-                message: err.message
-            });
-        } finally {
-            if (connection) connection.release();
-        }
-    });
-
-
-    /**
-     * Маршрут для обновления альбома по ID (изменен для работы с artists)
-     */
-    router.put('/:id', async (req, res) => {
+    router.delete('/:id', authenticate, async (req, res) => {
         let connection;
         try {
             const { id } = req.params;
-            // !!! ВНИМАНИЕ: artist теперь ожидается как строка через запятую
-            const { title, artist, cover_url, type, release_date, genres, label, language, description, tracks } = req.body;
-
-            if (!title || !artist) {
-                return res.status(400).json({ error: 'Title and artist are required' });
-            }
-
-            const artistsInput = stringToArray(artist);
-            if (artistsInput.length === 0) {
-                return res.status(400).json({ error: 'Artist list cannot be empty' });
-            }
-
-            const slug = slugify(`${artistsInput[0]}-${title}`, { // Используем первого исполнителя для слага
-                lower: true,
-                strict: true,
-                locale: 'ru'
-            });
 
             connection = await pool.getConnection();
             await connection.beginTransaction();
 
-            const safeValue = (val) => (val !== undefined ? val : null);
-
-            // 1. Обновление таблицы albums (удаляем artist)
-            await connection.execute(
-                `UPDATE albums SET
-                                   title = ?, cover_url = ?, type = ?, release_date = ?, genres = ?, label = ?, language = ?, description = ?, slug = ?
-                 WHERE id = ?`,
-                [title, safeValue(cover_url), safeValue(type), safeValue(release_date), safeValue(genres), safeValue(label), safeValue(language), safeValue(description), slug, id]
-            );
-
-            // 2. Обновление исполнителей (artists и album_artists)
-            await connection.execute('DELETE FROM album_artists WHERE album_id = ?', [id]);
-            const artistIds = [];
-            for (let i = 0; i < artistsInput.length; i++) {
-                const artistId = await findOrCreateArtist(connection, artistsInput[i]);
-                const isMain = i === 0; // Первый исполнитель считается основным
-                await connection.execute(
-                    'INSERT INTO album_artists (album_id, artist_id, is_main) VALUES (?, ?, ?)',
-                    [id, artistId, isMain]
-                );
-                artistIds.push(artistId);
-            }
-
-
-            // 3. Обновление треков
+            // Удаляем записи о треках, действиях, рейтингах, рецензиях, связях с артистами
             await connection.execute('DELETE FROM tracks WHERE album_id = ?', [id]);
-            if (tracks && tracks.length > 0) {
-                for (const track of tracks) {
-                    const trackNumber = parseInt(track.number || track.track_number); // Поддержка обоих форматов
-                    if (isNaN(trackNumber)) {
-                        throw new Error('Invalid track number');
-                    }
-                    await connection.execute(
-                        `INSERT INTO tracks (album_id, track_number, title, duration)
-                         VALUES (?, ?, ?, ?)`,
-                        [id, trackNumber, track.title, track.duration]
-                    );
-                }
+            await connection.execute('DELETE FROM user_album_actions WHERE album_id = ?', [id]);
+            await connection.execute('DELETE FROM ratings WHERE album_id = ?', [id]);
+            await connection.execute('DELETE FROM reviews WHERE album_id = ?', [id]);
+            await connection.execute('DELETE FROM album_artists WHERE album_id = ?', [id]);
+
+            // Удаляем сам альбом
+            const [result] = await connection.execute('DELETE FROM albums WHERE id = ?', [id]);
+
+            if (result.affectedRows === 0) {
+                await connection.rollback();
+                return res.status(404).json({ error: 'Album not found' });
             }
 
             await connection.commit();
-            res.json({ message: 'Album updated successfully', id, slug });
+            res.json({ success: true, message: 'Album and all related data deleted successfully' });
 
         } catch (err) {
-            if (connection) {
-                await connection.rollback();
-            }
-            console.error('PUT /api/albums/:id error:', err);
-            res.status(500).json({ error: 'Failed to update album', details: err.message });
+            await connection.rollback();
+            console.error('DELETE /api/albums/:id error:', err);
+            res.status(500).json({ error: 'Failed to delete album' });
         } finally {
             if (connection) connection.release();
         }
     });
 
-    /**
-     * Маршрут для создания нового альбома (изменен для работы с artists)
-     */
-    router.post('/', async (req, res) => {
-        let connection;
-        try {
-            // !!! ВНИМАНИЕ: artist теперь ожидается как строка через запятую
-            const { title, artist, release_date, cover_url, type, genres, label, language, description, tracks } = req.body;
-
-            if (!title || !artist) {
-                return res.status(400).json({ error: 'Title and artist are required' });
-            }
-
-            const artistsInput = stringToArray(artist);
-            if (artistsInput.length === 0) {
-                return res.status(400).json({ error: 'Artist list cannot be empty' });
-            }
-
-            const safeValue = (val) => (val !== undefined ? val : null);
-            const generateRandom = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-            connection = await pool.getConnection();
-            await connection.beginTransaction();
-
-            // 1. Создание/поиск исполнителей
-            const artistIds = [];
-            for (const artistName of artistsInput) {
-                const artistId = await findOrCreateArtist(connection, artistName);
-                artistIds.push(artistId);
-            }
-
-            // Используем первого исполнителя для генерации слага
-            const slug = slugify(`${artistsInput[0]}-${title}`, {
-                lower: true,
-                strict: true,
-                locale: 'ru'
-            });
-
-            // 2. Вставка в таблицу albums (без поля artist)
-            const albumParams = [
-                title,
-                safeValue(release_date),
-                safeValue(cover_url),
-                safeValue(type),
-                safeValue(genres),
-                safeValue(label),
-                safeValue(language),
-                safeValue(description),
-                slug,
-                generateRandom(100, 10000), // likes
-                generateRandom(50, 5000), // wishlist_count
-                generateRandom(30, 3000), // in_lists_count
-                generateRandom(20, 2000), // reviews_count
-                generateRandom(1000, 50000) // popularity
-            ];
-
-            const [albumResult] = await connection.execute(
-                `INSERT INTO albums
-                 (title, release_date, cover_url, type, genres, label, language, description, slug,
-                  likes, wishlist_count, in_lists_count, reviews_count, popularity)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                albumParams
-            );
-
-            const albumId = albumResult.insertId;
-
-            // 3. Заполнение промежуточной таблицы album_artists
-            for (let i = 0; i < artistIds.length; i++) {
-                const isMain = i === 0;
-                await connection.execute(
-                    'INSERT INTO album_artists (album_id, artist_id, is_main) VALUES (?, ?, ?)',
-                    [albumId, artistIds[i], isMain]
-                );
-            }
-
-            // 4. Вставка треков
-            if (tracks && tracks.length > 0) {
-                for (const track of tracks) {
-                    const trackNumber = parseInt(track.number);
-                    if (isNaN(trackNumber)) {
-                        throw new Error('Invalid track number');
-                    }
-
-                    await connection.execute(
-                        `INSERT INTO tracks (album_id, track_number, title, duration)
-                         VALUES (?, ?, ?, ?)`,
-                        [albumId, trackNumber, track.title, safeValue(track.duration)]
-                    );
-                }
-            }
-
-            await connection.commit();
-            res.status(201).json({
-                id: albumId,
-                slug: slug,
-                message: 'Album added successfully'
-            });
-        } catch (err) {
-            if (connection) {
-                await connection.rollback();
-            }
-            console.error('POST /api/albums error:', err);
-
-            let errorMessage = 'Failed to add album';
-            if (err.message.includes('Duplicate entry')) {
-                errorMessage = 'Album with this title and artist combination already exists (check slug collision)';
-            } else if (err.message.includes('track number')) {
-                errorMessage = 'Invalid track number format';
-            }
-
-            res.status(500).json({ error: errorMessage, details: err.message });
-        } finally {
-            if (connection) connection.release();
-        }
-    });
 
     return router;
 };

@@ -3,58 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">Исполнитель | RateYourMusic Clone</title>
-    <link rel="stylesheet" href="/css/main.css"> <link rel="stylesheet" href="/css/artist.css"> </head>
+    <title>Исполнитель - Melody Rater</title>
+    <link rel="stylesheet" href="./css/style.css"> <link rel="stylesheet" href="./css/artist.css"> </head>
 <body>
 
-<div id="navbar-container">
-</div>
+<div id="navbar-container"></div>
 
-<div class="container">
-    <div class="artist-header">
-        <img id="artistPhoto" src="/assets/artist-placeholder.png" alt="Фото исполнителя" class="artist-photo">
-        <div class="artist-info">
-            <h1 id="artistName">Загрузка...</h1>
-            <p id="artistLocation" class="artist-location"></p>
+<main class="artist-page-container">
+    <div id="artist-banner-overlay"></div>
+
+    <section id="artist-header">
+        <div id="artist-info">
+            <img id="artist-picture" src="" alt="Фото исполнителя" class="artist-picture">
+            <div class="artist-details">
+                <h1 id="artist-name">Loading...</h1>
+                <div id="artist-genres" class="artist-genres"></div>
+                <p id="artist-meta">
+                    <span id="artist-country"></span>
+                    <span id="artist-formed-year"></span>
+                </p>
+                <div class="artist-stats">
+                    <span id="artist-albums-count">0 Albums</span> •
+                    <span id="artist-followers-count">0 Followers</span>
+                </div>
+            </div>
+        </div>
+        <div id="artist-actions">
+            <button class="follow-button">+ Follow</button>
+        </div>
+    </section>
+
+    <div class="main-content-area">
+        <section id="artist-tabs" class="tabs-container">
+            <button class="tab-button active" data-tab="discography">Discography</button>
+            <button class="tab-button" data-tab="bio">Biography</button>
+            <button class="tab-button" data-tab="reviews">Reviews</button>
+        </section>
+
+        <div id="tabs-content">
+            <div id="discography" class="tab-content active">
+                <div id="discography-list"></div>
+            </div>
+
+            <div id="bio" class="tab-content">
+                <h2 class="section-title">About</h2>
+                <p id="artist-description" style="line-height: 1.6; color: #ccc;">Загрузка описания...</p>
+            </div>
+
+            <div id="reviews" class="tab-content">
+                <h2 class="section-title">User Reviews</h2>
+                <p style="color: #888;">Reviews coming soon.</p>
+            </div>
         </div>
     </div>
+</main>
 
-    <div class="artist-details">
-        <div class="detail-block">
-            <h3>Основан</h3>
-            <p id="foundedDate"></p>
-        </div>
-        <div class="detail-block">
-            <h3>Участники</h3>
-            <p id="membersList"></p>
-        </div>
-        <div class="detail-block" id="relatedArtistsBlock" style="display:none;">
-            <h3>Связанные исполнители</h3>
-            <p id="relatedArtistsList"></p>
-        </div>
-        <div class="detail-block" id="alsoKnownAsBlock" style="display:none;">
-            <h3>Также известен как</h3>
-            <p id="alsoKnownAsList"></p>
-        </div>
-        <div class="detail-block">
-            <h3>Жанры</h3>
-            <p id="genresList"></p>
-        </div>
-    </div>
-
-    <div class="artist-bio">
-        <h3>Биография</h3>
-        <p id="artistBio"></p>
-    </div>
-
-    <div class="artist-discography">
-        <h2>Дискография</h2>
-        <div class="discography-grid" id="discographyContainer">
-            <p>Загрузка дискографии...</p>
-        </div>
-    </div>
-</div>
-
+<script src="/js/auth.js"></script>
+<script src="/js/common.js"></script>
 <script src="/js/artist.js"></script>
 
 </body>
