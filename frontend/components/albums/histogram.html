@@ -1,27 +1,58 @@
-<div class="histogram">
-  <div class="bar"><span>5.0★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>4.5★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>4.0★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>3.5★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>3.0★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>2.5★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>2.0★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>1.5★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>1.0★</span><div class="bar-line" data-count=""></div></div>
-  <div class="bar"><span>0.5★</span><div class="bar-line" data-count=""></div></div>
+<div class="histogram-wrapper" style="margin-top: 20px;">
+    <h3 style="font-size: 1rem; color: #aaa; margin-bottom: 10px;">Rating Distribution</h3>
+    <div id="histogram-bars">Loading...</div>
 </div>
 
+<style>
+    .hist-row { display: flex; align-items: center; margin-bottom: 4px; font-size: 0.8rem; }
+    .hist-label { width: 30px; text-align: right; margin-right: 8px; color: #ccc; }
+    .hist-bar-bg { flex-grow: 1; background: #333; height: 8px; border-radius: 4px; overflow: hidden; }
+    .hist-bar-fill { height: 100%; background: #00e5ff; }
+    .hist-count { width: 40px; text-align: left; margin-left: 8px; color: #777; font-size: 0.75rem;}
+</style>
+
 <script>
-  window.components = window.components || {};
-  window.components.histogram = {
-    update: function(histogramData) {
-      const bars = document.querySelectorAll('.bar-line');
-      histogramData.forEach((data, index) => {
-        if (bars[index]) {
-          bars[index].style.width = `${data.percentage}%`;
-          bars[index].dataset.count = `${data.count.toLocaleString()} ratings`;
+    window.components = window.components || {};
+    window.components.histogram = {
+        update: async function(albumId) {
+            const container = document.getElementById('histogram-bars');
+            if(!container || !albumId) return;
+
+            try {
+                // Fetch from the NEW route we added in Step 1
+                const res = await fetch(`/api/ratings/album/${albumId}/histogram`);
+                if(!res.ok) throw new Error('Failed to load histogram');
+
+                const data = await res.json(); // Array of {score: 5, count: 10}
+
+                // Calculate total to determine percentage width
+                const total = data.reduce((acc, row) => acc + row.count, 0);
+
+                // Prepare all stars 5 down to 0.5
+                let html = '';
+                const scores = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
+
+                scores.forEach(score => {
+                    const row = data.find(r => parseFloat(r.score) === score);
+                    const count = row ? row.count : 0;
+                    const percent = total > 0 ? (count / total) * 100 : 0;
+
+                    html += `
+                        <div class="hist-row">
+                            <div class="hist-label">${score}★</div>
+                            <div class="hist-bar-bg">
+                                <div class="hist-bar-fill" style="width: ${percent}%;"></div>
+                            </div>
+                            <div class="hist-count">${count}</div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = total > 0 ? html : '<div style="color:#666; font-style:italic;">No ratings yet</div>';
+            } catch (e) {
+                console.error('Histogram error:', e);
+                container.innerHTML = 'Error loading data';
+            }
         }
-      });
-    }
-  };
+    };
 </script>

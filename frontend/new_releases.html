@@ -53,6 +53,15 @@
             padding: 15px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             align-items: center;
+            /* Добавлено для плавной анимации подсветки */
+            transition: box-shadow 0.5s ease, transform 0.3s ease;
+        }
+
+        /* Класс для подсветки выбранного альбома */
+        .album-card.highlighted {
+            box-shadow: 0 0 20px 5px rgba(0, 255, 204, 0.6);
+            border: 1px solid #00ffcc;
+            transform: scale(1.02);
         }
 
         .album-card a {
@@ -154,6 +163,7 @@
 </div>
 
 <script>
+    // 1. Загрузка навбара
     fetch('/navbar.html')
         .then(response => response.text())
         .then(html => {
@@ -170,6 +180,7 @@
         })
         .catch(err => console.error('Failed to load navbar: ', err));
 
+    // 2. Загрузка сайдбара фильтров
     window.loadFilterSidebar = function () {
         fetch('/filter_sidebar.html')
             .then(response => response.text())
@@ -193,6 +204,7 @@
 
     const newReleasesContainer = document.getElementById('newReleasesContainer');
 
+    // Вспомогательная функция сообщений
     function showMessage(msg, isError = false) {
         const msgEl = document.createElement('div');
         msgEl.textContent = msg;
@@ -214,6 +226,7 @@
         setTimeout(() => msgEl.remove(), 3000);
     }
 
+    // Обработка действий (Like, Listen и т.д.)
     async function handleAlbumAction(e) {
         const button = e.target.closest('.action-button');
         if (!button) return;
@@ -252,6 +265,7 @@
         }
     }
 
+    // Проверка статусов кнопок (лайкнуто или нет)
     async function checkUserActions() {
         try {
             const token = localStorage.getItem('token');
@@ -272,6 +286,35 @@
         }
     }
 
+    // === НОВАЯ ФУНКЦИЯ ПРОКРУТКИ ===
+    function checkAndScrollToAlbum() {
+        // Получаем хеш из URL (например, #dark-side-of-the-moon)
+        const hash = window.location.hash.substring(1);
+
+        if (hash) {
+            const decodedSlug = decodeURIComponent(hash);
+            // Ищем элемент по ID
+            const targetElement = document.getElementById(decodedSlug);
+
+            if (targetElement) {
+                console.log(`Scrolling to album: ${decodedSlug}`);
+                // Плавная прокрутка
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Добавляем класс подсветки
+                targetElement.classList.add('highlighted');
+
+                // Убираем подсветку через 2 секунды
+                setTimeout(() => {
+                    targetElement.classList.remove('highlighted');
+                }, 2000);
+            } else {
+                console.log(`Element with ID ${decodedSlug} not found.`);
+            }
+        }
+    }
+    // ===============================
+
     async function loadAlbums() {
         try {
             newReleasesContainer.innerHTML = '<p>Loading albums...</p>';
@@ -283,6 +326,11 @@
             }
             const albums = await response.json();
             renderAlbums(albums);
+
+            // === ВЫЗОВ ФУНКЦИИ ПРОКРУТКИ ПОСЛЕ ЗАГРУЗКИ ===
+            // Небольшая задержка, чтобы убедиться, что DOM обновился
+            setTimeout(checkAndScrollToAlbum, 100);
+
         } catch (error) {
             console.error('Error fetching albums:', error);
             newReleasesContainer.innerHTML = '<p>Failed to load albums. Please try again later.</p>';
@@ -302,11 +350,20 @@
         albums.forEach(album => {
             const albumCard = document.createElement('div');
             albumCard.classList.add('album-card');
+
+            // === ВАЖНО: ПРИСВАИВАЕМ ID ===
+            // Это позволяет ссылке #slug найти этот элемент
+            if (album.slug) {
+                albumCard.id = album.slug;
+            }
+            // =============================
+
             const albumUrl = `/release/album/${album.slug}`;
             const releaseYear = album.release_date ?
                 new Date(album.release_date).getFullYear() :
                 (album.release_year || 'N/A');
             const rating = album.rating ? `${album.rating.toFixed(2)} / 5.0` : "N/A";
+
             albumCard.innerHTML = `
                     <a href="${albumUrl}">
                         ${album.cover_url ?
@@ -320,10 +377,10 @@
                             <p><strong>Descriptors:</strong> ${album.description || 'N/A'}</p>
                             <div class="rating-info">
                                 <span class="score">${rating}</span>
-                                <span>❤️ ${album.likes.toLocaleString()}</span>
-                                <span>⭐ ${album.wishlist_count.toLocaleString()}</span>
-                                <span>📜 ${album.in_lists_count.toLocaleString()}</span>
-                                <span>💬 ${album.reviews_count.toLocaleString()}</span>
+                                <span>❤️ ${album.likes ? album.likes.toLocaleString() : 0}</span>
+                                <span>⭐ ${album.wishlist_count ? album.wishlist_count.toLocaleString() : 0}</span>
+                                <span>📜 ${album.in_lists_count ? album.in_lists_count.toLocaleString() : 0}</span>
+                                <span>💬 ${album.reviews_count ? album.reviews_count.toLocaleString() : 0}</span>
                             </div>
                             <div class="album-actions">
                                 <button class="action-button" data-album-id="${album.id}" data-action="listen">🎧 Listen</button>

@@ -2,27 +2,23 @@
 
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken'); // Оставлен на случай, если где-то еще используется
-const { pool } = require('../db');
-const authenticate = require('../authMiddleware'); // Middleware для проверки токена и получения req.user
-const authorizeAdmin = require('../adminAuth'); // <-- НОВИЙ ІМПОРТ
+const { pool } = require('../db'); // Убедитесь, что путь к db правильный относительно этого файла
+const authenticate = require('../authMiddleware');
+const authorizeAdmin = require('../adminAuth');
 
-// Поля, общие для публичного и личного профиля
+// ВАЖНО: Добавил profile_pic, id и created_at в список полей
 const PUBLIC_PROFILE_FIELDS = `
-    username, role, first_name, last_name, birth_date, gender,
+    id, username, role, first_name, last_name, birth_date, gender,
     location, country, social, description,
-    music, movies
-`; // <--- КРИТИЧНЕ ВИПРАВЛЕННЯ: role ДОДАНО
+    music, movies, profile_pic, created_at
+`;
 
-// Поля, видимые только владельцу профиля (/me)
+// Поля, видимые только владельцу профиля
 const PRIVATE_PROFILE_FIELDS = `${PUBLIC_PROFILE_FIELDS}, contact_email`;
 
-
-/**
- * Утилита для обработки необработанных данных пользователя из базы
- */
 function processProfileData(user) {
-    const nickname = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const nickname = fullName || user.username;
 
     let age = null;
     if (user.birth_date) {
@@ -35,16 +31,11 @@ function processProfileData(user) {
         }
     }
 
-    // Обработка JSON полей (если они хранятся как JSON-строки)
     try {
-        user.social = user.social ? (typeof user.social === 'string' ? JSON.parse(user.social) : user.social) : {};
-        // Добавьте сюда логику для music и movies, если они хранятся как JSON
-    } catch (e) {
-        console.error("Error parsing user data JSON:", e);
-    }
-
-    // Здесь можно добавить логику для получения profile_pic
-    // user.profile_pic = ...
+        if (user.social && typeof user.social === 'string' && (user.social.startsWith('{') || user.social.startsWith('['))) {
+            user.social = JSON.parse(user.social);
+        }
+    } catch (e) { /* ignore */ }
 
     return {
         ...user,
@@ -54,13 +45,10 @@ function processProfileData(user) {
 }
 
 
-// --------------------------------------------------------------------------------------------------
-// РОУТ 1: ПОЛУЧЕНИЕ ЛИЧНОГО ПРОФИЛЯ (/me) - Защищен токеном
-// --------------------------------------------------------------------------------------------------
+// РОУТ: Получение профиля
 router.get('/me', authenticate, async (req, res) => {
     try {
-        const userId = req.user.id; // ID пользователя из токена
-
+        const userId = req.user.id;
         const [rows] = await pool.execute(
             `SELECT ${PRIVATE_PROFILE_FIELDS} FROM users WHERE id = ?`,
             [userId]
@@ -70,7 +58,6 @@ router.get('/me', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // rows[0] теперь содержит поле role, которое будет возвращено клиенту
         res.json(processProfileData(rows[0]));
     } catch (err) {
         console.error('Error fetching user profile (/me):', err);
@@ -78,26 +65,9 @@ router.get('/me', authenticate, async (req, res) => {
     }
 });
 
-router.get('/admin/all-users', authorizeAdmin, async (req, res) => {
-    try {
-        // Запрос к базе данных для получения списка всех пользователей
-        const [rows] = await pool.execute(
-            'SELECT id, username, email, role, created_at FROM users'
-        );
-
-        res.json(rows);
-    } catch (err) {
-        console.error('Error fetching all users (Admin):', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// --------------------------------------------------------------------------------------------------
-// РОУТ 2: ОБНОВЛЕНИЕ ПРОФИЛЯ (/profile/update) - Защищен токеном
-// --------------------------------------------------------------------------------------------------
+// РОУТ: Обновление профиля
 router.put('/profile/update', authenticate, async (req, res) => {
-    const username = req.user.username; // Имя пользователя из токена
-
+    const userId = req.user.id;
     try {
         let {
             firstName, lastName, birthDate, gender,
@@ -105,22 +75,20 @@ router.put('/profile/update', authenticate, async (req, res) => {
             description, music, movies
         } = req.body;
 
-        // Convert empty string birthDate to null
-        if (!birthDate || birthDate.trim() === '') {
-            birthDate = null;
-        }
+        if (!birthDate || birthDate.trim() === '') birthDate = null;
+        if (typeof social === 'object') social = JSON.stringify(social);
 
-        const [result] = await pool.execute(
+        await pool.execute(
             `UPDATE users SET
-                              first_name = ?, last_name = ?, birth_date = ?, gender = ?,
-                              location = ?, country = ?, social = ?, contact_email = ?,
-                              description = ?, music = ?, movies = ?
-             WHERE username = ?`,
+                first_name = ?, last_name = ?, birth_date = ?, gender = ?,
+                location = ?, country = ?, social = ?, contact_email = ?,
+                description = ?, music = ?, movies = ?
+             WHERE id = ?`,
             [
                 firstName, lastName, birthDate, gender,
                 location, country, social, contactEmail,
                 description, music, movies,
-                username
+                userId
             ]
         );
 
@@ -131,18 +99,15 @@ router.put('/profile/update', authenticate, async (req, res) => {
     }
 });
 
-// --------------------------------------------------------------------------------------------------
-// РОУТ 3: ОЦЕНЕННЫЕ АЛЬБОМЫ (/rated-albums) - Защищен токеном
-// --------------------------------------------------------------------------------------------------
+// РОУТ: Оцененные альбомы
 router.get('/rated-albums', authenticate, async (req, res) => {
     try {
-        const userId = req.user.id; // ID пользователя из токена
-
+        const userId = req.user.id;
         const [rows] = await pool.execute(`
             SELECT
                 a.id,
                 a.title,
-                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ: Получение исполнителя через JOIN и GROUP_CONCAT */
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist,
                 a.cover_url,
                 a.slug,
                 r.score,
@@ -152,29 +117,28 @@ router.get('/rated-albums', authenticate, async (req, res) => {
                      LEFT JOIN album_artists aa ON a.id = aa.album_id
                      LEFT JOIN artists art ON aa.artist_id = art.id
             WHERE r.user_id = ?
-            GROUP BY a.id, a.title, a.cover_url, a.slug, r.score, r.created_at /* Добавление GROUP BY */
+            GROUP BY a.id, a.title, a.cover_url, a.slug, r.score, r.created_at
             ORDER BY r.created_at DESC
         `, [userId]);
 
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error('Error fetching rated albums:', err);
         res.status(500).json({ error: 'Database error' });
     }
 });
 
-// --------------------------------------------------------------------------------------------------
-// РОУТ 4: ОЦЕНКИ ТРЕКОВ (/track-ratings) - Защищен токеном
-// --------------------------------------------------------------------------------------------------
+// РОУТ: Оценки треков
 router.get('/track-ratings', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
 
+        // Получаем список альбомов, где есть оценки треков пользователя
         const [albums] = await pool.execute(`
             SELECT
                 a.id,
                 a.title,
-                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist, /* ИСПРАВЛЕНИЕ: Получение исполнителя через JOIN и GROUP_CONCAT */
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist,
                 a.cover_url,
                 a.slug
             FROM albums a
@@ -183,13 +147,13 @@ router.get('/track-ratings', authenticate, async (req, res) => {
                      LEFT JOIN album_artists aa ON a.id = aa.album_id
                      LEFT JOIN artists art ON aa.artist_id = art.id
             WHERE tr.user_id = ?
-            GROUP BY a.id, a.title, a.cover_url, a.slug /* Добавление GROUP BY */
+            GROUP BY a.id, a.title, a.cover_url, a.slug
             ORDER BY MAX(tr.created_at) DESC
         `, [userId]);
 
         for (const album of albums) {
             const [tracks] = await pool.execute(`
-                SELECT t.id, t.track_number, t.title, t.duration, tr.rating AS user_rating
+                SELECT t.id, t.track_number, t.title, t.duration, tr.score AS user_rating
                 FROM tracks t
                          JOIN track_ratings tr ON t.id = tr.track_id
                 WHERE t.album_id = ? AND tr.user_id = ?
@@ -203,6 +167,15 @@ router.get('/track-ratings', authenticate, async (req, res) => {
     } catch (err) {
         console.error('Error fetching track ratings:', err);
         res.status(500).json({ error: 'Failed to load track ratings' });
+    }
+});
+
+router.get('/admin/all-users', authorizeAdmin, async (req, res) => {
+    try {
+        const [rows] = await pool.execute('SELECT id, username, email, role, created_at FROM users');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

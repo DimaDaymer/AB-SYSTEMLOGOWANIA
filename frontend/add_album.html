@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
     <style>
-        /* ВРЕМЕННЫЕ СТИЛИ ДЛЯ ВНЕШНЕГО ВИДА ФОРМЫ */
         body {
             display: flex;
             justify-content: center;
@@ -55,6 +54,31 @@
             outline: none;
             box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
         }
+
+        /* Стили для секции атрибутов */
+        .classification-box {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            margin-bottom: 20px;
+        }
+        .attr-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .attr-grid label {
+            font-weight: normal;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .attr-grid input {
+            margin-right: 8px;
+        }
+
         .tracklist-header {
             display: flex;
             justify-content: space-between;
@@ -68,9 +92,6 @@
             gap: 10px;
             align-items: center;
             margin-bottom: 10px;
-        }
-        #tracklist-container input {
-            margin: 0;
         }
         .track-delete {
             cursor: pointer;
@@ -122,16 +143,32 @@
                 <input type="date" id="release_date" name="release_date" class="form-control">
             </div>
 
-            <div class="form-group">
-                <label for="type">Type</label>
-                <select id="type" name="type" class="form-select">
-                    <option value="Studio Album">Studio Album</option>
-                    <option value="EP">EP</option>
-                    <option value="Single">Single</option>
-                    <option value="Live Album">Live Album</option>
-                    <option value="Compilation">Compilation</option>
-                    <option value="Other">Other</option>
-                </select>
+            <div class="classification-box">
+                <label style="color: #4CAF50; margin-bottom: 10px;">Release Classification</label>
+
+                <div style="margin-bottom: 15px;">
+                    <label for="primary_format" style="font-size: 0.9em; color: #ccc;">Primary Format (Choose one):</label>
+                    <select id="primary_format" name="primary_format" class="form-select">
+                        <option value="Album">Studio Album</option>
+                        <option value="EP">EP</option>
+                        <option value="Single">Single</option>
+                        <option value="Mixtape">Mixtape</option>
+                        <option value="DJ Mix">DJ Mix</option>
+                        <option value="Compilation">Compilation</option>
+                        <option value="Video">Video</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.9em; color: #ccc;">Attributes (Optional):</label>
+                    <div class="attr-grid">
+                        <label><input type="checkbox" name="attributes" value="Live"> Live</label>
+                        <label><input type="checkbox" name="attributes" value="Soundtrack"> Soundtrack</label>
+                        <label><input type="checkbox" name="attributes" value="Unauthorized"> Unauthorized / Bootleg</label>
+                        <label><input type="checkbox" name="attributes" value="Demo"> Demo</label>
+                        <label><input type="checkbox" name="attributes" value="Box Set"> Box Set</label>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group">
@@ -203,11 +240,9 @@
         function renumberTracks() {
             const tracks = Array.from(tracklistContainer.querySelectorAll('.track-entry'));
             let currentNumber = 1;
-            // Сортируем по номеру, который ввел пользователь, затем присваиваем последовательные номера
             tracks.sort((a, b) => {
                 return parseInt(a.querySelector('.track-number').value) - parseInt(b.querySelector('.track-number').value);
             }).forEach(trackDiv => {
-                // ПЕРЕПРИСВАИВАЕМ ЗНАЧЕНИЕ:
                 trackDiv.querySelector('.track-number').value = currentNumber;
                 currentNumber++;
             });
@@ -215,9 +250,7 @@
         }
 
         addTrackBtn.addEventListener('click', () => addTrack());
-
         addTrack(1, 'Track 1', '3:00');
-
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -226,53 +259,45 @@
             const title = formData.get('title');
             const artist = formData.get('artist');
 
-            // === КЛИЕНТСКАЯ ВАЛИДАЦИЯ ===
-            if (!title || title.trim() === '') {
-                alert('Поле "Title" не может быть пустым.');
-                return;
-            }
+            if (!title || title.trim() === '') { alert('Поле "Title" не может быть пустым.'); return; }
+            if (!artist || artist.trim() === '') { alert('Поле "Artist" не может быть пустым.'); return; }
 
-            if (!artist || artist.trim() === '') {
-                alert('Поле "Artist" не может быть пустым.');
-                return;
-            }
-            // =============================
-
-            // === ПРОВЕРКА АВТОРИЗАЦИИ ===
             const token = localStorage.getItem('token');
             if (!token) {
                 alert('Для добавления альбома необходимо авторизоваться.');
                 window.location.href = '/login.html';
                 return;
             }
-            // =============================
 
-
-            // Сбор данных о треках
             const trackEntries = Array.from(tracklistContainer.querySelectorAll('.track-entry'));
             const tracks = trackEntries.map(entry => ({
-                // Отправляем номер, введенный пользователем. Сервер отсортирует по нему.
                 number: parseInt(entry.querySelector('.track-number').value),
                 title: entry.querySelector('.track-title').value,
                 duration: entry.querySelector('.track-duration').value
             }));
 
+            // Сбор чекбоксов
+            const selectedAttributes = Array.from(document.querySelectorAll('input[name="attributes"]:checked'))
+                .map(cb => cb.value);
+
             const albumData = {
                 title: title,
-                // Отправляем строку исполнителей, как и ожидается в albums.js
                 artist: artist,
                 cover_url: formData.get('cover_url'),
                 release_date: formData.get('release_date'),
-                type: formData.get('type'),
+
+                // Новые поля
+                primary_format: formData.get('primary_format'),
+                attributes: selectedAttributes,
+
                 genres: formData.get('genres'),
                 label: formData.get('label'),
                 language: formData.get('language'),
                 description: formData.get('description'),
-                tracks: tracks // Используем собранный массив треков
+                tracks: tracks
             };
 
             try {
-                // Отправка с заголовком Authorization
                 const response = await fetch('/api/albums', {
                     method: 'POST',
                     headers: {
@@ -287,12 +312,11 @@
                     alert('Альбом успешно добавлен!');
                     window.location.href = `/album.html?slug=${data.slug}`;
                 } else if (response.status === 401) {
-                    alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
-                    // Перенаправление на логин, если токен недействителен
+                    alert('Ошибка авторизации.');
                     window.location.href = '/login.html';
                 } else {
                     const errorData = await response.json();
-                    alert('Ошибка при добавлении альбома: ' + (errorData.error || errorData.message || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (errorData.error || errorData.message));
                 }
             } catch (error) {
                 console.error('Fetch error:', error);

@@ -1,29 +1,35 @@
-<div class="media-links">
-  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" alt="Spotify"></a>
-  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_Music_icon.svg/1200px-Apple_Music_icon.svg.png" alt="Apple Music"></a>
-  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Deezer_logo.svg" alt="Deezer" style="filter: none;"></a>
-  <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Amazon_Music_icon.svg" alt="Amazon Music"></a>
+<div class="media-links-wrapper" style="margin-top: 20px;">
+    <div id="media-links-list" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
 </div>
 
-<style>
-  .media-links {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 15px;
-    border-top: 1px solid #333;
-    padding-top: 15px;
-  }
+<script>
+    window.components = window.components || {};
+    window.components.mediaLinks = {
+        update: async function(albumId) {
+            const container = document.getElementById('media-links-list');
+            if(!container || !albumId) return;
 
-  .media-links img {
-    width: 30px;
-    height: 30px;
-    filter: invert(1);
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-  }
+            try {
+                // Fetch from the NEW route we added in Step 2
+                const res = await fetch(`/api/albums/${albumId}/links`);
+                if(!res.ok) throw new Error('Failed to load links');
 
-  .media-links img:hover {
-    opacity: 1;
-  }
-</style>
+                const links = await res.json();
+
+                if (links.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                container.innerHTML = links.map(link => `
+                    <a href="${link.url}" target="_blank" class="media-btn ${link.platform_name.toLowerCase()}"
+                       style="padding: 5px 10px; background: #333; color: white; border-radius: 4px; text-decoration: none; font-size: 0.9rem;">
+                        ${link.platform_name}
+                    </a>
+                `).join('');
+            } catch (e) {
+                console.error('Media links error:', e);
+            }
+        }
+    };
+</script>

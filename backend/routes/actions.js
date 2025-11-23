@@ -8,7 +8,7 @@ router.post('/', authenticate, async (req, res) => {
         const { albumId, actionType } = req.body;
         const userId = req.user.id;
 
-        if (!['listen', 'wishlist', 'like', 'add-to-list'].includes(actionType)) {
+        if (!['listen', 'wishlist', 'like', 'add-to-list', 'tags'].includes(actionType)) {
             return res.status(400).json({ error: 'Invalid action type' });
         }
 

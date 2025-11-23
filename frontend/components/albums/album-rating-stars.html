@@ -1,172 +1,40 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <title>Рейтинг — половинки звёзд</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{
-      --half-w: 18px;   /* ширина половины звезды */
-      --half-h: 32px;   /* высота половины звезды */
-    }
-
-    body{
-      font-family: 'Segoe UI', Arial, sans-serif;
-      padding:20px;
-      background:#111;
-      color:#ADFF2F;
-    }
-
-    .album-rating-stars {
-      display:flex;
-      align-items:center;
-    }
-
-    .rating-value {
-      font-size: 20px;
-      font-weight: bold;
-      margin-right: 8px;
-      color: #ADFF2F;
-      min-width: 30px;
-      text-align: right;
-    }
-
-    .rating-stars{
-      display:flex;
-      flex-direction: row-reverse;
-      align-items:center;
-      gap: 0; /* без зазора */
-    }
-
-    .rating-stars input{ display:none; }
-
-    .rating-stars label.right{ background-image: url('/img/rightstar.png'); }
-    .rating-stars label.left { background-image: url('/img/leftstar.png');  }
-
-
-    .rating-stars label {
-      width: 14px;  /* тоньше половинки */
-      height: 32px;
-      display: inline-block;
-      cursor: pointer;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-position: center;
-      filter: grayscale(100%) brightness(0.6);
-      transition: filter 0.12s ease, transform 0.08s ease;
-      margin-left: 0;
-    }
-
-    /* Фильтр для перекраски PNG в #ADFF2F (примерный) */
-    .rating-stars label.hover,
-    .rating-stars label.active {
-      filter: invert(30%) sepia(100%) saturate(1500%) hue-rotate(65deg) brightness(1.3);
-    }
-
-  </style>
-</head>
-<body>
-
-<div class="album-rating-stars" aria-label="Рейтинг">
-  <span class="rating-value" id="ratingValue">0</span>
-  <div class="rating-stars">
-    <input type="radio" name="album-rating" id="star5" value="5">
-    <label for="star5" class="right" title="5.0"></label>
-
-    <input type="radio" name="album-rating" id="star4-5" value="4.5">
-    <label for="star4-5" class="left" title="4.5"></label>
-
-    <input type="radio" name="album-rating" id="star4" value="4">
-    <label for="star4" class="right" title="4.0"></label>
-
-    <input type="radio" name="album-rating" id="star3-5" value="3.5">
-    <label for="star3-5" class="left" title="3.5"></label>
-
-    <input type="radio" name="album-rating" id="star3" value="3">
-    <label for="star3" class="right" title="3.0"></label>
-
-    <input type="radio" name="album-rating" id="star2-5" value="2.5">
-    <label for="star2-5" class="left" title="2.5"></label>
-
-    <input type="radio" name="album-rating" id="star2" value="2">
-    <label for="star2" class="right" title="2.0"></label>
-
-    <input type="radio" name="album-rating" id="star1-5" value="1.5">
-    <label for="star1-5" class="left" title="1.5"></label>
-
-    <input type="radio" name="album-rating" id="star1" value="1">
-    <label for="star1" class="right" title="1.0"></label>
-
-    <input type="radio" name="album-rating" id="star0-5" value="0.5">
-    <label for="star0-5" class="left" title="0.5"></label>
-  </div>
-</div>
+<div id="album-rating-component-host"></div>
 
 <script>
-  (function(){
-    const container = document.querySelector('.rating-stars');
-    const labels = Array.from(container.querySelectorAll('label'));
-    const inputs = Array.from(container.querySelectorAll('input'));
-    const valueEl = document.getElementById('ratingValue');
+    (function() {
+        // Защита: класс должен быть загружен глобально в head
+        if (typeof StarRating === 'undefined') return;
 
-    function updateActiveFromChecked(){
-      const checked = inputs.find(i => i.checked);
-      const value = checked ? parseFloat(checked.value) : 0;
-      labels.forEach(l => {
-        const v = parseFloat(document.getElementById(l.htmlFor).value);
-        l.classList.toggle('active', v <= value && value !== 0);
-      });
-      valueEl.textContent = value ? value.toFixed(1) : '0';
-    }
+        const container = document.getElementById('album-rating-component-host');
+        if (!container) return;
 
-    function hoverTo(value){
-      labels.forEach(l=>{
-        const v = parseFloat(document.getElementById(l.htmlFor).value);
-        l.classList.toggle('hover', v <= value);
-      });
-    }
+        // Создаем экземпляр
+        const ratingInstance = new StarRating(container, {
+            showValue: true,
+            clearableText: '×'
+        });
 
-    function clearHover(){
-      labels.forEach(l => l.classList.remove('hover'));
-    }
+        // Слушаем изменения от UI (когда юзер кликает)
+        ratingInstance.container.addEventListener('ratingChanged', (e) => {
+            const newRating = e.detail.rating;
+            if (newRating === 0) {
+                if (window.clearAlbumRating) window.clearAlbumRating();
+            } else {
+                if (window.rateAlbum) window.rateAlbum(newRating);
+            }
+        });
 
-    function setRating(rating) {
-      const input = inputs.find(i => parseFloat(i.value) === rating);
-      if (input) {
-        input.checked = true;
-      } else {
-        inputs.forEach(i => i.checked = false);
-      }
-      updateActiveFromChecked();
-    }
+        // Регистрируем компонент, чтобы albums1.js мог его обновлять
+        window.components = window.components || {};
+        window.components.albumRatingStars = {
+            updateRating: (rating) => {
+                ratingInstance.setValue(rating || 0);
+            }
+        };
 
-    labels.forEach(label=>{
-      const input = document.getElementById(label.htmlFor);
-      label.addEventListener('mouseenter', ()=> hoverTo(parseFloat(input.value)));
-      label.addEventListener('touchstart', ()=> hoverTo(parseFloat(input.value)), {passive:true});
-      label.addEventListener('click', (ev)=>{
-        ev.preventDefault();
-        input.checked = true;
-        updateActiveFromChecked();
-        if (window.currentAlbumId && typeof window.rateAlbum === 'function') {
-          window.rateAlbum(parseFloat(input.value));
+        // Ставим начальное значение, если оно уже прилетело
+        if (typeof window.currentAlbumRating === 'number') {
+            ratingInstance.setValue(window.currentAlbumRating);
         }
-      });
-    });
-
-    container.addEventListener('mouseleave', clearHover);
-    container.addEventListener('touchend', clearHover);
-    container.addEventListener('touchcancel', clearHover);
-    inputs.forEach(i => i.addEventListener('change', updateActiveFromChecked));
-
-    // Устанавливаем рейтинг, если он передан в глобальной переменной
-    if (typeof window.currentAlbumRating === 'number') {
-      setRating(window.currentAlbumRating);
-    } else {
-      updateActiveFromChecked(); // по умолчанию 0
-    }
-  })();
+    })();
 </script>
-
-</body>
-</html>

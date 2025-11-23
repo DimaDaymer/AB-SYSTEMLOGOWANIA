@@ -1,119 +1,120 @@
 <div class="album-info">
-    <h1 class="album-title" id="album-title"></h1>
+    <h1 class="album-title" id="album-title">Loading...</h1>
     <div class="album-meta">
         <span><strong>Artist:</strong> <span id="album-artist"></span></span>
-        <span><strong>Type:</strong> <span id="album-type"></span></span>
-        <span><strong>Release Date:</strong><br> <a href="#" id="release-date-link"></a></span>
+        <span><strong>Format:</strong> <span id="album-format"></span></span>
+
+        <span id="album-attributes-wrapper" style="display: none;">
+            <strong>Attributes:</strong> <span id="album-attributes"></span>
+        </span>
+
+        <span><strong>Release Date:</strong> <a href="#" id="release-date-link"></a></span>
         <span><strong>Genres:</strong> <span id="album-genres"></span></span>
         <span><strong>Label:</strong> <span id="album-label"></span></span>
         <span><strong>Language:</strong> <span id="album-language"></span></span>
         <span><strong>Description:</strong> <span id="album-description"></span></span>
+
+        <span id="album-rank-container" style="display: none;">
+            <strong>Ranked:</strong>
+            <span id="album-rank"></span>
+        </span>
     </div>
 </div>
 
 <script>
     window.components = window.components || {};
 
-    // ----------------------------------------------------
-    // 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-    // ----------------------------------------------------
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const getSplitArray = (data) => Array.isArray(data) ? data : (typeof data === 'string' ? data.split(',').map(s => s.trim()).filter(s => s.length > 0) : []);
 
-    // Устанавливает простой текст
-    const setText = (id, text) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = text;
-    };
-
-    // Устанавливает текст и URL для ссылки
-    const setLinkText = (id, text, url) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = text;
-            el.href = url;
-        }
-    };
-
-    // Функция для безопасного извлечения массива из строки (если данные приходят как строка "a, b, c")
-    const getSplitArray = (data) => Array.isArray(data)
-        ? data
-        : (typeof data === 'string'
-                ? data.split(',').map(s => s.trim()).filter(s => s.length > 0)
-                : []
-        );
-
-    // Функция для создания кликабельных ссылок (для Type, Genres, Description и т.д.)
     function createLinks(containerId, dataArray, paramName, defaultText = 'N/A') {
         const container = document.getElementById(containerId);
+        if (!container) return false;
         const elements = getSplitArray(dataArray);
-
-        if (container && elements.length > 0) {
-            container.innerHTML = elements.map(item => {
-                const encodedItem = encodeURIComponent(item);
-                // Все ссылки ведут на /new_releases.html с соответствующим параметром
-                return `<a href="/new_releases.html?${paramName}=${encodedItem}" class="${paramName}-link">${item}</a>`;
-            }).join(', ');
+        if (elements.length > 0) {
+            container.innerHTML = elements.map(item =>
+                `<a href="/new_releases.html?${paramName}=${encodeURIComponent(item)}">${item}</a>`
+            ).join(', ');
+            return true;
         } else {
-            // Если данных нет, просто устанавливаем текст
             setText(containerId, defaultText);
+            return false;
         }
     }
 
-    // ----------------------------------------------------
-    // 2. ГЛАВНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ КОМПОНЕНТА
-    // ----------------------------------------------------
-
     window.components.albumInfo = {
         update: function(albumData) {
+            setText('album-title', albumData.title || 'Untitled');
 
-            // Заголовок альбома
-            setText('album-title', albumData.title || 'Untitled Album');
-
-            // === ВОССТАНОВЛЕННЫЙ КОД ДЛЯ ИСПОЛНИТЕЛЯ (Artist) ===
+            // Artist
             const artistContainer = document.getElementById('album-artist');
-            // Ожидаем массив объектов: [{ name: '...', slug: '...' }, ...]
-            const albumArtists = albumData.artists;
+            if (artistContainer && albumData.artists && albumData.artists.length > 0) {
+                artistContainer.innerHTML = albumData.artists.map(a => `<a href="/artist.html?slug=${a.slug}">${a.name}</a>`).join(', ');
+            } else { setText('album-artist', 'Unknown'); }
 
-            if (artistContainer && Array.isArray(albumArtists) && albumArtists.length > 0) {
-                // Создаем HTML-ссылки для каждого исполнителя
-                artistContainer.innerHTML = albumArtists.map(artist => {
-                    // Используем ссылку на страницу исполнителя с его слагом
-                    // Если slug отсутствует, ссылка будет вести на заглушку
-                    const artistUrl = artist.slug ? `/artist.html?slug=${artist.slug}` : '#';
-                    return `<a href="${artistUrl}" class="artist-link">${artist.name}</a>`;
-                }).join(', '); // Разделяем имена запятыми
-            } else {
-                setText('album-artist', 'Unknown artist');
+            // Format & Attributes (Links)
+            createLinks('album-format', albumData.format_name, 'format', 'Unknown');
+            const hasAttrs = createLinks('album-attributes', albumData.attributes, 'format', '');
+            if(document.getElementById('album-attributes-wrapper')) {
+                document.getElementById('album-attributes-wrapper').style.display = hasAttrs ? 'inline' : 'none';
             }
-            // === КОНЕЦ ВОССТАНОВЛЕННОГО КОДА ДЛЯ ИСПОЛНИТЕЛЯ ===
 
-            // --- Поля, где нужны кликабельные теги (используем новую функцию) ---
-
-            // Тип альбома (теперь кликабельный)
-            createLinks('album-type', albumData.type, 'type', albumData.type || 'N/A');
-
-            // Жанры
-            createLinks('album-genres', albumData.genres, 'genre');
-
-            // Лейбл
+            // Meta
+            createLinks('album-genres', albumData.genres, 'genres');
             createLinks('album-label', albumData.label, 'label');
-
-            // Язык
             createLinks('album-language', albumData.language, 'language');
-
-            // Описание (теперь кликабельные теги)
             createLinks('album-description', albumData.description, 'description');
 
-            // --- Дата выпуска (ссылка на год) ---
-            const releaseDateLink = document.getElementById('release-date-link');
-            const date = albumData.release_date ? new Date(albumData.release_date) : null;
+            // Date
+            const dateLink = document.getElementById('release-date-link');
+            if (dateLink && albumData.release_date) {
+                const year = new Date(albumData.release_date).getFullYear();
+                dateLink.textContent = albumData.release_date.split('T')[0];
+                dateLink.href = `/new_releases.html?year=${year}`;
+            }
 
-            if (releaseDateLink && date && !isNaN(date.getTime())) {
-                const year = date.getFullYear();
-                // Используем формат, который у вас был: YYYY-MM-DD
-                const formattedDate = date.toISOString().split('T')[0];
-                setLinkText('release-date-link', formattedDate, `/new_releases.html?year=${year}`);
-            } else {
-                setLinkText('release-date-link', 'N/A', '#');
+            // === RANK DISPLAY LOGIC ===
+            const rankContainer = document.getElementById('album-rank-container');
+            const rankSpan = document.getElementById('album-rank');
+
+            if (rankContainer && rankSpan) {
+                let ranksHTML = [];
+                const slugHash = `#${albumData.slug}`;
+
+                // 1. General Rank (Всегда показываем, если есть)
+                if (albumData.current_rank) {
+                    const generalUrl = `/new_releases.html?sort=rating${slugHash}`;
+                    ranksHTML.push(`<a href="${generalUrl}" style="color: greenyellow; text-decoration: none; font-weight: bold;">#${albumData.current_rank} in General</a>`);
+                }
+
+                // 2. Format Rank
+                // Логика: Показывать, если это НЕ "Album", или если это "Album" но есть атрибуты.
+                // Если это чистый "Album" без атрибутов — не показывать (так хотел пользователь).
+                if (albumData.extra_ranks && albumData.extra_ranks.format) {
+                    const fRank = albumData.extra_ranks.format;
+                    const isStandardAlbum = (fRank.name === 'Album');
+                    const hasAttributes = (albumData.attributes && albumData.attributes.length > 0);
+
+                    if (!isStandardAlbum || hasAttributes) {
+                        const url = `/new_releases.html?format=${encodeURIComponent(fRank.name)}&sort=rating${slugHash}`;
+                        ranksHTML.push(`<a href="${url}" style="color: #00ffcc; text-decoration: none;">#${fRank.rank} for ${fRank.name}</a>`);
+                    }
+                }
+
+                // 3. Attribute Ranks (Всегда показываем все)
+                if (albumData.extra_ranks && albumData.extra_ranks.attributes) {
+                    albumData.extra_ranks.attributes.forEach(attr => {
+                        const url = `/new_releases.html?format=${encodeURIComponent(attr.name)}&sort=rating${slugHash}`;
+                        ranksHTML.push(`<a href="${url}" style="color: #ff99cc; text-decoration: none;">#${attr.rank} for ${attr.name}</a>`);
+                    });
+                }
+
+                if (ranksHTML.length > 0) {
+                    rankSpan.innerHTML = ranksHTML.join(' / ');
+                    rankContainer.style.display = 'inline';
+                } else {
+                    rankContainer.style.display = 'none';
+                }
             }
         }
     };

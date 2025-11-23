@@ -6,11 +6,61 @@
     <title>Профиль пользователя</title>
     <link rel="stylesheet" href="/css/profile.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Стили для аккордеона тегов */
+        .tag-group {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .tag-group-title {
+            color: #00ffcc;
+            cursor: pointer;
+            padding: 10px 5px;
+            margin: 0;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .tag-group-title:hover {
+            background-color: #2a2a2a;
+        }
+
+        /* Иконка-стрелка */
+        .tag-group-title::after {
+            content: '▼';
+            font-size: 0.8em;
+            color: #888;
+            transition: transform 0.3s ease-out;
+            transform: rotate(0deg);
+        }
+
+        /* Поворот стрелки при раскрытии */
+        .tag-group.expanded .tag-group-title::after {
+            transform: rotate(180deg);
+        }
+
+        /* Контейнер для альбомов */
+        .tag-albums-list {
+            overflow: hidden;
+            /* max-height: 0px; (управляется через JS) */
+            transition: max-height 0.3s ease-out;
+
+            /* Стили для списка альбомов внутри (из profile.js) */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 0; /* Отступ, когда открыто */
+        }
+    </style>
 </head>
 <body>
 
-<div id="navbar-container">
-</div>
+<div id="navbar-container"></div>
 
 <div class="container">
     <div class="left-panel">
@@ -22,14 +72,12 @@
         <div class="user-info">
             <h1 id="nickname">Никнейм</h1>
             <span><strong>Имя пользователя:</strong> <span id="username">пользователь</span></span>
-
             <div id="age-container" class="info-line" style="display:none;">
                 <strong>Возраст:</strong> <span id="age"></span>
             </div>
             <div id="location-container" class="info-line" style="display:none;">
                 <strong>Местоположение:</strong> <span id="location"></span>
             </div>
-
             <div id="country-container" class="info-line" style="display:none;">
                 <strong>Страна:</strong> <span id="country"></span>
             </div>
@@ -57,7 +105,6 @@
         </div>
 
         <button id="editProfileButton" class="edit-button">Редактировать профиль</button>
-
     </div>
 
     <div class="tab-panel">
@@ -67,23 +114,19 @@
             <div class="tab" data-tab="liked">Понравилось (Like)</div>
             <div class="tab" data-tab="wishlist">Хочу послушать (Wishlist)</div>
             <div class="tab" data-tab="albums">Прослушано (Listen)</div>
+            <div class="tab" data-tab="tags">Теги</div>
         </div>
 
-        <div id="recent" class="tab-content active">
-        </div>
-
+        <div id="recent" class="tab-content active"></div>
         <div id="trackratings" class="tab-content">
-            <div id="track-ratings-container">
-            </div>
+            <div id="track-ratings-container"></div>
         </div>
+        <div id="liked" class="tab-content"></div>
+        <div id="wishlist" class="tab-content"></div>
+        <div id="albums" class="tab-content"></div>
 
-        <div id="liked" class="tab-content">
-        </div>
-
-        <div id="wishlist" class="tab-content">
-        </div>
-
-        <div id="albums" class="tab-content">
+        <div id="tags" class="tab-content">
+            <div id="user-tags-container"></div>
         </div>
     </div>
 
@@ -96,27 +139,13 @@
                 <div class="graph-bar" style="height: 40%;"></div>
             </div>
             <div class="detailed-stats">
-                <div class="detailed-stat-item">
-                    <span class="icon">❤</span>
-                    <span class="value">123</span>
-                </div>
-                <div class="detailed-stat-item">
-                    <span class="icon">🎧</span>
-                    <span class="value">792</span>
-                </div>
-                <div class="detailed-stat-item">
-                    <span class="icon">📋</span>
-                    <span class="value">9</span>
-                </div>
+                <div class="detailed-stat-item"><span class="icon">❤</span><span class="value">123</span></div>
+                <div class="detailed-stat-item"><span class="icon">🎧</span><span class="value">792</span></div>
+                <div class="detailed-stat-item"><span class="icon">📋</span><span class="value">9</span></div>
             </div>
         </div>
         <div class="user-lists">
             <h3>Списки пользователя <a href="/lists" class="view-all">Посмотреть все</a></h3>
-            <div>By User1337</div>
-            <div>By krhdall</div>
-            <div>By Daymer</div>
-            <div>By User12112</div>
-            <div>By 228dima337</div>
         </div>
     </div>
 </div>

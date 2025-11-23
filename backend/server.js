@@ -29,6 +29,7 @@ const trackRatingsRoute = require('./routes/trackRatings')(pool);
 const filtersRoute = require('./routes/filters')(pool);
 const userListsRoute = require('./routes/userLists');
 const artistRoutes = require('./routes/artist')(pool);
+const tagsRouter = require('./routes/tags');
 
 app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
@@ -44,6 +45,7 @@ app.use('/api/actions', actionsRoute);
 app.use('/api/filters', filtersRoute);
 app.use('/api/user-lists', userListsRoute);
 app.use('/api/artists', artistRoutes);
+app.use('/api/tags', tagsRouter);
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));

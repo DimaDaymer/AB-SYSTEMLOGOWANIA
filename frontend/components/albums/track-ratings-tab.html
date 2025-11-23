@@ -2,14 +2,11 @@
 </div>
 
 <style>
-    /* Стили для контейнера списка */
     .track-ratings-list {
         list-style-type: none;
         padding: 0;
         margin: 0;
     }
-
-    /* Стили для каждого элемента трека */
     .track-rating-item {
         display: flex;
         justify-content: space-between;
@@ -17,74 +14,25 @@
         padding: 10px 0;
         border-bottom: 1px solid #333;
     }
+    .track-info { flex-grow: 1; }
+    .track-title { font-size: 16px; color: #ADFF2F; }
+    .track-duration { font-size: 14px; color: #999; }
 
-    .track-info {
-        flex-grow: 1;
-    }
-
-    .track-title {
-        font-size: 16px;
-        color: #ADFF2F;
-    }
-
-    .track-duration {
-        font-size: 14px;
-        color: #999;
-    }
-
-    /* Стили для блока рейтинга */
     .track-rating {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
-
-    /* Стили для значения рейтинга */
+    /* Специфичный стиль для цифры "X.X/5" в списке треков */
     .track-rating-value {
         font-size: 16px;
         font-weight: bold;
         color: #ADFF2F;
+        min-width: 55px;
+        text-align: left;
     }
 
-    /* Стили для звездной системы (аналогично album-rating-stars) */
-    .track-stars {
-        display: flex;
-        flex-direction: row-reverse;
-        align-items: center;
-        gap: 0;
-    }
 
-    .track-stars input {
-        display: none;
-    }
-
-    .track-stars label {
-        width: 14px;
-        height: 32px;
-        display: inline-block;
-        cursor: pointer;
-        background-size: 100% 100%;
-        background-repeat: no-repeat;
-        background-position: center;
-        filter: grayscale(100%) brightness(0.6);
-        transition: filter 0.12s ease, transform 0.08s ease;
-        margin-left: 0;
-    }
-
-    /* Изображения для половинок звезд */
-    .track-stars label.right {
-        background-image: url('/img/rightstar.png');
-    }
-
-    .track-stars label.left {
-        background-image: url('/img/leftstar.png');
-    }
-
-    /* Эффекты при наведении и выборе */
-    .track-stars label.hover,
-    .track-stars label.active {
-        filter: invert(30%) sepia(100%) saturate(1500%) hue-rotate(65deg) brightness(1.3);
-    }
 </style>
 
 <script>
@@ -93,128 +41,64 @@
         update: function (tracks, userRatings) {
             const container = document.getElementById('track-ratings-container');
             if (!container) return;
-
             container.innerHTML = '';
+
+            if (typeof StarRating === 'undefined') {
+                console.error('StarRating class not loaded for tracks!');
+                return;
+            }
 
             tracks.forEach(track => {
                 const trackRating = userRatings[track.id] || 0;
-                let starsHtml = '';
-                // Генерируем звезды от 5.0 до 0.5
-                for (let i = 5; i >= 0.5; i -= 0.5) {
-                    const value = i;
-                    const isHalfStar = (value * 10) % 10 === 5;
-                    const starType = isHalfStar ? 'left' : 'right';
-                    const isChecked = trackRating === value;
 
-                    starsHtml += `
-                        <input type="radio" id="track-${track.id}-star-${value.toString().replace('.', '-')}"
-                               name="track-rating-${track.id}" value="${value}" ${isChecked ? 'checked' : ''}>
-                        <label for="track-${track.id}-star-${value.toString().replace('.', '-')}"
-                               class="${starType}" title="${value.toFixed(1)}"></label>
-                    `;
-                }
+                const trackItem = document.createElement('li');
+                trackItem.className = 'track-rating-item';
+                trackItem.dataset.trackId = track.id;
 
-                const trackHtml = `
-                    <li class="track-rating-item" data-track-id="${track.id}">
-                        <div class="track-info">
-                            <div class="track-title">${track.track_number}. ${track.title}</div>
-                            <div class="track-duration">${track.duration || ''}</div>
-                        </div>
-                        <div class="track-rating">
-                            <div class="track-rating-value">${trackRating ? trackRating.toFixed(1) : '0.0'}/5</div>
-                            <div class="track-stars">
-                                ${starsHtml}
-                            </div>
-                        </div>
-                    </li>
+                trackItem.innerHTML = `
+                    <div class="track-info">
+                        <div class="track-title">${track.track_number}. ${track.title}</div>
+                        <div class="track-duration">${track.duration || ''}</div>
+                    </div>
+                    <div class="track-rating">
+                        <div class="track-rating-value">${trackRating ? trackRating.toFixed(1) : '0.0'}/5</div>
+                        <div class="track-star-rating-host"></div>
+                    </div>
                 `;
-                container.innerHTML += trackHtml;
 
-                // Добавляем обработчики hover и click для новых элементов
-                const trackItem = container.lastElementChild;
-                const starLabels = trackItem.querySelectorAll('.track-stars label');
-                const starInputs = trackItem.querySelectorAll('.track-stars input');
-                const ratingValueEl = trackItem.querySelector('.track-rating-value');
+                const starHost = trackItem.querySelector('.track-star-rating-host');
+                const valueEl = trackItem.querySelector('.track-rating-value');
 
-                function updateActive(rating) {
-                    starLabels.forEach(l => {
-                        const v = parseFloat(document.getElementById(l.htmlFor).value);
-                        l.classList.toggle('active', v <= rating && rating !== 0);
-                    });
-                }
-
-                function hoverTo(rating) {
-                    starLabels.forEach(l => {
-                        const v = parseFloat(document.getElementById(l.htmlFor).value);
-                        l.classList.toggle('hover', v <= rating);
-                    });
-                }
-
-                function clearHover() {
-                    starLabels.forEach(l => l.classList.remove('hover'));
-                }
-
-                starLabels.forEach(label => {
-                    const input = document.getElementById(label.htmlFor);
-                    const ratingValue = parseFloat(input.value);
-
-                    label.addEventListener('mouseenter', () => hoverTo(ratingValue));
-                    label.addEventListener('click', (ev) => {
-                        ev.preventDefault();
-                        input.checked = true;
-                        ratingValueEl.textContent = `${ratingValue.toFixed(1)}/5`;
-                        updateActive(ratingValue);
-                        saveTrackRating(track.id, ratingValue);
-                    });
+                const trackRatingInstance = new StarRating(starHost, {
+                    showValue: false,
+                    clearableText: '×'
                 });
 
-                // Обработчик для родительского контейнера, чтобы убрать hover
-                trackItem.querySelector('.track-stars').addEventListener('mouseleave', clearHover);
+                trackRatingInstance.setValue(trackRating);
 
-                // Инициализируем состояние звезд при загрузке
-                if (trackRating) {
-                    updateActive(trackRating);
-                    ratingValueEl.textContent = `${trackRating.toFixed(1)}/5`;
-                }
+                trackRatingInstance.container.addEventListener('ratingChanged', (e) => {
+                    const newRating = e.detail.rating;
+                    valueEl.textContent = `${newRating.toFixed(1)}/5`;
+
+                    if (newRating === 0) {
+                        clearTrackRating(track.id);
+                    } else {
+                        saveTrackRating(track.id, newRating);
+                    }
+                });
+
+                container.appendChild(trackItem);
             });
         }
     };
-
-    // Оставляем общий обработчик 'change' на случай, если он используется в другом месте
-    document.addEventListener('change', async (e) => {
-        const container = document.getElementById('track-ratings-container');
-        if (!container || !container.contains(e.target)) return;
-
-        const ratingInput = e.target;
-        if (ratingInput.type === 'radio' && ratingInput.name.startsWith('track-rating-')) {
-            const trackItem = ratingInput.closest('.track-rating-item');
-            const trackId = trackItem.dataset.trackId;
-            const rating = parseFloat(ratingInput.value);
-            const ratingValueEl = trackItem.querySelector('.track-rating-value');
-            if (ratingValueEl) {
-                ratingValueEl.textContent = `${rating.toFixed(1)}/5`;
-            }
-
-            // Дополнительная логика для визуального обновления
-            const starLabels = trackItem.querySelectorAll('.track-stars label');
-            starLabels.forEach(l => {
-                const v = parseFloat(document.getElementById(l.htmlFor).value);
-                l.classList.toggle('active', v <= rating && rating !== 0);
-            });
-
-            await saveTrackRating(trackId, rating);
-        }
-    });
 
     async function saveTrackRating(trackId, rating) {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
                 window.showMessage('Please log in to rate tracks', true);
-                setTimeout(() => window.location.href = '/login.html', 2000);
                 return;
             }
-
             const res = await fetch(`/api/track-ratings/${trackId}`, {
                 method: 'POST',
                 headers: {
@@ -223,23 +107,36 @@
                 },
                 body: JSON.stringify({ rating })
             });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'Failed to save track rating');
-            }
-
+            if (!res.ok) throw new Error('Failed to save');
             window.showMessage('Track rating saved!');
-
-            // --- Добавлено: инициируем глобальное событие ---
             window.dispatchEvent(new CustomEvent('trackRatingUpdated', {
                 detail: { trackId: trackId, rating: rating }
             }));
-            // --- --------------------------------------- ---
-
         } catch (err) {
-            console.error('Error saving track rating:', err);
-            window.showMessage('Error: ' + err.message, true);
+            console.error('Error:', err);
+            window.showMessage('Error saving rating', true);
+        }
+    }
+
+    async function clearTrackRating(trackId) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.showMessage('Please log in to clear rating', true);
+                return;
+            }
+            const res = await fetch(`/api/track-ratings/${trackId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to clear');
+            window.showMessage('Track rating cleared!');
+            window.dispatchEvent(new CustomEvent('trackRatingUpdated', {
+                detail: { trackId: trackId, rating: 0 }
+            }));
+        } catch (err) {
+            console.error('Error:', err);
+            window.showMessage('Error clearing rating', true);
         }
     }
 </script>

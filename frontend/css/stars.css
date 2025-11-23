@@ -1,0 +1,97 @@
+/* frontend/css/stars.css */
+
+/* === БАЗОВАЯ ОБЕРТКА === */
+.star-rating-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Предотвращаем выделение текста при быстрых кликах */
+    user-select: none;
+}
+
+/* === ЗНАЧЕНИЕ РЕЙТИНГА (ЦИФРЫ) === */
+/* Базовый стиль для цифр, если они включены внутри компонента */
+.rating-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ADFF2F;
+    min-width: 30px;
+    text-align: right;
+}
+
+/* === КНОПКА СБРОСА (КРЕСТИК) === */
+.rating-clear-wrapper {
+    /* Обертка, которая скрывает крестик по умолчанию */
+    width: 0;
+    overflow: hidden;
+    transition: width 0.2s ease-out;
+}
+
+.rating-clear-btn {
+    display: block;
+    width: 20px;
+    cursor: pointer;
+    color: #ff5555;
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+    transition: color 0.2s;
+}
+
+.rating-clear-btn:hover {
+    color: #ff8888;
+}
+
+/* Логика появления крестика:
+   Показываем, только если есть значение (data-has-value="true") И мы навели мышь на компонент
+*/
+.star-rating-wrapper[data-has-value="true"]:hover .rating-clear-wrapper {
+    width: 20px;
+}
+
+/* === КОНТЕЙНЕР ЗВЕЗД === */
+.rating-stars {
+    display: flex;
+    flex-direction: row-reverse; /* Чтобы CSS селекторы ~ работали корректно (если нужно), и для порядка */
+    align-items: center;
+    gap: 0;
+}
+
+/* Скрываем реальные радио-кнопки */
+.rating-stars input {
+    display: none;
+}
+
+/* === САМИ ЗВЕЗДЫ (LABEL) === */
+.rating-stars label {
+    width: 14px;
+    height: 32px;
+    display: inline-block;
+    cursor: pointer;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    /* Дефолтное состояние: серая звезда */
+    filter: grayscale(100%) brightness(0.6);
+    transition: filter 0.12s ease;
+}
+
+/* Картинки половинок */
+.rating-stars label.right {
+    background-image: url('/img/rightstar.png');
+}
+
+.rating-stars label.left {
+    background-image: url('/img/leftstar.png');
+}
+
+/* === АКТИВНЫЕ СОСТОЯНИЯ === */
+/* .hover - добавляет JS при наведении
+   .active - добавляет JS для выбранного значения
+*/
+.rating-stars label.hover,
+.rating-stars label.active {
+    filter: invert(30%) sepia(100%) saturate(1500%) hue-rotate(65deg) brightness(1.3);
+}

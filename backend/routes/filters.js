@@ -3,43 +3,32 @@ const router = express.Router();
 
 module.exports = (pool) => {
 
-
+    // === ИЗМЕНЕНО: РАЗДЕЛЕНИЕ ФОРМАТОВ И АТРИБУТОВ ===
     router.get('/formats', async (req, res) => {
-        try {
-            const [rows] = await pool.execute('SELECT DISTINCT type FROM albums WHERE type IS NOT NULL');
-            const formats = rows.map(row => row.type);
-            res.json(formats);
-        } catch (error) {
-            console.error('Error fetching formats:', error);
-            res.status(500).json({ error: 'Failed to fetch formats' });
-        }
-    });
-
-    router.get('/all-genres', async (req, res) => {
         let connection;
         try {
             connection = await pool.getConnection();
-            const [rows] = await connection.execute('SELECT genres FROM albums WHERE genres IS NOT NULL AND genres != ""');
 
-            const allGenres = new Set();
-            rows.forEach(row => {
-                row.genres.split(',').forEach(genre => {
-                    const trimmedGenre = genre.trim();
-                    if (trimmedGenre) {
-                        allGenres.add(trimmedGenre);
-                    }
-                });
+            // 1. Форматы (Album, EP, Single...)
+            const [formatsRows] = await connection.execute('SELECT name FROM release_formats ORDER BY name');
+
+            // 2. Атрибуты (Live, Demo, Soundtrack...)
+            const [attrRows] = await connection.execute('SELECT name FROM release_attributes ORDER BY name');
+
+            // Возвращаем объект с двумя массивами
+            res.json({
+                formats: formatsRows.map(r => r.name),
+                attributes: attrRows.map(r => r.name)
             });
 
-            const sortedGenres = Array.from(allGenres).sort((a, b) => a.localeCompare(b));
-            res.json(sortedGenres);
         } catch (error) {
-            console.error('Error fetching all genres:', error);
-            res.status(500).json({ error: 'Failed to fetch genres' });
+            console.error('Error fetching formats:', error);
+            res.status(500).json({ error: 'Failed to fetch formats' });
         } finally {
             if (connection) connection.release();
         }
     });
+
 
     // NEW: API endpoint to get the count of genres
     router.get('/genres-count', async (req, res) => {
@@ -171,78 +160,26 @@ module.exports = (pool) => {
             if (connection) connection.release();
         }
     });
-
-    // ОБНОВЛЕННЫЙ МАРШРУТ: для получения отфильтрованных альбомов
-    router.get('/new-releases', async (req, res) => {
+    router.get('/all-genres', async (req, res) => {
         let connection;
         try {
             connection = await pool.getConnection();
-            const { sort = 'release_date', order = 'desc', format, genres, description, language, year, yearRange, search } = req.query;
-
-            let query = 'SELECT * FROM albums WHERE 1=1';
-            const params = [];
-
-            if (search) {
-                query += ` AND (title LIKE ? OR artist LIKE ?)`;
-                params.push(`%${search}%`, `%${search}%`);
-            }
-
-            if (format) {
-                const formatsArray = format.split(',');
-                const placeholders = formatsArray.map(() => '?').join(',');
-                query += ` AND type IN (${placeholders})`;
-                params.push(...formatsArray);
-            }
-
-            // ОБРАБОТКА ЖАНРОВ: Использование FIND_IN_SET
-            if (genres) {
-                const genresArray = genres.split(',').map(g => g.trim());
-                if (genresArray.length > 0) {
-                    const findInSetConditions = genresArray.map(genre => `FIND_IN_SET(?, genres)`).join(' OR ');
-                    query += ` AND (${findInSetConditions})`;
-                    params.push(...genresArray);
-                }
-            }
-
-            // ОБРАБОТКА description: Использование FIND_IN_SET
-            if (description) {
-                const descriptionArray = description.split(',').map(g => g.trim());
-                if (descriptionArray.length > 0) {
-                    const findInSetConditions = descriptionArray.map(genre => `FIND_IN_SET(?, description)`).join(' OR ');
-                    query += ` AND (${findInSetConditions})`;
-                    params.push(...descriptionArray);
-                }
-            }
-
-            // ОБРАБОТКА language: Использование FIND_IN_SET
-            if (language) {
-                const languageArray = language.split(',').map(g => g.trim());
-                if (languageArray.length > 0) {
-                    const findInSetConditions = languageArray.map(genre => `FIND_IN_SET(?, language)`).join(' OR ');
-                    query += ` AND (${findInSetConditions})`;
-                    params.push(...languageArray);
-                }
-            }
-
-            if (year) {
-                query += ` AND YEAR(release_date) = ?`;
-                params.push(year);
-            } else if (yearRange) {
-                const [start, end] = yearRange.split('-').map(Number);
-                query += ` AND YEAR(release_date) BETWEEN ? AND ?`;
-                params.push(start, end);
-            }
-
-            query += ` ORDER BY ${pool.escapeId(sort)} ${order.toUpperCase()}`;
-
-            const [rows] = await connection.execute(query, params);
-            res.json(rows);
+            const [rows] = await connection.execute('SELECT genres FROM albums WHERE genres IS NOT NULL AND genres != ""');
+            const allGenres = new Set();
+            rows.forEach(row => {
+                row.genres.split(',').forEach(g => {
+                    const t = g.trim();
+                    if(t) allGenres.add(t);
+                });
+            });
+            const sorted = Array.from(allGenres).sort();
+            res.json(sorted);
         } catch (error) {
-            console.error('Error fetching new releases:', error);
-            res.status(500).json({ error: 'Failed to fetch new releases' });
+            res.status(500).json({ error: 'Failed to fetch genres' });
         } finally {
-            if (connection) connection.release();
+            if(connection) connection.release();
         }
     });
+
     return router;
 };

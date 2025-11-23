@@ -1,23 +1,28 @@
-// frontend/js/auth.js (Клієнтський код для браузера)
+// frontend/js/auth.js
+// ЭТО КЛИЕНТСКИЙ КОД. ОН РАБОТАЕТ В БРАУЗЕРЕ.
+// ЗДЕСЬ НЕЛЬЗЯ ИСПОЛЬЗОВАТЬ require()
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Функція для відображення повідомлень про помилки/успіх
+    // Вспомогательная функция для показа сообщений
     function showAuthMessage(message, containerId, isError = true) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.textContent = message;
         container.style.display = 'block';
         container.style.color = isError ? 'red' : 'green';
-        // Приховуємо повідомлення через 5 секунд
+
+        // Скрываем сообщение через 5 секунд
         setTimeout(() => {
-            container.textContent = '';
-            container.style.display = 'none';
+            if (container) {
+                container.textContent = '';
+                container.style.display = 'none';
+            }
         }, 5000);
     }
 
     // ----------------------------------------------------------------------
-    // ЛОГІКА ВХОДУ (LOGIN)
+    // 1. ЛОГИКА ВХОДА (LOGIN)
     // ----------------------------------------------------------------------
     const loginForm = document.getElementById('loginForm');
     const loginError = document.getElementById('loginError');
@@ -25,18 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (loginError) loginError.textContent = ''; // Очистити попередні помилки
+            if (loginError) loginError.textContent = '';
 
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
+            const usernameInput = document.getElementById('loginUsername');
+            const passwordInput = document.getElementById('loginPassword');
+
+            // Проверка на существование элементов (на всякий случай)
+            if (!usernameInput || !passwordInput) return;
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
 
             if (!username || !password) {
-                showAuthMessage('Будь ласка, введіть ім\'я користувача та пароль.', 'loginError');
+                showAuthMessage('Пожалуйста, введите имя пользователя и пароль.', 'loginError');
                 return;
             }
 
             try {
-                // Використання коректного API-маршруту
+                // Отправляем запрос на сервер
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -46,21 +57,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
+                    // Сохраняем токен и имя
                     localStorage.setItem('token', data.token);
-                    // Перенаправлення
-                    window.location.href = '/';
+                    localStorage.setItem('username', username); // Сохраним для отображения в профиле
+
+                    // Перенаправляем на главную или в профиль
+                    window.location.href = '/profile';
                 } else {
-                    showAuthMessage(data.error || 'Невірні облікові дані. Спробуйте ще раз.', 'loginError');
+                    showAuthMessage(data.error || 'Неверные данные. Попробуйте еще раз.', 'loginError');
                 }
             } catch (error) {
                 console.error('Login request failed:', error);
-                showAuthMessage('Виникла помилка мережі. Спробуйте ще раз.', 'loginError');
+                showAuthMessage('Ошибка сети. Сервер недоступен.', 'loginError');
             }
         });
     }
 
     // ----------------------------------------------------------------------
-    // ЛОГІКА РЕЄСТРАЦІЇ (REGISTER)
+    // 2. ЛОГИКА РЕГИСТРАЦИИ (REGISTER)
     // ----------------------------------------------------------------------
     const registerForm = document.getElementById('registerForm');
     const registerError = document.getElementById('registerError');
@@ -68,19 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (registerError) registerError.textContent = ''; // Очистити попередні помилки
+            if (registerError) registerError.textContent = '';
 
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const usernameInput = document.getElementById('username');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            if (!usernameInput || !emailInput || !passwordInput) return;
+
+            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
 
             if (!username || !email || !password) {
-                showAuthMessage('Всі поля обов\'язкові для заповнення.', 'registerError');
+                showAuthMessage('Все поля обязательны.', 'registerError');
                 return;
             }
 
             try {
-                // Використання коректного API-маршруту
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -90,28 +109,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    showAuthMessage('Реєстрація успішна! Перенаправлення на сторінку входу...', 'registerError', false);
+                    showAuthMessage('Регистрация успешна! Переходим на вход...', 'registerError', false);
                     setTimeout(() => {
-                        window.location.href = 'login.html';
+                        window.location.href = '/login.html';
                     }, 2000);
                 } else {
-                    showAuthMessage(data.error || 'Помилка реєстрації. Можливо, користувач/email вже існує.', 'registerError');
+                    showAuthMessage(data.error || 'Ошибка регистрации.', 'registerError');
                 }
             } catch (error) {
                 console.error('Registration request failed:', error);
-                showAuthMessage('Виникла помилка мережі. Спробуйте ще раз.', 'registerError');
+                showAuthMessage('Ошибка сети. Сервер недоступен.', 'registerError');
             }
         });
     }
 
     // ----------------------------------------------------------------------
-    // ЛОГІКА ВИХОДУ (LOGOUT)
+    // 3. ЛОГИКА ВЫХОДА (LOGOUT)
     // ----------------------------------------------------------------------
     const logoutButton = document.getElementById('logout-btn');
     if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
+        logoutButton.addEventListener('click', (e) => {
+            e.preventDefault();
             localStorage.removeItem('token');
-            window.location.href = '/';
+            localStorage.removeItem('username');
+            localStorage.removeItem('userAvatar');
+            window.location.href = '/login.html';
         });
     }
 });
