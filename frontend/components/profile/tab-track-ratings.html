@@ -1,0 +1,89 @@
+<div id="track-ratings-list-container">
+</div>
+
+<style>
+    .album-with-tracks { margin-bottom: 10px; border: 1px solid #333; }
+    .tracks-container { overflow: hidden; transition: max-height 0.3s ease; }
+    .rating-stars { color: gold; margin-right: 5px; }
+</style>
+
+<script>
+    window.components = window.components || {};
+    window.components.trackRatingsTab = {
+
+        // Вспомогательная: число -> звезды
+        scoreToStars: function(score) {
+            if (!score) return '☆☆☆☆☆';
+            const fullStars = Math.floor(score);
+            const half = score % 1 >= 0.25 && score % 1 < 0.75;
+            return '★'.repeat(fullStars) + (half ? '½' : '') + '☆'.repeat(5 - fullStars - (half ? 1 : 0));
+        },
+
+        load: async function() {
+            const container = document.getElementById('track-ratings-list-container');
+            if (!container) return; // Если HTML фрагмент еще не вставлен
+
+            const ctx = window.ProfileContext;
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const url = ctx.getApiUrl('track-ratings');
+                const headers = (!ctx.isPublicProfile && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+                const res = await fetch(url, { headers });
+                const albums = await res.json();
+
+                if (!albums || !albums.length) {
+                    container.innerHTML = '<div>No track ratings yet.</div>';
+                    return;
+                }
+
+                container.innerHTML = ''; // Clear
+
+                albums.forEach(album => {
+                    const el = document.createElement('div');
+                    el.className = 'album-with-tracks';
+                    el.innerHTML = `
+                    <div class="album-header" style="cursor:pointer; padding:10px; background:#222;">
+                        ${album.title} - ${album.artist} <span style="float:right">▼</span>
+                    </div>
+                    <div class="tracks-container" style="max-height:0;"></div>
+                `;
+
+                    const header = el.querySelector('.album-header');
+                    const tracksDiv = el.querySelector('.tracks-container');
+
+                    header.addEventListener('click', () => {
+                        if (tracksDiv.style.maxHeight !== '0px' && tracksDiv.style.maxHeight !== '') {
+                            tracksDiv.style.maxHeight = '0';
+                        } else {
+                            // Рендер треков только при открытии (lazy render)
+                            if (tracksDiv.innerHTML === '') {
+                                this.renderTracks(tracksDiv, album.tracks);
+                            }
+                            tracksDiv.style.maxHeight = tracksDiv.scrollHeight + 'px';
+                        }
+                    });
+
+                    container.appendChild(el);
+                });
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = 'Error loading data.';
+            }
+        },
+
+        renderTracks: function(container, tracks) {
+            tracks.forEach(t => {
+                const div = document.createElement('div');
+                div.style.padding = "5px 15px";
+                div.innerHTML = `${t.track_number}. ${t.title}
+                             <span style="float:right">
+                                ${this.scoreToStars(t.user_rating)} (${t.user_rating})
+                             </span>`;
+                container.appendChild(div);
+            });
+        }
+    };
+</script>

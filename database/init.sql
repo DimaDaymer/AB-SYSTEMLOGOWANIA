@@ -286,3 +286,49 @@ CREATE TABLE IF NOT EXISTS album_links (
                                            url VARCHAR(500) NOT NULL,
                                            FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 );
+
+-- Добавляем slug, если его нет
+ALTER TABLE lists ADD COLUMN slug VARCHAR(255) UNIQUE NOT NULL AFTER name;
+-- Добавляем счетчик просмотров (опционально, для сортировки популярных)
+ALTER TABLE lists ADD COLUMN views_count INT DEFAULT 0;
+
+-- Убедитесь, что эта таблица выглядит так (индексы для скорости):
+CREATE TABLE IF NOT EXISTS list_items (
+                                          id INT AUTO_INCREMENT PRIMARY KEY,
+                                          list_id INT NOT NULL,
+                                          album_id INT NOT NULL,
+                                          sort_order INT DEFAULT 0,
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                          FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
+                                          FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                          UNIQUE (list_id, album_id)
+);
+
+-- === ФУНДАМЕНТ ДЛЯ ДРУЗЕЙ/ПОДПИСЧИКОВ (На будущее) ===
+drop TABLE user_relations;
+
+CREATE TABLE IF NOT EXISTS user_relations (
+                                              id INT AUTO_INCREMENT PRIMARY KEY,
+                                              follower_id INT NOT NULL, -- Тот, кто подписался
+                                              followed_id INT NOT NULL, -- Тот, на кого подписались
+                                              relation_type ENUM('follow') NOT NULL DEFAULT 'follow',
+                                              is_new_notification BOOLEAN DEFAULT TRUE, -- Для уведомлений
+                                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                              UNIQUE KEY unique_follow (follower_id, followed_id),
+                                              FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+                                              FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Добавим таблицу для общих уведомлений, не связанных с подпиской (на будущее)
+CREATE TABLE IF NOT EXISTS notifications (
+                                             id INT AUTO_INCREMENT PRIMARY KEY,
+                                             user_id INT NOT NULL, -- Получатель
+                                             sender_id INT, -- Отправитель (если есть)
+                                             type ENUM('new_follow', 'new_comment', 'list_update') NOT NULL,
+                                             content TEXT NOT NULL,
+                                             is_read BOOLEAN DEFAULT FALSE,
+                                             related_slug VARCHAR(255),
+                                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                             FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+);

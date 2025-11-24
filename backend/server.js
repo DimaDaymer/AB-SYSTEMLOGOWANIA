@@ -1,7 +1,7 @@
+// backend/server.js
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
+const cors = require('cors');const path = require('path');
 const { pool, initializeDatabase } = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -27,7 +27,7 @@ const ratingsRoute = require('./routes/ratings');
 const actionsRoute = require('./routes/actions');
 const trackRatingsRoute = require('./routes/trackRatings')(pool);
 const filtersRoute = require('./routes/filters')(pool);
-const userListsRoute = require('./routes/userLists');
+const userListsRoutes = require('./routes/userLists');
 const artistRoutes = require('./routes/artist')(pool);
 const tagsRouter = require('./routes/tags');
 
@@ -35,17 +35,17 @@ app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
 
-// *** ВИПРАВЛЕННЯ: Змінено '/user' на '/api/users' та '/api/users/upload' ***
 app.use('/api/users', userRoutes);
 app.use('/api/users/upload', uploadRoute);
-// *************************************************************************
 
 app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
 app.use('/api/filters', filtersRoute);
-app.use('/api/user-lists', userListsRoute);
+app.use('/api/user-lists', userListsRoutes);
 app.use('/api/artists', artistRoutes);
 app.use('/api/tags', tagsRouter);
+
+// === HTML ROUTES ===
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
@@ -59,9 +59,17 @@ app.get('/register.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/register.html'));
 });
 
+// Маршрут для "Мой профиль"
 app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/profile.html'));
 });
+
+// *** НОВЫЙ МАРШРУТ: Профиль другого пользователя ***
+app.get('/user/:username', (req, res) => {
+    // Используем тот же файл, логика переключения "свой/чужой" будет на фронтенде
+    res.sendFile(path.join(__dirname, '../frontend/profile.html'));
+});
+// ***************************************************
 
 app.get('/new_releases.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/new_releases.html'));
@@ -88,19 +96,23 @@ app.get('/language_list.html', (req, res) => {
 });
 
 app.get('/list.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+    res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
 });
 
 app.get('/list_window.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/list_window.html'));
+    res.sendFile(path.join(__dirname, '../frontend/components/lists/list_window.html'));
 });
 
 app.get('/lists_page.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+    res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
+});
+
+app.get('/global_lists.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/components/lists/global_lists.html'));
 });
 
 app.get('/list/:slug', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/list.html'));
+    res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
 });
 
 app.get('/artist', (req, res) => {

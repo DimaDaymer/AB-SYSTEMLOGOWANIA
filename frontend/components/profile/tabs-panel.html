@@ -1,199 +1,380 @@
-<div className="tab-panel">
-  <div className="tab-header">
-    <div className="tab active" data-tab="recent">Recent</div>
-    <div className="tab" data-tab="albums">Albums</div>
-    <div className="tab" data-tab="liked">Liked</div>
-    <div className="tab" data-tab="wishlist">Wishlist</div>
-    <div className="tab" data-tab="trackratings">Track Ratings</div>
-  </div>
-  <div className="tab-content active" id="recent">
-  </div>
-  <div className="tab-content" id="albums"><p>Albums tab content.</p></div>
-  <div className="tab-content" id="liked"><p>Liked tab content.</p></div>
-  <div className="tab-content" id="wishlist"><p>Wishlist tab content.</p></div>
-    <div className="tab" data-tab="trackratings">Track Ratings</div>
-    <div className="tab" data-tab="tags">Tags</div>
+<div class="tabs-header">
+    <div class="tab active" data-tab="recent">Оцененные альбомы</div>
+    <div class="tab" data-tab="trackratings">Оценки треков</div>
+    <div class="tab" data-tab="liked">Понравилось (Like)</div>
+    <div class="tab" data-tab="wishlist">Хочу послушать (Wishlist)</div>
+    <div class="tab" data-tab="albums">Прослушано (Listen)</div>
+    <div class="tab" data-tab="tags">Теги</div>
 </div>
 
+<div class="tabs-body">
+    <div id="recent" class="tab-content active"></div>
+
+    <div id="trackratings" class="tab-content">
+        <div id="track-ratings-container"></div>
+    </div>
+
+    <div id="liked" class="tab-content"></div>
+    <div id="wishlist" class="tab-content"></div>
+    <div id="albums" class="tab-content"></div>
+
+    <div id="tags" class="tab-content">
+        <div id="user-tags-container"></div>
+    </div>
+</div>
+
+<style>
+    /* === ОБЩИЕ СТИЛИ ТАБОВ === */
+    .tabs-header { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .tab { padding: 10px 15px; cursor: pointer; color: #888; transition: color 0.2s, border-bottom 0.2s; font-weight: 500; }
+    .tab:hover { color: #fff; }
+    .tab.active { color: #00ffcc; border-bottom: 2px solid #00ffcc; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* === СТИЛИ ДЛЯ СПИСКА АЛЬБОМОВ (Из твоего user-actions.html/profile.js) === */
+    .album-entry {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        background: #1a1a1a; /* Или прозрачный, как было */
+        padding: 5px;
+        border-radius: 4px;
+    }
+    .list-image { width: 50px; height: 50px; margin-right: 15px; flex-shrink: 0; }
+    .album-cover-small { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
+    .album-details { display: flex; flex-direction: column; justify-content: center; }
+    .title { font-weight: bold; color: #fff; font-size: 1em; }
+    .artist-year { color: #aaa; font-size: 0.9em; }
+
+    /* Стили для рейтинга альбома справа */
+    .rating-stars { color: #ffd700; letter-spacing: 2px; margin-left: auto; white-space: nowrap; }
+
+    /* === СТИЛИ ДЛЯ ТЕГОВ (Из твоего profile.html) === */
+    .tag-group { margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; }
+    .tag-group-title {
+        color: #00ffcc; cursor: pointer; padding: 10px 5px; margin: 0;
+        font-size: 1.2em; display: flex; justify-content: space-between; align-items: center;
+        transition: background-color 0.2s ease;
+    }
+    .tag-group-title:hover { background-color: #2a2a2a; }
+    .tag-group-title::after {
+        content: '▼'; font-size: 0.8em; color: #888; transition: transform 0.3s ease-out;
+    }
+    .tag-group.expanded .tag-group-title::after { transform: rotate(180deg); }
+    .tag-albums-list {
+        overflow: hidden; transition: max-height 0.3s ease-out;
+        display: flex; flex-direction: column; gap: 10px; padding: 0; /* Скрыто по умолчанию */
+    }
+
+    /* === СТИЛИ ДЛЯ ТРЕКОВ (Аккордеон) === */
+    .album-with-tracks { margin-bottom: 15px; background: #1e1e1e; border-radius: 5px; overflow: hidden; }
+    .album-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer; background: #252525; }
+    .album-header-content { display: flex; align-items: center; gap: 10px; }
+    .toggle-icon { font-size: 0.8em; color: #888; }
+    .tracks-container { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #111; }
+    .track-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #222; }
+    .track-name { color: #ddd; }
+    .track-rating { display: flex; gap: 10px; align-items: center; }
+    .rating-value { color: #00ffcc; font-weight: bold; }
+</style>
+
 <script>
-  const tabs = document.querySelectorAll('.tab');
-  const contents = document.querySelectorAll('.tab-content');
+    (function() {
+        const ctx = window.profileContext;
 
-  // Эта вспомогательная функция теперь корректно работает с 5-балльной шкалой
-  function getStarsForRating(rating) {
-    if (!rating || rating === 0) return '☆☆☆☆☆';
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.25 && rating % 1 < 0.75 ? '½' : '';
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
-  }
+        // 1. Вспомогательная функция звезд (Копия из твоего кода)
+        function scoreToStars(score) {
+            if (score === null || typeof score === 'undefined') return '☆☆☆☆☆';
+            // Если оценка > 5, делим на 2 (логика из твоего profile.js)
+            const stars = score <= 5 ? score : score / 2;
+            const fullStars = Math.floor(stars);
+            const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+            return '★'.repeat(Math.max(0, fullStars)) + halfStar + '☆'.repeat(Math.max(0, emptyStars));
+        }
 
-  // Эта вспомогательная функция для другой шкалы рейтинга (5-балльная для альбомов)
-  function scoreToStars(score) {
-    if (!score) return '☆☆☆☆☆';
-    const fullStars = Math.floor(score);
-    const halfStar = score % 1 >= 0.25 && score % 1 < 0.75 ? '½' : '';
-    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-    return '★'.repeat(fullStars) + halfStar + '☆'.repeat(emptyStars);
-  }
+        // 2. Загрузка ОЦЕНЕННЫХ АЛЬБОМОВ (Recent)
+        async function loadRatedAlbums() {
+            const container = document.getElementById('recent');
+            if (!ctx.isPublic && !ctx.token) return;
 
-  // Эта функция для рендеринга отдельных треков с их рейтингами
-  function renderAlbumTracks(container, tracks) {
-    container.innerHTML = '';
-    tracks.forEach(track => {
-      const trackElement = document.createElement('div');
-      trackElement.className = 'track-item';
-      // Исправлено: теперь отображается рейтинг из 5, а не из 10
-      trackElement.innerHTML = `
-        <div class="track-name">${track.track_number}. ${track.title}</div>
-        <div class="track-rating">
-            <span class="rating-stars">${getStarsForRating(track.user_rating)}</span>
-            <span class="rating-value">${track.user_rating}/5</span>
-        </div>
-      `;
-      container.appendChild(trackElement);
-    });
-  }
+            container.innerHTML = '<div class="loading">Загрузка...</div>';
+            try {
+                const url = ctx.getApiUrl('rated-albums');
+                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
-  // Новая функция для обновления рейтинга одного трека
-  function updateSingleTrackRating(trackId, newRating) {
-    const trackItem = document.querySelector(`#trackratings .track-item[data-track-id="${trackId}"]`);
-    if (!trackItem) return;
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error(`Status: ${res.status}`);
+                const albums = await res.json();
 
-    const ratingValueEl = trackItem.querySelector('.rating-value');
-    if (ratingValueEl) {
-      ratingValueEl.textContent = `${newRating.toFixed(1)}/5`;
-    }
+                if (!albums || albums.length === 0) {
+                    container.innerHTML = '<p>Пока нет оценок</p>';
+                    return;
+                }
 
-    const ratingStarsEl = trackItem.querySelector('.rating-stars');
-    if (ratingStarsEl) {
-      ratingStarsEl.textContent = getStarsForRating(newRating);
-    }
-  }
-
-  // Это функция, которая загружает альбомы с рейтингами треков
-  async function loadAlbumsWithTrackRatings() {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const container = document.getElementById('track-ratings-container');
-      container.innerHTML = '<div class="loading">Loading track ratings...</div>';
-
-      const res = await fetch(`/user/track-ratings`, {
-        headers: {'Authorization': `Bearer ${token}`}
-      });
-
-      if (!res.ok) throw new Error('Failed to load track ratings');
-      const albumsWithRatings = await res.json();
-
-      if (!albumsWithRatings || albumsWithRatings.length === 0) {
-        container.innerHTML = '<div class="no-ratings">No track ratings yet</div>';
-        return;
-      }
-
-      container.innerHTML = '';
-      albumsWithRatings.forEach(album => {
-        const albumElement = document.createElement('div');
-        albumElement.className = 'album-with-tracks';
-        albumElement.innerHTML = `
-          <div class="album-header">
-            <div class="album-header-content">
-              <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                   alt="${album.title}" class="album-cover-small">
-              <div>
-                <div class="album-title">${album.title}</div>
-                <div class="album-artist">${album.artist}</div>
-              </div>
-            </div>
-            <div class="toggle-icon">▼</div>
-          </div>
-          <div class="tracks-container"></div>
-        `;
-        container.appendChild(albumElement);
-
-        const header = albumElement.querySelector('.album-header');
-        const tracksContainer = albumElement.querySelector('.tracks-container');
-        header.addEventListener('click', () => {
-          if (tracksContainer.style.maxHeight) {
-            tracksContainer.style.maxHeight = null;
-            header.classList.remove('expanded');
-          } else {
-            if (tracksContainer.innerHTML === '') {
-              renderAlbumTracks(tracksContainer, album.tracks);
+                container.innerHTML = '';
+                albums.forEach(album => {
+                    const albumEl = document.createElement('div');
+                    albumEl.className = 'album-entry';
+                    // ВОЗВРАЩЕНА ПОЛНАЯ ССЫЛКА <A> И ЗВЕЗДЫ
+                    albumEl.innerHTML = `
+                    <div class="list-image">
+                        <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
+                    </div>
+                    <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                        <div class="album-details">
+                            <span class="title">${album.title}</span>
+                            <span class="artist-year">${album.artist}</span>
+                        </div>
+                        <span class="rating-stars">${scoreToStars(album.score)}</span>
+                    </a>
+                `;
+                    container.appendChild(albumEl);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p>Не удалось загрузить оценки.</p>';
             }
-            tracksContainer.style.maxHeight = tracksContainer.scrollHeight + 'px';
-            header.classList.add('expanded');
-          }
+        }
+
+        // 3. Загрузка Actions (Liked, Wishlist, Listen)
+        async function loadUserActions(type, containerId) {
+            const container = document.getElementById(containerId);
+            if (!ctx.isPublic && !ctx.token) return;
+
+            container.innerHTML = '<div class="loading">Загрузка...</div>';
+            try {
+                const url = ctx.getActionUrl(type);
+                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+                const res = await fetch(url, { headers });
+                if (!res.ok) { container.innerHTML = '<p>Пусто.</p>'; return; }
+
+                const actions = await res.json();
+                if (!actions || actions.length === 0) {
+                    container.innerHTML = `<p>Список пуст</p>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                actions.forEach(action => {
+                    const actionEl = document.createElement('div');
+                    actionEl.className = 'album-entry';
+                    // ВОЗВРАЩЕНА ПОЛНАЯ ССЫЛКА <A>
+                    actionEl.innerHTML = `
+                    <div class="list-image">
+                        <img src="${action.cover_url || '/assets/album-placeholder.png'}" alt="${action.title}" class="album-cover-small" />
+                    </div>
+                    <a href="/release/album/${action.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                        <div class="album-details">
+                            <span class="title">${action.title}</span>
+                            <span class="artist-year">${action.artist}</span>
+                        </div>
+                    </a>
+                `;
+                    container.appendChild(actionEl);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p>Не удалось загрузить список.</p>';
+            }
+        }
+
+        // 4. Загрузка Треков (Аккордеон + Звезды)
+        async function loadAlbumsWithTrackRatings() {
+            const container = document.getElementById('track-ratings-container');
+            // Проверка прав
+            if (!ctx.isPublic && !ctx.token) return;
+            if (ctx.isPublic && !ctx.username) return;
+
+            container.innerHTML = '<div class="loading">Загрузка оценок треков...</div>';
+            try {
+                const url = ctx.getApiUrl('track-ratings');
+                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error('Failed');
+                const albumsWithRatings = await res.json();
+
+                if (!albumsWithRatings || albumsWithRatings.length === 0) {
+                    container.innerHTML = '<div class="no-ratings">Пока нет оценок треков</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                albumsWithRatings.forEach(album => {
+                    const albumElement = document.createElement('div');
+                    albumElement.className = 'album-with-tracks';
+                    // Рендер шапки альбома
+                    albumElement.innerHTML = `
+                    <div class="album-header">
+                        <div class="album-header-content">
+                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
+                                 alt="${album.title}" class="album-cover-small" style="width:40px; height:40px;">
+                            <div>
+                                <div class="album-title" style="color:#fff; font-weight:bold;">${album.title}</div>
+                                <div class="album-artist" style="color:#888; font-size:0.9em;">${album.artist}</div>
+                            </div>
+                        </div>
+                        <div class="toggle-icon">▼</div>
+                    </div>
+                    <div class="tracks-container"></div>
+                `;
+                    container.appendChild(albumElement);
+
+                    const header = albumElement.querySelector('.album-header');
+                    const tracksContainer = albumElement.querySelector('.tracks-container');
+
+                    // Логика клика (аккордеон)
+                    header.addEventListener('click', () => {
+                        // Если контейнер пуст - рендерим
+                        if (tracksContainer.innerHTML === '') {
+                            album.tracks.forEach(track => {
+                                const tDiv = document.createElement('div');
+                                tDiv.className = 'track-item';
+                                // ВОЗВРАЩЕНЫ ЗВЕЗДЫ И ЦИФРЫ
+                                tDiv.innerHTML = `
+                                <div class="track-name">${track.track_number}. ${track.title}</div>
+                                <div class="track-rating">
+                                    <span class="rating-stars" style="color:#ffd700;">${scoreToStars(track.user_rating)}</span>
+                                    <span class="rating-value">${track.user_rating}</span>
+                                </div>`;
+                                tracksContainer.appendChild(tDiv);
+                            });
+                        }
+
+                        // Анимация открытия/закрытия
+                        if (tracksContainer.style.maxHeight) {
+                            tracksContainer.style.maxHeight = null;
+                            header.querySelector('.toggle-icon').textContent = '▼';
+                        } else {
+                            tracksContainer.style.maxHeight = tracksContainer.scrollHeight + 'px';
+                            header.querySelector('.toggle-icon').textContent = '▲';
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p>Ошибка загрузки треков.</p>';
+            }
+        }
+
+        // 5. Загрузка Тегов (Аккордеон)
+        async function loadUserTags() {
+            const container = document.getElementById('user-tags-container');
+            if (!ctx.isPublic && !ctx.token) return;
+
+            container.innerHTML = '<div class="loading">Загрузка тегов...</div>';
+            try {
+                // Специфичный роут для тегов
+                const url = ctx.isPublic
+                    ? `/api/users/${ctx.username}/tags`
+                    : `/api/tags/my-tags`;
+
+                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error('Failed tags');
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p>Тегов пока нет.</p>';
+                    return;
+                }
+
+                // Группировка
+                const groupedTags = {};
+                data.forEach(item => {
+                    if (!groupedTags[item.tag_name]) groupedTags[item.tag_name] = [];
+                    groupedTags[item.tag_name].push(item);
+                });
+
+                container.innerHTML = '';
+                for (const [tagName, albums] of Object.entries(groupedTags)) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'tag-group';
+
+                    const title = document.createElement('h3');
+                    title.className = 'tag-group-title';
+                    title.textContent = `#${tagName} (${albums.length})`;
+
+                    const listDiv = document.createElement('div');
+                    listDiv.className = 'tag-albums-list';
+                    listDiv.style.maxHeight = '0px';
+
+                    // Рендер альбомов внутри тега
+                    albums.forEach(album => {
+                        const albumEl = document.createElement('div');
+                        albumEl.className = 'album-entry';
+                        albumEl.innerHTML = `
+                     <div class="list-image">
+                        <img src="${album.cover_url || '/assets/album-placeholder.png'}"
+                             alt="${album.title}" class="album-cover-small" />
+                    </div>
+                    <a href="/release/album/${album.slug}"
+                       style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                        <div class="album-details">
+                            <span class="title">${album.title}</span>
+                            <span class="artist-year">${album.artist_name || album.artist} (${new Date(album.release_date).getFullYear()})</span>
+                        </div>
+                    </a>
+                `;
+                        listDiv.appendChild(albumEl);
+                    });
+
+                    // Клик по заголовку тега
+                    title.addEventListener('click', () => {
+                        const isExpanded = groupDiv.classList.toggle('expanded');
+                        if (isExpanded) {
+                            listDiv.style.maxHeight = listDiv.scrollHeight + 'px';
+                        } else {
+                            listDiv.style.maxHeight = '0px';
+                        }
+                    });
+
+                    groupDiv.appendChild(title);
+                    groupDiv.appendChild(listDiv);
+                    container.appendChild(groupDiv);
+                }
+
+            } catch (err) {
+                console.error('Error loading tags:', err);
+                container.innerHTML = '<p style="color:red">Ошибка при загрузке тегов</p>';
+            }
+        }
+
+        // === ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ===
+        const tabs = document.querySelectorAll('.tab');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                const targetId = tab.dataset.tab;
+                document.getElementById(targetId).classList.add('active');
+
+                // Загрузка данных по клику
+                switch (targetId) {
+                    case 'recent': loadRatedAlbums(); break;
+                    case 'albums': loadUserActions('listen', 'albums'); break; // Listen
+                    case 'liked': loadUserActions('like', 'liked'); break;
+                    case 'wishlist': loadUserActions('wishlist', 'wishlist'); break;
+                    case 'trackratings': loadAlbumsWithTrackRatings(); break;
+                    case 'tags': loadUserTags(); break;
+                }
+            });
         });
-      });
 
-    } catch (err) {
-      console.error('Error loading track ratings:', err);
-      const container = document.getElementById('track-ratings-container');
-      container.innerHTML = `<p style="color: #ff6b6b;">Error loading track ratings: ${err.message}</p>`;
-    }
-  }
+        // Загрузка первой вкладки при старте
+        const activeTab = document.querySelector('.tab.active');
+        if (activeTab && activeTab.dataset.tab === 'recent') {
+            loadRatedAlbums();
+        }
 
-  // ... (остальные функции loadUserActions, loadRatedAlbums) ...
-
-  // Это устанавливает логику переключения вкладок
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      contents.forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
-
-      switch (tab.dataset.tab) {
-        case 'recent':
-          loadRatedAlbums();
-          break;
-        case 'albums': // albums = listen
-          loadUserActions('listen', 'albums');
-          break;
-        case 'liked':
-          loadUserActions('like', 'liked');
-          break;
-        case 'wishlist':
-          loadUserActions('wishlist', 'wishlist');
-          break;
-        case 'trackratings':
-          loadAlbumsWithTrackRatings();
-          break;
-      }
-    });
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const activeTab = document.querySelector('.tab.active');
-    if (activeTab) {
-      switch (activeTab.dataset.tab) {
-        case 'recent':
-          loadRatedAlbums();
-          break;
-        case 'albums':
-          loadUserActions('listen', 'albums');
-          break;
-        case 'liked':
-          loadUserActions('like', 'liked');
-          break;
-        case 'wishlist':
-          loadUserActions('wishlist', 'wishlist');
-          break;
-        case 'trackratings':
-          loadAlbumsWithTrackRatings();
-          break;
-      }
-    }
-  });
-
-  // --- Добавлено: глобальный слушатель событий ---
-  window.addEventListener('trackRatingUpdated', (e) => {
-    const { trackId, rating } = e.detail;
-    // Предполагается, что trackId в событии — это ID трека
-    updateSingleTrackRating(trackId, rating);
-  });
-  // --- --------------------------------------- ---
-
+    })();
 </script>

@@ -1,56 +1,149 @@
-<div class="right">
-  <div class="notifications">
-    <h3>Notifications <a href="#" class="view-all">View all</a></h3>
-    <div>User followed you</div>
-    <div>New album by Lorem Impact</div>
-    <div>Example</div>
-    <div>Example</div>
-    <div>Example</div>
-    <div>Example</div>
-    <div>Example</div>
-    <div>Example</div>
-  </div>
-  <div class="user-stats">
-    <h3>User Statistic</h3>
-    <div class="average-rating">
-      <span class="stars">★★★★<span style="color:#777">☆</span></span>
-      <span class="score">7.92</span>
+<div id="notifications-box" class="notifications-box" style="display:none;">
+    <h3>Уведомления <span id="notif-count" style="display:none; background:red; color:white; padding:2px 6px; border-radius:50%; font-size:0.7em;">0</span></h3>
+    <div id="notif-list" class="notif-list">
+        <div class="loading-small">Загрузка...</div>
     </div>
-    <div class="graph-display">
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-      <div class="graph-bar"></div>
-    </div>
-    <div class="detailed-stats">
-      <div class="detailed-stat-item">
-        <span class="icon">❤</span>
-        <span class="value">123</span>
-      </div>
-      <div class="detailed-stat-item">
-        <span class="icon">🎧</span>
-        <span class="value">792</span>
-      </div>
-      <div class="detailed-stat-item">
-        <span class="icon">📋</span>
-        <span class="value">9</span>
-      </div>
-    </div>
-  </div>
-  <div class="user-lists">
-    <h3>User Lists <a href="#" class="view-all">View all</a></h3>
-    <div>By User1337</div>
-    <div>By krhdall</div>
-    <div>By Daymer</div>
-    <div>By User12112</div>
-    <div>By 228dima337</div>
-  </div>
 </div>
+
+<div class="friends-box">
+    <h3>Друзья</h3>
+    <div id="friends-list" class="friends-list">
+        <div class="loading-small">Загрузка...</div>
+    </div>
+</div>
+
+<div class="user-stats-box" style="margin-top: 20px;">
+    <h3>Статистика</h3>
+    <div class="rating-graph">
+        <div class="graph-bar" style="height: 50%"></div>
+        <div class="graph-bar" style="height: 80%"></div>
+        <div class="graph-bar" style="height: 30%"></div>
+        <div class="graph-bar" style="height: 90%"></div>
+    </div>
+</div>
+
+<style>
+    .right-panel h3 {
+        border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; color: #fff;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .notif-item {
+        padding: 8px; border-bottom: 1px solid #222; font-size: 0.9em; color: #ddd;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .notif-item.unread { background: #1a2a33; border-left: 2px solid #00ffcc; }
+    .notif-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+    .notif-content { flex: 1; }
+    .notif-date { font-size: 0.7em; color: #777; }
+    .notif-link { color:#00ffcc; font-weight:bold; text-decoration:none; }
+
+    .friends-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .friend-item { text-align: center; width: 60px; text-decoration: none; }
+    .friend-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #333; transition: border-color 0.2s; }
+    .friend-item:hover .friend-avatar { border-color: #00ffcc; }
+    .friend-name { font-size: 0.8em; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;}
+
+    .rating-graph { display: flex; gap: 2px; height: 60px; align-items: flex-end; }
+    .graph-bar { flex: 1; background: #00ffcc; opacity: 0.5; }
+    .loading-small { font-size: 0.8em; color: #666; padding: 10px; }
+</style>
+
+<script>
+    (function(){
+        const ctx = window.profileContext;
+
+        async function loadNotifications() {
+            const box = document.getElementById('notifications-box');
+            if (ctx.isPublic || !ctx.token) {
+                box.style.display = 'none';
+                return;
+            }
+
+            box.style.display = 'block';
+            const list = document.getElementById('notif-list');
+
+            try {
+                const res = await fetch('/api/users/notifications/my', {
+                    headers: { 'Authorization': `Bearer ${ctx.token}` }
+                });
+
+                if (!res.ok) throw new Error('Failed to fetch notifications');
+
+                const notifs = await res.json();
+
+                if (!notifs || notifs.length === 0) {
+                    list.innerHTML = '<div style="padding:10px; color:#555;">Нет новых уведомлений</div>';
+                    return;
+                }
+
+                const unreadCount = notifs.filter(n => !n.is_read).length;
+                if (unreadCount > 0) {
+                    document.getElementById('notif-count').textContent = unreadCount;
+                    document.getElementById('notif-count').style.display = 'inline-block';
+
+                    fetch('/api/users/notifications/read', { method: 'POST', headers: { 'Authorization': `Bearer ${ctx.token}` } });
+                }
+
+                list.innerHTML = notifs.map(n => {
+                    let message = n.content;
+
+                    if (n.sender_username) {
+                        const profileLink = `<a href="/user/${n.sender_username}" class="notif-link">${n.sender_username}</a>`;
+                        message = message.replace(n.sender_username, profileLink);
+                    }
+
+                    return `
+                    <div class="notif-item ${n.is_read ? '' : 'unread'}">
+                        <a href="/user/${n.sender_username}" style="text-decoration:none; display:flex; align-items:center; flex-grow:1; gap: 10px;">
+                            <img src="${n.sender_pic || '/assets/avatar-placeholder.png'}" class="notif-avatar" alt="${n.sender_username || 'Sender'}">
+                            <div class="notif-content">
+                                <div>${message}</div>
+                                <div class="notif-date">${new Date(n.created_at).toLocaleDateString()}</div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+                }).join('');
+
+            } catch (e) {
+                console.error('Notification Error:', e);
+                list.innerHTML = 'Ошибка загрузки уведомлений.';
+            }
+        }
+
+        async function loadFriends() {
+            const list = document.getElementById('friends-list');
+            let targetUsername = ctx.username;
+            if (!ctx.isPublic) {
+                targetUsername = localStorage.getItem('username');
+            }
+
+            if (!targetUsername) { list.innerHTML = '<small>Нет информации о пользователе.</small>'; return; }
+
+            try {
+                const res = await fetch(`/api/users/${targetUsername}/friends`);
+                if (!res.ok) throw new Error('Failed to fetch friends');
+                const friends = await res.json();
+
+                if (!friends || friends.length === 0) {
+                    list.innerHTML = '<div style="padding:10px; color:#555; font-size:0.9em;">Список друзей пуст</div>';
+                    return;
+                }
+
+                list.innerHTML = friends.map(user => `
+                <a href="/user/${user.username}" class="friend-item">
+                    <img src="${user.profile_pic || '/assets/avatar-placeholder.png'}" class="friend-avatar" title="${user.username}">
+                    <span class="friend-name">${user.username}</span>
+                </a>
+            `).join('');
+
+            } catch (e) {
+                console.error('Friends Error:', e);
+                list.innerHTML = '<small>Ошибка загрузки друзей</small>';
+            }
+        }
+
+        loadNotifications();
+        loadFriends();
+    })();
+</script>

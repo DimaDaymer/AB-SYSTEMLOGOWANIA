@@ -4,149 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль пользователя</title>
-    <link rel="stylesheet" href="/css/profile.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* Стили для аккордеона тегов */
-        .tag-group {
-            margin-bottom: 10px;
-            border-bottom: 1px solid #2a2a2a;
-        }
-
-        .tag-group-title {
-            color: #00ffcc;
-            cursor: pointer;
-            padding: 10px 5px;
-            margin: 0;
-            font-size: 1.2em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background-color 0.2s ease;
-        }
-
-        .tag-group-title:hover {
-            background-color: #2a2a2a;
-        }
-
-        /* Иконка-стрелка */
-        .tag-group-title::after {
-            content: '▼';
-            font-size: 0.8em;
-            color: #888;
-            transition: transform 0.3s ease-out;
-            transform: rotate(0deg);
-        }
-
-        /* Поворот стрелки при раскрытии */
-        .tag-group.expanded .tag-group-title::after {
-            transform: rotate(180deg);
-        }
-
-        /* Контейнер для альбомов */
-        .tag-albums-list {
-            overflow: hidden;
-            /* max-height: 0px; (управляется через JS) */
-            transition: max-height 0.3s ease-out;
-
-            /* Стили для списка альбомов внутри (из profile.js) */
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 10px 0; /* Отступ, когда открыто */
-        }
-    </style>
+    <link rel="stylesheet" href="/css/profile.css"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="navbar-container"></div>
 
 <div class="container">
-    <div class="left-panel">
-        <div class="avatar">
-            <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
-            <label for="avatarUpload" class="change-avatar-label">Сменить аватар</label>
-            <input type="file" id="avatarUpload" accept="image/*" style="display: none;" />
-        </div>
-        <div class="user-info">
-            <h1 id="nickname">Никнейм</h1>
-            <span><strong>Имя пользователя:</strong> <span id="username">пользователь</span></span>
-            <div id="age-container" class="info-line" style="display:none;">
-                <strong>Возраст:</strong> <span id="age"></span>
-            </div>
-            <div id="location-container" class="info-line" style="display:none;">
-                <strong>Местоположение:</strong> <span id="location"></span>
-            </div>
-            <div id="country-container" class="info-line" style="display:none;">
-                <strong>Страна:</strong> <span id="country"></span>
-            </div>
-            <div id="gender-container" class="info-line" style="display:none;">
-                <strong>Пол:</strong> <span id="gender"></span>
-            </div>
-            <div id="email-container" class="info-line" style="display:none;">
-                <strong>Email:</strong> <span id="contactEmail"></span> </div>
-        </div>
-
-        <div id="description-container" class="user-description" style="display:none;">
-            <h3>О себе</h3>
-            <p id="description"></p>
-        </div>
-
-        <div class="user-preferences">
-            <div id="music-container" class="preference-item" style="display:none;">
-                <h3>Любимая музыка</h3>
-                <p id="music"></p>
-            </div>
-            <div id="movies-container" class="preference-item" style="display:none;">
-                <h3>Любимые фильмы</h3>
-                <p id="movies"></p>
-            </div>
-        </div>
-
-        <button id="editProfileButton" class="edit-button">Редактировать профиль</button>
+    <div id="user-info-component" class="left-panel">
+        <div class="loading-placeholder">Загрузка профиля...</div>
     </div>
 
-    <div class="tab-panel">
-        <div class="tabs">
-            <div class="tab active" data-tab="recent">Оцененные альбомы</div>
-            <div class="tab" data-tab="trackratings">Оценки треков</div>
-            <div class="tab" data-tab="liked">Понравилось (Like)</div>
-            <div class="tab" data-tab="wishlist">Хочу послушать (Wishlist)</div>
-            <div class="tab" data-tab="albums">Прослушано (Listen)</div>
-            <div class="tab" data-tab="tags">Теги</div>
-        </div>
-
-        <div id="recent" class="tab-content active"></div>
-        <div id="trackratings" class="tab-content">
-            <div id="track-ratings-container"></div>
-        </div>
-        <div id="liked" class="tab-content"></div>
-        <div id="wishlist" class="tab-content"></div>
-        <div id="albums" class="tab-content"></div>
-
-        <div id="tags" class="tab-content">
-            <div id="user-tags-container"></div>
-        </div>
+    <div id="tabs-component" class="tab-panel">
+        <div class="loading-placeholder">Загрузка вкладок...</div>
     </div>
 
-    <div class="right-panel">
-        <div class="user-stats">
-            <h3>Статистика</h3>
-            <div class="rating-graph">
-                <div class="graph-bar" style="height: 60%;"></div>
-                <div class="graph-bar" style="height: 90%;"></div>
-                <div class="graph-bar" style="height: 40%;"></div>
-            </div>
-            <div class="detailed-stats">
-                <div class="detailed-stat-item"><span class="icon">❤</span><span class="value">123</span></div>
-                <div class="detailed-stat-item"><span class="icon">🎧</span><span class="value">792</span></div>
-                <div class="detailed-stat-item"><span class="icon">📋</span><span class="value">9</span></div>
-            </div>
-        </div>
-        <div class="user-lists">
-            <h3>Списки пользователя <a href="/lists" class="view-all">Посмотреть все</a></h3>
-        </div>
+    <div id="right-panel-component" class="right-panel">
+        <div class="loading-placeholder">Загрузка статистики...</div>
     </div>
 </div>
 

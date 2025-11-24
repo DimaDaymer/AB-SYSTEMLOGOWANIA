@@ -402,7 +402,6 @@ async function openTagWindow() {
 }
 
 window.openTagWindow = openTagWindow;
-window.openListWindow = openListWindow;
 window.sendAlbumAction = sendAlbumAction;
 window.rateAlbum = rateAlbum;
 window.clearAlbumRating = clearAlbumRating; // <-- Добавляем новую функцию в window

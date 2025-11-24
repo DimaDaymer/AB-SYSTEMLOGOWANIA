@@ -2,8 +2,10 @@
     <div data-action="listen">🎧 Listen</div>
     <div data-action="wishlist">❤️ Wishlist</div>
     <div data-action="like">⭐ Like</div>
-    <div data-action="add-to-list" onclick="openListWindow()">➕ Add to List</div>
-    <div onclick="openTagWindow()">🏷️ Tag</div>
+
+    <div data-action="add-to-list" onclick="window.openListWindow(window.currentAlbumId)">➕ Add to List</div>
+
+    <div onclick="window.openTagWindow(window.currentAlbumId)">🏷️ Tag</div>
 
     <div>🔁 Recommend</div>
     <div>✍️ Write a review</div>

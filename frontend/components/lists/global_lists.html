@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Все списки пользователей</title>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .section-title { font-size: 2em; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; color: #fff; }
+
+        .list-cards-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+        }
+
+        .list-card {
+            background-color: #1e1e1e; border-radius: 8px; padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); text-decoration: none; color: inherit;
+            transition: transform 0.2s, background 0.2s; border: 1px solid #333;
+            display: flex; flex-direction: column;
+        }
+        .list-card:hover { transform: translateY(-4px); background-color: #252525; border-color: #444; }
+
+        .list-name { font-size: 1.3em; margin: 0 0 5px 0; color: #fff; }
+        .list-username { color: #00ffcc; font-size: 0.9em; margin: 5px 0; }
+        .list-username span { font-weight: bold; }
+        .list-meta { font-size: 0.8em; color: #777; margin-top: auto; padding-top: 10px; }
+        .list-desc { font-size: 0.9em; color: #aaa; margin: 10px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+
+<div class="section-title">Списки сообщества</div>
+<div class="list-cards-container" id="globalListCardsContainer">
+    <p style="color: #777;">Загрузка списков...</p>
+</div>
+
+<script src="/js/lists.js"></script>
+</body>
+</html>

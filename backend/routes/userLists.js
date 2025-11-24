@@ -6,45 +6,45 @@ const { pool } = require('../db');
 const authenticate = require('../authMiddleware');
 const { slugify } = require('transliteration');
 
-// Утилита для преобразования строки исполнителей в массив
-const stringToArray = (str) => (typeof str === 'string' ? str.split(',').map(s => s.trim()).filter(Boolean) : (str || []));
+// Утилита: проверка, является ли пользователь владельцем списка
+async function checkListOwnership(listId, userId) {
+    const [rows] = await pool.execute('SELECT id FROM lists WHERE id = ? AND user_id = ?', [listId, userId]);
+    return rows.length > 0;
+}
 
-
-// POST /api/user-lists - Создать новый список
+// 1. Создать список
 router.post('/', authenticate, async (req, res) => {
     try {
         const { name, description } = req.body;
         const userId = req.user.id;
 
-        const slug = slugify(name);
+        if (!name) return res.status(400).json({ error: 'Название обязательно' });
 
-        if (!name) {
-            return res.status(400).json({ error: 'Название списка обязательно.' });
-        }
+        // Генерируем уникальный slug (добавляем timestamp, чтобы избежать дублей имен)
+        const baseSlug = slugify(name);
+        const slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
 
-        const [result] = await pool.execute('INSERT INTO user_lists (name, description, user_id, slug) VALUES (?, ?, ?, ?)', [name, description, userId, slug]);
+        const [result] = await pool.execute(
+            'INSERT INTO lists (name, description, user_id, slug) VALUES (?, ?, ?, ?)',
+            [name, description, userId, slug]
+        );
 
-        res.status(201).json({ message: 'Список успешно создан!', listId: result.insertId, slug });
+        res.status(201).json({ message: 'Список создан', listId: result.insertId, slug });
     } catch (error) {
-        console.error('Ошибка создания списка:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        console.error('Create list error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// GET /api/user-lists/my-lists - Получить все списки текущего пользователя
+// 2. Получить списки ТЕКУЩЕГО пользователя (Мои списки)
 router.get('/my-lists', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
         const [lists] = await pool.execute(`
-            SELECT
-                ul.id,
-                ul.name,
-                ul.slug,
-                ul.description,
-                ul.created_at,
-                (SELECT COUNT(*) FROM user_list_albums WHERE list_id = ul.id) AS albums_count,
-                u.username
-            FROM user_lists ul
+            SELECT ul.id, ul.name, ul.slug, ul.description, ul.created_at,
+                   (SELECT COUNT(*) FROM list_items WHERE list_id = ul.id) as albums_count,
+                   u.username
+            FROM lists ul
                      JOIN users u ON ul.user_id = u.id
             WHERE ul.user_id = ?
             ORDER BY ul.created_at DESC
@@ -52,187 +52,173 @@ router.get('/my-lists', authenticate, async (req, res) => {
 
         res.json(lists);
     } catch (error) {
-        console.error('Ошибка получения списков пользователя:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        console.error('My lists error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// GET /api/user-lists/:slug - Получить детали отдельного списка
+// 3. Глобальные списки (Все списки на сайте)
+router.get('/global', async (req, res) => {
+    try {
+        const limit = 50; // Лимит выдачи
+        const [lists] = await pool.execute(`
+            SELECT ul.id, ul.name, ul.slug, ul.description, ul.created_at,
+                   (SELECT COUNT(*) FROM list_items WHERE list_id = ul.id) as albums_count,
+                   u.username, u.id as author_id
+            FROM lists ul
+            JOIN users u ON ul.user_id = u.id
+            ORDER BY ul.created_at DESC
+            LIMIT ?
+        `, [limit.toString()]); // limit иногда требует строки или числа в зависимости от версии mysql2, здесь безопасно
+
+        res.json(lists);
+    } catch (error) {
+        console.error('Global lists error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// 4. Получить детали конкретного списка (по slug)
 router.get('/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        const { sortBy = 'added_desc' } = req.query; // Сортировка по умолчанию
+        const { sortBy = 'added_desc' } = req.query;
 
-        const [lists] = await pool.execute('SELECT * FROM user_lists WHERE slug = ?', [slug]);
+        // Получаем информацию о списке и авторе
+        const [lists] = await pool.execute(`
+            SELECT l.*, u.username as creator_name, u.id as creator_id
+            FROM lists l
+            JOIN users u ON l.user_id = u.id
+            WHERE l.slug = ?
+        `, [slug]);
 
-        if (lists.length === 0) {
-            return res.status(404).json({ error: 'Список не найден' });
-        }
-
+        if (lists.length === 0) return res.status(404).json({ error: 'Список не найден' });
         const list = lists[0];
-        let orderByClause = '';
 
-        switch (sortBy) {
-            case 'title_asc':
-                orderByClause = 'ORDER BY a.title ASC';
-                break;
-            case 'title_desc':
-                orderByClause = 'ORDER BY a.title DESC';
-                break;
-            case 'rating_desc':
-                orderByClause = 'ORDER BY a.avg_rating DESC';
-                break;
-            case 'added_asc':
-                orderByClause = 'ORDER BY ula.added_at ASC';
-                break;
-            case 'sort_order_asc': // Ручная сортировка
-                orderByClause = 'ORDER BY ula.sort_order ASC';
-                break;
-            default: // added_desc
-                orderByClause = 'ORDER BY ula.added_at DESC';
-                break;
-        }
+        // Определяем сортировку
+        let orderByClause = 'ORDER BY li.created_at DESC'; // Default
+        if (sortBy === 'title_asc') orderByClause = 'ORDER BY a.title ASC';
+        if (sortBy === 'title_desc') orderByClause = 'ORDER BY a.title DESC';
+        if (sortBy === 'rating_desc') orderByClause = 'ORDER BY s.avg_score DESC';
+        if (sortBy === 'added_asc') orderByClause = 'ORDER BY li.created_at ASC';
+        if (sortBy === 'sort_order_asc') orderByClause = 'ORDER BY li.sort_order ASC';
 
-        // ИЗМЕНЕНИЕ SQL-ЗАПРОСА: Добавление ula.sort_order и ula.added_at в SELECT и GROUP BY
+        // Получаем альбомы
         const [albums] = await pool.execute(`
             SELECT
-                a.id,
-                a.title,
-                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC) AS artists_list,
-                a.release_date,
-                a.cover_url,
-                a.slug,
-                a.genres,
-                a.description,
-                a.likes,
-                a.wishlist_count,
-                a.in_lists_count,
-                a.reviews_count,
-                a.avg_rating AS rating,
-                a.rating_count,
-                ula.sort_order,  -- ДОБАВЛЕНО: Для сортировки
-                ula.added_at     -- ДОБАВЛЕНО: Для сортировки
-            FROM user_list_albums AS ula
-                     JOIN albums AS a ON ula.album_id = a.id
-                     JOIN album_artists AS aa ON a.id = aa.album_id
-                     JOIN artists AS art ON aa.artist_id = art.id
-            WHERE ula.list_id = ?
-            GROUP BY a.id, ula.sort_order, ula.added_at -- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Группируем по ID альбома И порядку в списке
-                ${orderByClause}
+                a.id, a.title, a.cover_url, a.slug,
+                s.avg_score as rating, s.likes_count as likes,
+                GROUP_CONCAT(DISTINCT art.name SEPARATOR ', ') as artist_name,
+                li.sort_order, li.created_at as added_at
+            FROM list_items li
+            JOIN albums a ON li.album_id = a.id
+            LEFT JOIN album_stats s ON a.id = s.album_id
+            LEFT JOIN album_artists aa ON a.id = aa.album_id AND aa.is_main = 1
+            LEFT JOIN artists art ON aa.artist_id = art.id
+            WHERE li.list_id = ?
+            GROUP BY a.id, li.sort_order, li.created_at
+            ${orderByClause}
         `, [list.id]);
-
-        // ИЗМЕНЕНИЕ: Обработка результатов для клиента
-        const finalAlbums = albums.map(album => ({
-            ...album,
-            artist: stringToArray(album.artists_list), // Маппинг нового поля к старому
-            artists_list: undefined // Удаление промежуточного поля
-        }));
-
-        const [creator] = await pool.execute('SELECT username FROM users WHERE id = ?', [list.user_id]);
 
         res.json({
             id: list.id,
             name: list.name,
-            slug: list.slug,
             description: list.description,
-            creator: creator.length > 0 ? creator[0].username : 'Неизвестно',
+            user_id: list.creator_id, // Важно для проверки прав на фронте
+            creator: list.creator_name,
             created_at: list.created_at,
-            albums: finalAlbums // Отправляем finalAlbums
+            albums: albums
         });
+
     } catch (error) {
-        console.error('Ошибка получения деталей списка:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        console.error('List details error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// POST /api/user-lists/:listId/add - Добавить альбом в список
+// 5. Добавить альбом в список
 router.post('/:listId/add', authenticate, async (req, res) => {
     try {
         const { listId } = req.params;
         const { albumId } = req.body;
         const userId = req.user.id;
 
-        const [listCheck] = await pool.execute('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
-        if (listCheck.length === 0) {
-            return res.status(403).json({ error: 'У вас нет прав на редактирование этого списка.' });
-        }
+        // Проверка прав
+        const isOwner = await checkListOwnership(listId, userId);
+        if (!isOwner) return res.status(403).json({ error: 'Вы не автор этого списка' });
 
-        // Проверить, есть ли уже альбом в списке
-        const [existing] = await pool.execute('SELECT 1 FROM user_list_albums WHERE list_id = ? AND album_id = ?', [listId, albumId]);
-        if (existing.length > 0) {
-            return res.status(409).json({ message: 'Альбом уже есть в списке.' });
-        }
+        // Проверка дубликатов
+        const [existing] = await pool.execute('SELECT 1 FROM list_items WHERE list_id = ? AND album_id = ?', [listId, albumId]);
+        if (existing.length > 0) return res.status(409).json({ message: 'Альбом уже в списке' });
 
-        // Получить максимальный sort_order для нового элемента
-        const [maxSortOrder] = await pool.execute('SELECT MAX(sort_order) AS max_order FROM user_list_albums WHERE list_id = ?', [listId]);
-        const newSortOrder = (maxSortOrder[0].max_order || 0) + 1;
+        // Вычисляем порядок сортировки
+        const [maxOrder] = await pool.execute('SELECT MAX(sort_order) as max_val FROM list_items WHERE list_id = ?', [listId]);
+        const nextOrder = (maxOrder[0].max_val || 0) + 1;
 
-        await pool.execute('INSERT INTO user_list_albums (list_id, album_id, sort_order) VALUES (?, ?, ?)', [listId, albumId, newSortOrder]);
+        await pool.execute('INSERT INTO list_items (list_id, album_id, sort_order) VALUES (?, ?, ?)', [listId, albumId, nextOrder]);
 
-        // Обновить счетчик списков в таблице albums
-        await pool.execute('UPDATE albums SET in_lists_count = in_lists_count + 1 WHERE id = ?', [albumId]);
+        // Обновляем статистику альбома
+        await pool.execute('UPDATE album_stats SET in_lists_count = in_lists_count + 1 WHERE album_id = ?', [albumId]);
 
-        res.json({ message: 'Альбом успешно добавлен в список.', sortOrder: newSortOrder });
+        res.json({ message: 'Добавлено' });
     } catch (error) {
-        console.error('Ошибка добавления альбома в список:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        console.error('Add album error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// POST /api/user-lists/:listId/reorder - Изменить порядок альбомов
-router.post('/:listId/reorder', authenticate, async (req, res) => {
-    let connection;
+// 6. Удалить альбом из списка
+router.delete('/:listId/items/:albumId', authenticate, async (req, res) => {
     try {
-        const { listId } = req.params;
-        const { newOrder } = req.body;
+        const { listId, albumId } = req.params;
         const userId = req.user.id;
 
-        // Получить соединение и начать транзакцию
-        connection = await pool.getConnection();
+        const isOwner = await checkListOwnership(listId, userId);
+        if (!isOwner) return res.status(403).json({ error: 'Нет прав' });
+
+        await pool.execute('DELETE FROM list_items WHERE list_id = ? AND album_id = ?', [listId, albumId]);
+        // Уменьшаем счетчик
+        await pool.execute('UPDATE album_stats SET in_lists_count = GREATEST(in_lists_count - 1, 0) WHERE album_id = ?', [albumId]);
+
+        res.json({ message: 'Удалено' });
+    } catch (error) {
+        console.error('Remove album error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// 7. Изменить порядок (Drag & Drop)
+router.post('/:listId/reorder', authenticate, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
         await connection.beginTransaction();
+        const { listId } = req.params;
+        const { newOrder } = req.body; // Array [{albumId, sortOrder}]
+        const userId = req.user.id;
 
-        // Проверка прав
-        const [listCheck] = await connection.execute('SELECT user_id FROM user_lists WHERE id = ? AND user_id = ?', [listId, userId]);
-        if (listCheck.length === 0) {
+        // Проверка прав внутри транзакции
+        const [check] = await connection.execute('SELECT id FROM lists WHERE id = ? AND user_id = ?', [listId, userId]);
+        if (check.length === 0) {
             await connection.rollback();
-            return res.status(403).json({ error: 'У вас нет прав на редактирование этого списка.' });
+            return res.status(403).json({ error: 'Нет прав' });
         }
 
-        // Обновленная проверка формата
-        if (!Array.isArray(newOrder) || newOrder.length === 0 || !newOrder.every(item => item.albumId && item.sortOrder)) {
-            await connection.rollback();
-            return res.status(400).json({ error: 'Неверный или неполный формат нового порядка. Ожидается массив объектов {albumId, sortOrder}.' });
-        }
-
-
+        // Обновляем порядок
         for (const item of newOrder) {
-            const albumId = parseInt(item.albumId);
-            const sortOrder = parseInt(item.sortOrder);
-
-            if (isNaN(albumId) || isNaN(sortOrder)) {
-                throw new Error('Некорректные значения albumId или sortOrder.');
-            }
-
-            // Обновление в рамках транзакции
             await connection.execute(
-                'UPDATE user_list_albums SET sort_order = ? WHERE list_id = ? AND album_id = ?',
-                [sortOrder, listId, albumId]
+                'UPDATE list_items SET sort_order = ? WHERE list_id = ? AND album_id = ?',
+                [item.sortOrder, listId, item.albumId]
             );
         }
 
-        // Завершить транзакцию
         await connection.commit();
-        res.json({ message: 'Порядок списка успешно обновлен.' });
+        res.json({ message: 'Порядок сохранен' });
     } catch (error) {
-        if (connection) {
-            await connection.rollback();
-        }
-        console.error('Ошибка изменения порядка списка:', error);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        if (connection) await connection.rollback();
+        console.error('Reorder error:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
     } finally {
-        if (connection) {
-            connection.release();
-        }
+        if (connection) connection.release();
     }
 });
 
