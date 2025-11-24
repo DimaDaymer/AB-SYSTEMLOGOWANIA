@@ -1,0 +1,84 @@
+<div class="profile-lists-widget">
+
+    <div style="padding: 15px; border-bottom: 1px solid #333; margin-bottom: 15px;">
+        <h3 class="widget-title" style="margin: 0; font-size: 1.1em; color: #eee;">Списки пользователя</h3>
+    </div>
+
+    <div id="profile-user-lists-container" style="padding: 0 15px 15px 15px;">
+        <p style="color: #777; font-size: 0.9em;">Загрузка списков...</p>
+    </div>
+
+    <div id="lists-footer" style="padding: 0 15px 15px 15px; text-align: center;"></div>
+</div>
+
+<script>
+    (async function() {
+        const container = document.getElementById('profile-user-lists-container');
+        const footer = document.getElementById('lists-footer');
+        const LIST_LIMIT = 5;
+        const page = 1;
+        const queryParams = `?page=${page}&limit=${LIST_LIMIT}`;
+        let responseText = ''; // Для отладки
+
+        if (!window.profileContext || !window.ListApp || !window.ListApp.utils) {
+            console.error('ListApp, ListApp.utils или profileContext не инициализированы.');
+            if(container) container.innerHTML = '<p class="error" style="color:#ff4d4d; font-size: 0.9em;">Ошибка загрузки (core/context).</p>';
+            return;
+        }
+
+        // URL теперь будет корректным для обеих страниц, благодаря исправлению в profile.js
+        const endpoint = window.profileContext.getApiUrl('lists') + queryParams;
+
+        try {
+            const data = await ListApp.utils.fetchAPI(endpoint, { method: 'GET' });
+
+            const lists = data; // API должен вернуть массив списков
+
+            // --- РЕНДЕРИНГ СПИСКОВ ---
+            container.innerHTML = '';
+            if (!lists || lists.length === 0) {
+                container.innerHTML = '<p class="empty-msg" style="color: #777; font-size: 0.9em;">Списков пока нет.</p>';
+                return;
+            }
+
+            const totalCount = lists.length;
+
+            lists.forEach(list => {
+                const albumCountText = list.albums_count ? `Альбомов: ${list.albums_count}` : 'Пустой список';
+                const card = document.createElement('a');
+                card.className = 'list-card';
+                card.href = `/list.html?slug=${list.slug}`;
+                card.style.cssText = `display: inline-block; width: 100px; margin: 0 10px 10px 0; text-decoration: none;`;
+
+                card.innerHTML = `
+                    <div class="list-cover" style="width: 100%; height: 100px; background: #222 url(${list.cover_url || '/img/default_list_cover.jpg'}) no-repeat center center; background-size: cover; border-radius: 4px; overflow: hidden; margin-bottom: 5px;"></div>
+                    <div class="list-info">
+                        <h4 style="margin: 0; font-size: 0.95em; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${list.name}</h4>
+                        <p class="list-meta" style="margin: 0; font-size: 0.8em; color: #888;">${albumCountText}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // --- РЕНДЕРИНГ ФУТЕРА ---
+            if (totalCount > LIST_LIMIT && footer) {
+                // ИСПРАВЛЕНИЕ: Добавляем параметр ?user=username для страницы друга
+                const userQuery = window.profileContext.isPublic ? `?user=${window.profileContext.username}` : '';
+
+                footer.innerHTML = `
+                    <a href="/profile-lists.html${userQuery}" style="color: #00ffcc; text-decoration: none; font-size: 0.9em; font-weight: bold;">
+                        Показать все списки (${totalCount})
+                    </a>
+                `;
+            }
+
+        } catch (e) {
+            console.error('Ошибка загрузки списков профиля (catch):', e);
+            if (!container) return;
+
+            let errorMsg = `❌ **Ошибка загрузки списков.** ${e.message || 'Неизвестная ошибка'}.`;
+
+            container.innerHTML = `<p class="error" style="color:#ff4d4d; font-size: 0.9em;">${errorMsg}</p>`;
+        }
+    })();
+</script>

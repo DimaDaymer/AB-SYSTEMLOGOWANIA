@@ -1,0 +1,52 @@
+<div class="overlay" id="list-edit-overlay">
+    <div class="list-window">
+        <h2>Редактировать список</h2>
+
+        <div class="form-group">
+            <label for="edit-list-name">Название</label>
+            <input type="text" id="edit-list-name" maxlength="100">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-list-description">Описание</label>
+            <textarea id="edit-list-description" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="edit-list-cover-url">Обложка (URL)</label>
+            <input type="text" id="edit-list-cover-url" placeholder="Оставьте пустым, чтобы использовать первый альбом">
+        </div>
+
+        <div class="action-buttons" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <button class="delete-button" id="delete-list-btn" style="background: #e74c3c;">Удалить список</button>
+            <div style="display:flex; gap: 10px;">
+                <button class="cancel-button" onclick="ListApp.editModal.close()">Отмена</button>
+                <button class="save-button" onclick="ListApp.editModal.saveChanges()" style="background: #00ffcc; color: #111;">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Стили для модального окна редактирования */
+    #list-edit-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7); display: none; justify-content: center;
+        align-items: center; z-index: 1001;
+    }
+    .list-window {
+        background: #1a1a1a; border-radius: 12px; padding: 20px;
+        width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        color: #ddd; font-family: Arial, sans-serif;
+    }
+    .list-window h2 { color: #fff; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;}
+    .form-group label { display: block; margin-top: 10px; margin-bottom: 5px; color: #aaa; font-size: 0.9em;}
+    .form-group input, .form-group textarea {
+        width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #333;
+        background: #222; color: #fff; box-sizing: border-box;
+    }
+    .action-buttons button {
+        padding: 10px 15px; border-radius: 4px; border: none; cursor: pointer;
+        font-weight: bold;
+    }
+</style>

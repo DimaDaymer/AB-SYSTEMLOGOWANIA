@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const slugify = require('slugify');
-const { pool } = require('../db'); // Убедись, что путь правильный
 const authenticate = require('../authMiddleware');
 
 // Маппинг параметров сортировки URL на реальные колонки БД

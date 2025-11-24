@@ -1,0 +1,200 @@
+/* E:\Desktop\java\версия 22.08 2\frontend\css\lists.css */
+
+/* --- Общие стили Dark Mode --- */
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+/* --- Стили для заголовков страниц и секций --- */
+.section-title {
+    font-size: 2em;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+    color: #fff;
+    margin-top: 0;
+}
+
+/* Стили для list.html (детальная страница списка) */
+.content-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+.list-header {
+    border-bottom: 1px solid #333;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+}
+.list-header h1 {
+    color: #fff;
+    margin: 0 0 10px 0;
+}
+.list-header p {
+    color: #888;
+}
+.list-description {
+    margin-top: 10px;
+    color: #aaa;
+    font-style: italic;
+}
+
+/* Ссылки (например, на автора) */
+.author-link {
+    color: #00ffcc;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* --- Стили элементов управления (list.html) --- */
+.list-controls {
+    margin-bottom: 20px;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px; /* Добавляем отступ между select и кнопкой */
+}
+.list-controls label {
+    margin-right: 10px;
+    color: #e0e0e0;
+}
+select {
+    background: #2a2a2a;
+    color: #fff;
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+/* Стили для кнопки сохранения */
+#save-sort-btn {
+    background: #00ffcc;
+    color: #121212;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s, opacity 0.2s;
+}
+#save-sort-btn:hover:not(:disabled) {
+    background: #00e6b3;
+}
+#save-sort-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* --- Контейнеры для карточек --- */
+.list-cards-container, .album-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* --- Стили для отдельных карточек --- */
+.album-card, .list-card {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.2s, background 0.2s;
+    border: 1px solid #1e1e1e;
+    position: relative;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-height: 100px;
+}
+
+.album-card:hover, .list-card:hover {
+    background-color: #252525;
+    transform: translateY(-2px);
+    border-color: #333;
+}
+
+/* Новый стиль для Placeholder / Обложки списка */
+.list-cover-placeholder {
+    width: 100px;
+    min-width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
+    font-size: 0.8em;
+    text-align: center;
+    padding: 5px;
+}
+.list-cover-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* --- Внутренние стили карточек списков (list-card) --- */
+.list-card .list-content {
+    margin-left: 15px;
+    flex-grow: 1;
+}
+
+.list-name {
+    font-size: 1.2em;
+    margin: 0 0 2px 0;
+    color: #fff;
+    font-weight: bold;
+}
+.list-username {
+    color: #888;
+    font-size: 0.9em;
+    margin: 2px 0;
+    font-weight: normal;
+}
+#globalListCardsContainer .list-username {
+    color: #00ffcc;
+    font-weight: bold;
+}
+
+.list-meta {
+    font-size: 0.9em;
+    color: #777;
+    margin-top: 5px;
+    padding: 0;
+    border-top: none;
+}
+
+.list-desc {
+    display: none;
+}
+
+/* Стили для drag-and-drop (list.html) */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #333;
+    border: 2px dashed #00ffcc;
+}
+
+/* --- Стили для сообщений --- */
+.empty-msg {
+    text-align: center;
+    color: #666;
+    padding: 40px;
+}
+.error {
+    color: #ff6b6b;
+    padding: 10px;
+    background: rgba(255,0,0,0.1);
+    border-radius: 4px;
+    text-align: center;
+}
+

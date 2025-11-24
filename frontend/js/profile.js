@@ -11,16 +11,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         username: publicUsername,
         token: token,
         // Хелпер для получения правильного URL API
+        // Хелпер для получения правильного URL API
         getApiUrl: (endpoint) => {
             if (isPublicProfile) {
-                // ИСПРАВЛЕНИЕ: Добавляем '/' только если endpoint не пустой
+                // Для публичного профиля (друга): /api/users/<username>/<endpoint>
                 const separator = endpoint ? '/' : '';
                 return `/api/users/${publicUsername}${separator}${endpoint}`;
             } else {
-                // Для "своих" данных
-                // ИСПРАВЛЕНИЕ: Обрабатываем пустую строку ('') или 'profile' для основного профиля (должен быть /api/users/me)
+                // Для "своих" данных (страница /profile)
+
+                // !!! ИСПРАВЛЕНИЕ: СВОИ СПИСКИ !!!
+                if (endpoint === 'lists') {
+                    return '/api/user-lists/my-lists'; // Используем правильный роут из userLists.js
+                }
+
+                // Обрабатываем пустую строку ('') или 'profile' для основного профиля
                 if (endpoint === '' || endpoint === 'profile') return '/api/users/me';
                 if (endpoint === 'my-tags') return '/api/tags/my-tags';
+
                 // Остальные роуты для себя
                 return `/api/users/${endpoint}`;
             }
@@ -52,10 +60,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const newScript = document.createElement('script');
                 if (script.src) {
                     newScript.src = script.src;
+                    // Добавляем async false, чтобы скрипты выполнялись последовательно
+                    newScript.async = false;
+                    document.body.appendChild(newScript);
                 } else {
+                    // Выполняем инлайн-скрипты
                     newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
                 }
-                document.body.appendChild(newScript);
+                // Удаляем старый скрипт, чтобы избежать повторного выполнения
+                script.remove();
             }
 
         } catch (err) {
@@ -65,11 +79,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // === 3. ЗАПУСК ===
-    // Загружаем блоки. User-info и Right-panel можно оставить старыми,
-    // здесь фокус на Tabs.
+    // Загружаем блоки.
     await Promise.all([
         loadComponent('user-info-component', '/components/profile/user-info-panel.html'),
         loadComponent('tabs-component', '/components/profile/tabs-panel.html'),
-        loadComponent('right-panel-component', '/components/profile/right-panel.html')
+        loadComponent('right-panel-component', '/components/profile/right-panel.html'),
+
+        // --- ДОБАВЛЕНА ЭТА СТРОКА ---
+        loadComponent('user-lists-component', '/components/profile/user_lists.html')
     ]);
 });

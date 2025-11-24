@@ -4,64 +4,40 @@
     <meta charset="UTF-8">
     <title>Список</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .content-wrapper { max-width: 1000px; margin: 0 auto; }
-
-        .list-header { border-bottom: 1px solid #333; margin-bottom: 20px; padding-bottom: 15px; }
-        .list-header h1 { color: #fff; margin: 0 0 10px 0; }
-        .list-header p { color: #888; }
-        .author-link { color: #00ffcc; text-decoration: none; font-weight: bold; }
-
-        .list-controls { margin-bottom: 20px; text-align: right; }
-        select { background: #2a2a2a; color: #fff; padding: 8px; border: 1px solid #444; border-radius: 4px; }
-
-        /* Контейнер списка */
-        .album-list { display: flex; flex-direction: column; gap: 15px; }
-
-        /* Карточка альбома (Старый горизонтальный дизайн) */
-        .album-card {
-            background-color: #1e1e1e;
-            border-radius: 8px;
-            padding: 15px;
-            display: flex; /* Горизонтальное расположение */
-            align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-            position: relative;
-        }
-        .album-card:hover { background-color: #252525; transform: translateY(-2px); }
-
-        .sortable-ghost { opacity: 0.4; background: #333; border: 2px dashed #00ffcc; }
-
-        /* Сообщения */
-        .empty-msg { text-align: center; color: #666; padding: 40px; }
-        .error { color: #ff6b6b; padding: 10px; background: rgba(255,0,0,0.1); border-radius: 4px; }
-    </style>
+    <link rel="stylesheet" href="/css/lists.css">
 </head>
 <body>
 
 <div class="content-wrapper">
     <div class="list-header">
-        <h1>Загрузка...</h1>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+            <h1>Загрузка...</h1>
+            <button id="edit-list-btn" class="action-button" style="display:none; padding: 8px 12px; background: #555; color: #fff; border: none; border-radius: 4px; cursor: pointer;">✏️ Редактировать</button>
+        </div>
         <p>...</p>
         <div class="list-description" style="margin-top:10px; color:#aaa; font-style:italic;"></div>
     </div>
 
     <div class="list-controls">
-        <select id="sort-by">
+        <label for="sort-by">Сортировать:</label>
+        <select id="sort-by" aria-label="Параметр сортировки списка альбомов">
             <option value="added_desc">Сначала новые</option>
             <option value="added_asc">Сначала старые</option>
             <option value="rating_desc">По рейтингу</option>
             <option value="title_asc">По алфавиту (А-Я)</option>
             <option value="sort_order_asc">Вручную (Drag & Drop)</option>
         </select>
+        <button id="save-sort-btn" style="display:none; margin-left: 10px; padding: 8px 12px; background: #00ffcc; color: #111; border: none; border-radius: 4px; cursor: pointer;">Сохранить сортировку</button>
     </div>
 
     <div class="album-list-container">
+        <p style="color: #777;">Загрузка альбомов...</p>
     </div>
 </div>
 
-<script src="/js/lists.js"></script>
+<script src="/js/list-app-core.js"></script>
+<script src="/js/list-app-modal.js"></script>
+<script src="/js/list-app-lists.js"></script>
+
 </body>
 </html>

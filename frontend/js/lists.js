@@ -5,6 +5,10 @@ const ListApp = {
         currentAlbumId: null,
         currentListSlug: null,
         currentUser: null,
+        listId: null, // ID списка
+        isOwner: false, // Флаг владельца
+        isOrderModified: false, // Флаг для ручной сортировки
+        currentSortMethod: 'added_desc', // Текущий метод сортировки
     },
 
     // === УТИЛИТЫ ===
@@ -25,14 +29,26 @@ const ListApp = {
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const response = await fetch(url, { ...options, headers });
-            const data = await response.json();
 
+            // *** ИСПРАВЛЕНИЕ: Обработка HTML-ответа (не JSON) и 404/ошибок ***
             if (!response.ok) {
-                // Если ошибка 401 - токен протух
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                let data;
+
+                try {
+                    data = await (isJson ? response.json() : response.text());
+                } catch(e) {
+                    data = `Ошибка чтения ответа от сервера. Статус: ${response.status}`;
+                }
+
                 if (response.status === 401) localStorage.removeItem('token');
-                throw new Error(data.error || data.message || `Ошибка ${response.status}`);
+
+                const errorMessage = isJson ? (data.error || data.message || `Ошибка ${response.status}`) : `Ошибка API: ${response.status} ${response.statusText}`;
+
+                throw new Error(errorMessage);
             }
-            return data;
+
+            return response.json();
         },
 
         toast(msg, type = 'success') {
@@ -57,7 +73,6 @@ const ListApp = {
     // === МОДАЛЬНОЕ ОКНО (Добавление в список) ===
     modal: {
         async open(albumId) {
-            console.log('Opening modal for album:', albumId);
             if (!ListApp.utils.getCurrentUser()) {
                 return ListApp.utils.toast('Сначала войдите в аккаунт', 'error');
             }
@@ -65,14 +80,12 @@ const ListApp = {
             ListApp.state.currentAlbumId = albumId;
             let overlay = document.getElementById('list-overlay');
 
-            // Загрузка HTML модалки если нет
             if (!overlay) {
                 try {
-                    const resp = await fetch('/list_window.html');
+                    const resp = await fetch('/components/lists/list_window.html');
                     if (!resp.ok) throw new Error('Не удалось загрузить окно');
                     const html = await resp.text();
 
-                    // Парсим и вставляем
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
                     const style = doc.querySelector('style');
@@ -104,13 +117,13 @@ const ListApp = {
             if (overlay) overlay.style.display = 'none';
             document.body.classList.remove('no-scroll');
             ListApp.state.currentAlbumId = null;
+            const addButton = document.querySelector('#existing-lists .add-button');
+            if (addButton) addButton.setAttribute('disabled', 'disabled');
         },
 
         initEvents(overlay) {
-            // Кнопки закрытия
             overlay.querySelectorAll('.cancel-button').forEach(b => b.onclick = this.close);
 
-            // Табы
             const tabs = overlay.querySelectorAll('.list-tab-button');
             tabs.forEach(tab => {
                 tab.onclick = () => {
@@ -125,24 +138,23 @@ const ListApp = {
 
         async loadUserLists() {
             const container = document.getElementById('lists-container');
-            const newForm = document.getElementById('new-list-form');
+            const addButton = document.querySelector('#existing-lists .add-button');
             const existingTab = document.querySelector('[data-target="existing-lists"]');
             const newTab = document.querySelector('[data-target="new-list-form"]');
 
             container.innerHTML = 'Загрузка...';
+            if (addButton) addButton.setAttribute('disabled', 'disabled');
 
             try {
                 const lists = await ListApp.utils.fetchAPI('/api/user-lists/my-lists');
                 container.innerHTML = '';
 
                 if (lists.length === 0) {
-                    // Переключаем на вкладку создания, если списков нет
                     if(newTab) newTab.click();
-                    container.innerHTML = '<p>Нет списков.</p>';
+                    container.innerHTML = '<p>Нет списков. Создайте первый!</p>';
                     return;
                 }
 
-                // Переключаем на существующие
                 if(existingTab) existingTab.click();
 
                 lists.forEach(list => {
@@ -150,9 +162,14 @@ const ListApp = {
                     div.className = 'list-item';
                     div.textContent = `${list.name} (${list.albums_count})`;
                     div.dataset.listId = list.id;
+
                     div.onclick = () => {
                         container.querySelectorAll('.list-item').forEach(el => el.classList.remove('selected'));
                         div.classList.add('selected');
+
+                        if (addButton) {
+                            addButton.removeAttribute('disabled');
+                        }
                     };
                     container.appendChild(div);
                 });
@@ -161,7 +178,6 @@ const ListApp = {
             }
         },
 
-        // Создать новый список
         async createNew() {
             const name = document.getElementById('list-name').value;
             const desc = document.getElementById('list-description').value;
@@ -173,7 +189,6 @@ const ListApp = {
                 });
                 ListApp.utils.toast('Список создан');
 
-                // Если открыто для добавления альбома - добавляем сразу
                 if (ListApp.state.currentAlbumId) {
                     await this.addAlbum(res.listId);
                 } else {
@@ -185,7 +200,6 @@ const ListApp = {
             }
         },
 
-        // Добавить альбом в выбранный список
         async addAlbum(specificListId = null) {
             let listId = specificListId;
             if (!listId) {
@@ -218,11 +232,11 @@ const ListApp = {
             try {
                 const endpoint = isGlobal ? '/api/user-lists/global' : '/api/user-lists/my-lists';
                 const data = await ListApp.utils.fetchAPI(endpoint);
-                const lists = isGlobal ? data.lists || data : data; // Обработка пагинации если есть
+                const lists = isGlobal ? data.lists || data : data;
 
                 container.innerHTML = '';
                 if (!lists || lists.length === 0) {
-                    container.innerHTML = '<p>Списков пока нет.</p>';
+                    container.innerHTML = '<p class="empty-msg">Списков пока нет.</p>';
                     return;
                 }
 
@@ -231,15 +245,19 @@ const ListApp = {
                     card.className = 'list-card';
                     card.href = `/list.html?slug=${list.slug}`;
 
+                    const usernameHtml = isGlobal ? `<p class="list-username">от ${list.username}</p>` : '';
+
                     card.innerHTML = `
                         <div class="list-content">
                             <h2 class="list-name">${list.name}</h2>
-                            ${isGlobal ? `<p class="list-username">от ${list.username}</p>` : ''}
+                            ${usernameHtml}
                             <p class="list-meta">${list.albums_count} альбомов • ${new Date(list.created_at).toLocaleDateString()}</p>
                         </div>
                     `;
+
                     container.appendChild(card);
                 });
+
             } catch (e) {
                 container.innerHTML = `<p class="error">${e.message}</p>`;
             }
@@ -262,30 +280,117 @@ const ListApp = {
 
             ListApp.state.currentListSlug = slug;
             const sortSelect = document.getElementById('sort-by');
+            const saveBtn = document.getElementById('save-sort-btn');
 
-            // Загрузка
-            await this.load(slug, sortSelect ? sortSelect.value : 'added_desc');
+            // 1. Загружаем список, чтобы узнать сохраненную сортировку и установить состояние
+            await this.load(slug, null, true);
 
+            // 2. Устанавливаем обработчики событий
             if (sortSelect) {
-                sortSelect.onchange = (e) => this.load(slug, e.target.value);
+                sortSelect.onchange = async (e) => {
+                    ListApp.state.currentSortMethod = e.target.value;
+                    await this.load(slug, e.target.value, false);
+                    this.toggleSaveButton();
+                };
+            }
+
+            if (saveBtn) {
+                saveBtn.onclick = () => this.saveSortSettings();
             }
         },
 
-        async load(slug, sortBy) {
+        async load(slug, sortBy = null, shouldFetchSavedSort = true) {
             try {
-                const data = await ListApp.utils.fetchAPI(`/api/user-lists/${slug}?sortBy=${sortBy}`);
-                const user = ListApp.utils.getCurrentUser();
-                const isOwner = user && (user.id === data.user_id);
+                let effectiveSortBy;
 
-                this.renderHeader(data, isOwner);
-                this.renderAlbums(data.albums, isOwner, sortBy, data.id);
+                // 1. Получаем метаданные, чтобы узнать сохраненную сортировку и владельца.
+                if (shouldFetchSavedSort) {
+                    const listMetadata = await ListApp.utils.fetchAPI(`/api/user-lists/${slug}`);
+
+                    if (listMetadata) {
+                        ListApp.state.currentSortMethod = listMetadata.saved_sort_by || 'added_desc';
+                        ListApp.state.listId = listMetadata.id;
+                        ListApp.state.currentUser = ListApp.utils.getCurrentUser();
+                        ListApp.state.isOwner = ListApp.state.currentUser && (ListApp.state.currentUser.id === listMetadata.user_id);
+                    } else {
+                        ListApp.state.currentSortMethod = 'added_desc';
+                        ListApp.state.isOwner = false;
+                    }
+                }
+
+                effectiveSortBy = sortBy || ListApp.state.currentSortMethod;
+
+                // 3. Загружаем альбомы с нужной сортировкой
+                const data = await ListApp.utils.fetchAPI(`/api/user-lists/${slug}?sortBy=${effectiveSortBy}`);
+
+                // 4. Обновляем заголовок и опции сортировки
+                this.renderHeader(data, ListApp.state.isOwner, effectiveSortBy);
+
+                // 5. Рендерим альбомы
+                this.renderAlbums(data.albums, ListApp.state.isOwner, effectiveSortBy, ListApp.state.listId);
+
+                ListApp.state.isOrderModified = false;
+                this.toggleSaveButton();
+
 
             } catch (e) {
                 document.querySelector('.album-list-container').innerHTML = `<p class="error">${e.message}</p>`;
             }
         },
 
-        renderHeader(data, isOwner) {
+        toggleSaveButton() {
+            const saveBtn = document.getElementById('save-sort-btn');
+            if (!saveBtn) return;
+
+            const isManualSort = ListApp.state.currentSortMethod === 'sort_order_asc';
+
+            if (ListApp.state.isOwner) {
+                saveBtn.style.display = 'inline-block';
+
+                saveBtn.disabled = isManualSort ? !ListApp.state.isOrderModified : false;
+
+                saveBtn.textContent = isManualSort ? 'Сохранить порядок' : 'Сохранить сортировку';
+
+            } else {
+                saveBtn.style.display = 'none';
+            }
+        },
+
+        async saveSortSettings() {
+            const sortMethod = ListApp.state.currentSortMethod;
+            const listId = ListApp.state.listId;
+
+            try {
+                if (sortMethod === 'sort_order_asc' && ListApp.state.isOrderModified) {
+                    // 1. Ручная сортировка: сохраняем порядок
+                    const container = document.querySelector('.album-list');
+                    await this.saveOrder(container, listId);
+
+                    // 2. Сохраняем сам метод сортировки
+                    await ListApp.utils.fetchAPI(`/api/user-lists/${listId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ saved_sort_by: sortMethod })
+                    });
+
+                    ListApp.utils.toast('Порядок списка сохранен!');
+                } else {
+                    // Стандартная сортировка: сохраняем выбранный метод
+                    await ListApp.utils.fetchAPI(`/api/user-lists/${listId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ saved_sort_by: sortMethod })
+                    });
+                    ListApp.utils.toast(`Сортировка по "${sortMethod}" сохранена по умолчанию.`);
+                }
+
+                ListApp.state.isOrderModified = false;
+                this.toggleSaveButton();
+
+            } catch (e) {
+                ListApp.utils.toast(e.message, 'error');
+            }
+        },
+
+        renderHeader(data, isOwner, currentSortMethod) {
             document.querySelector('.list-header h1').textContent = data.name;
             document.querySelector('.list-header p').innerHTML =
                 `Автор: <a href="/profile.html?user=${data.creator}" class="author-link">${data.creator}</a> • ${new Date(data.created_at).toLocaleDateString()}`;
@@ -293,24 +398,38 @@ const ListApp = {
             const desc = document.querySelector('.list-description');
             if(desc) desc.textContent = data.description || '';
 
-            // Управление сортировкой
             const sortSelect = document.getElementById('sort-by');
-            const manualOpt = sortSelect.querySelector('option[value="sort_order_asc"]');
+
+            sortSelect.innerHTML = `
+                <option value="added_desc">Сначала новые</option>
+                <option value="added_asc">Сначала старые</option>
+                <option value="rating_desc">По рейтингу</option>
+                <option value="title_asc">По алфавиту (А-Я)</option>
+                <option value="sort_order_asc">Вручную (Drag & Drop)</option>
+            `;
+
+            let manualOpt = sortSelect.querySelector('option[value="sort_order_asc"]');
 
             if (!isOwner) {
-                if(manualOpt) manualOpt.disabled = true;
-                if(sortSelect.value === 'sort_order_asc') sortSelect.value = 'added_desc';
+                manualOpt.disabled = true;
             } else {
-                if(manualOpt) manualOpt.disabled = false;
+                manualOpt.disabled = false;
+            }
+
+            if (sortSelect) {
+                sortSelect.value = currentSortMethod;
             }
         },
 
-        // РЕНДЕРИНГ АЛЬБОМОВ (СТАРЫЙ ДИЗАЙН)
         renderAlbums(albums, isOwner, currentSort, listId) {
             const container = document.querySelector('.album-list-container');
-
-            // Если включена ручная сортировка И мы владелец -> добавляем класс sortable
             const isManual = isOwner && (currentSort === 'sort_order_asc');
+
+            const existingList = container.querySelector('.album-list');
+            if (existingList && existingList.sortable) {
+                existingList.sortable.destroy();
+            }
+
 
             container.innerHTML = `<div class="album-list ${isManual ? 'sortable-list' : ''}"></div>`;
             const listDiv = container.querySelector('.album-list');
@@ -322,16 +441,14 @@ const ListApp = {
 
             albums.forEach((album, idx) => {
                 const item = document.createElement('div');
-                item.className = 'album-card'; // Используем CSS из старого файла
+                item.className = 'album-card';
                 item.dataset.albumId = album.id;
 
                 const releaseYear = album.release_date ? new Date(album.release_date).getFullYear() : 'N/A';
                 const rating = album.rating ? parseFloat(album.rating).toFixed(2) : "N/A";
 
-                // === ВОССТАНОВЛЕННЫЙ СТАРЫЙ HTML ДИЗАЙН ===
-                // Плюс добавлена ручка перетаскивания и кнопка удаления
                 item.innerHTML = `
-                    ${isManual ? '<div class="drag-handle" style="cursor:grab; font-size:1.5em; padding:10px; color:#555;">☰</div>' : ''}
+                    ${isManual ? '<div class="drag-handle" style="cursor:grab; font-size:1.5em; padding:0 15px; color:#555;">☰</div>' : ''}
                     
                     <a href="/release/album/${album.slug}" style="display:flex; flex-grow:1; text-decoration:none; color:inherit;">
                         <img src="${album.cover_url || '/img/no_cover.jpg'}" alt="${album.title}" style="width:100px; height:100px; object-fit:cover; border-radius:4px;">
@@ -356,11 +473,10 @@ const ListApp = {
                     ${isOwner ? `<button class="delete-btn" onclick="ListApp.details.remove(${listId}, ${album.id})" style="background:none; border:none; color:#777; font-size:1.5em; cursor:pointer; padding:0 15px;">✕</button>` : ''}
                 `;
 
-                // Обработчик удаления (чтобы не переходить по ссылке альбома)
                 const delBtn = item.querySelector('.delete-btn');
                 if(delBtn) {
                     delBtn.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Не кликать на ссылку
+                        e.stopPropagation();
                         e.preventDefault();
                     });
                 }
@@ -368,25 +484,17 @@ const ListApp = {
                 listDiv.appendChild(item);
             });
 
-            // Запуск SortableJS
             if (isManual && window.Sortable) {
-                new Sortable(listDiv, {
+                const sortableInstance = new Sortable(listDiv, {
                     handle: '.drag-handle',
                     animation: 150,
                     ghostClass: 'sortable-ghost',
-                    onEnd: () => this.saveOrder(listDiv, listId)
+                    onEnd: () => {
+                        ListApp.state.isOrderModified = true;
+                        this.toggleSaveButton();
+                    }
                 });
-            }
-        },
-
-        async remove(listId, albumId) {
-            if(!confirm('Удалить из списка?')) return;
-            try {
-                await ListApp.utils.fetchAPI(`/api/user-lists/${listId}/items/${albumId}`, { method: 'DELETE' });
-                ListApp.utils.toast('Удалено');
-                this.init(); // Перезагрузка
-            } catch (e) {
-                ListApp.utils.toast(e.message, 'error');
+                listDiv.sortable = sortableInstance;
             }
         },
 
@@ -396,37 +504,39 @@ const ListApp = {
                 sortOrder: idx + 1
             }));
 
+            await ListApp.utils.fetchAPI(`/api/user-lists/${listId}/reorder`, {
+                method: 'POST',
+                body: JSON.stringify({ newOrder })
+            });
+        },
+
+        async remove(listId, albumId) {
+            if(!confirm('Удалить из списка?')) return;
             try {
-                await ListApp.utils.fetchAPI(`/api/user-lists/${listId}/reorder`, {
-                    method: 'POST',
-                    body: JSON.stringify({ newOrder })
-                });
-                // Тихое сохранение
+                await ListApp.utils.fetchAPI(`/api/user-lists/${listId}/items/${albumId}`, { method: 'DELETE' });
+                ListApp.utils.toast('Удалено');
+                this.load(ListApp.state.currentListSlug, ListApp.state.currentSortMethod, false);
             } catch (e) {
-                ListApp.utils.toast('Ошибка сохранения порядка', 'error');
+                ListApp.utils.toast(e.message, 'error');
             }
         }
     }
 };
 
-// === ГЛОБАЛЬНЫЕ ПРИВЯЗКИ (Чтобы HTML onclick работал) ===
+// === ГЛОБАЛЬНЫЕ ПРИВЯЗКИ ===
 window.ListApp = ListApp;
 window.openListWindow = (albumId) => ListApp.modal.open(albumId);
 window.closeListWindow = () => ListApp.modal.close();
 window.saveNewList = () => ListApp.modal.createNew();
-window.addAlbumToList = (listId) => ListApp.modal.addAlbum(listId);
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Страница "Все списки"
     if (document.getElementById('globalListCardsContainer')) {
         ListApp.catalog.init('globalListCardsContainer', true);
     }
-    // 2. Страница "Мои списки"
     if (document.getElementById('listCardsContainer')) {
         ListApp.catalog.init('listCardsContainer', false);
     }
-    // 3. Страница деталей списка
     if (document.querySelector('.album-list-container')) {
         ListApp.details.init();
     }

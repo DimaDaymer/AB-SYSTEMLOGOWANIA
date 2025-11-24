@@ -311,6 +311,41 @@ router.get('/:username/tags', async (req, res) => {
     }
 });
 
+router.get('/:username/lists', async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        // 1. Найти ID пользователя по username
+        const [userRows] = await pool.execute('SELECT id FROM users WHERE username = ?', [username]);
+        if (userRows.length === 0) {
+            // Важно: возвращаем JSON и статус 404
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        const userId = userRows[0].id;
+
+        // 2. Получить списки этого пользователя
+        const [lists] = await pool.execute(
+            `SELECT 
+                l.id, l.name, l.slug, l.description, l.created_at, l.cover_url,
+                COUNT(li.album_id) AS albums_count
+             FROM lists l
+             LEFT JOIN list_items li ON l.id = li.list_id
+             WHERE l.user_id = ?
+             GROUP BY l.id, l.name, l.slug, l.description, l.created_at, l.cover_url
+             ORDER BY l.created_at DESC`,
+            [userId]
+        );
+
+        // ВАЖНО: Возвращаем данные в формате JSON
+        res.json(lists);
+
+    } catch (error) {
+        console.error('Ошибка загрузки публичных списков:', error);
+        // Возвращаем ошибку в формате JSON
+        res.status(500).json({ error: 'Ошибка сервера при загрузке списков' });
+    }
+});
+
 router.get('/:username/actions/:type', async (req, res) => {
     const userId = await getUserIdByUsername(req.params.username);
     if (!userId) return res.status(404).json({ error: 'User not found' });

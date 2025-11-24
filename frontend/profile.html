@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль пользователя</title>
-    <link rel="stylesheet" href="/css/profile.css"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div id="navbar-container"></div>
+<div id="navbar-container" role="navigation"></div>
 
 <div class="container">
     <div id="user-info-component" class="left-panel">
@@ -19,11 +20,18 @@
         <div class="loading-placeholder">Загрузка вкладок...</div>
     </div>
 
-    <div id="right-panel-component" class="right-panel">
-        <div class="loading-placeholder">Загрузка статистики...</div>
+    <div class="right-panel">
+        <div id="right-panel-component">
+            <div class="loading-placeholder">Загрузка статистики...</div>
+        </div>
+
+        <div id="user-lists-component" style="margin-top: 20px;">
+            <div class="loading-placeholder">Загрузка списков...</div>
+        </div>
     </div>
 </div>
 
+<script src="/js/list-app-core.js"></script>
 <script src="/js/profile.js"></script>
 
 </body>

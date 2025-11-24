@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS album_stats (
                                            FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
--- === ИСПРАВЛЕННЫЙ ТРИГГЕР ===
+-- === ТРИГГЕР ДЛЯ album_stats ===
 DELIMITER //
 CREATE TRIGGER after_album_insert
     AFTER INSERT ON albums
@@ -211,6 +211,32 @@ CREATE TABLE IF NOT EXISTS track_ratings (
                                              FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
 );
 
+-- Создаем новую таблицу lists с добавленным cover_url, slug и views_count
+CREATE TABLE IF NOT EXISTS lists (
+                                     id INT AUTO_INCREMENT PRIMARY KEY,
+                                     user_id INT NOT NULL,
+                                     name VARCHAR(255) NOT NULL,
+                                     slug VARCHAR(255) UNIQUE NOT NULL,
+                                     description TEXT,
+                                     saved_sort_by VARCHAR(50) NOT NULL DEFAULT 'added_desc',
+                                     cover_url VARCHAR(255), -- НОВОЕ ПОЛЕ
+                                     views_count INT DEFAULT 0,
+                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Создаем заново зависимую таблицу list_items
+CREATE TABLE IF NOT EXISTS list_items (
+                                          id INT AUTO_INCREMENT PRIMARY KEY,
+                                          list_id INT NOT NULL,
+                                          album_id INT NOT NULL,
+                                          sort_order INT DEFAULT 0,
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                          FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
+                                          FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                          UNIQUE (list_id, album_id)
+);
+
 -- === ДЕЙСТВИЯ И КОНТЕНТ ===
 CREATE TABLE IF NOT EXISTS user_album_tags (
                                                id INT AUTO_INCREMENT PRIMARY KEY,
@@ -232,26 +258,6 @@ CREATE TABLE IF NOT EXISTS user_album_actions (
                                                   UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
                                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                                                   FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS lists (
-                                     id INT AUTO_INCREMENT PRIMARY KEY,
-                                     user_id INT NOT NULL,
-                                     name VARCHAR(255) NOT NULL,
-                                     description TEXT,
-                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS list_items (
-                                          id INT AUTO_INCREMENT PRIMARY KEY,
-                                          list_id INT NOT NULL,
-                                          album_id INT NOT NULL,
-                                          sort_order INT DEFAULT 0,
-                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                          FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
-                                          FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
-                                          UNIQUE (list_id, album_id)
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
@@ -287,25 +293,8 @@ CREATE TABLE IF NOT EXISTS album_links (
                                            FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
--- Добавляем slug, если его нет
-ALTER TABLE lists ADD COLUMN slug VARCHAR(255) UNIQUE NOT NULL AFTER name;
--- Добавляем счетчик просмотров (опционально, для сортировки популярных)
-ALTER TABLE lists ADD COLUMN views_count INT DEFAULT 0;
-
--- Убедитесь, что эта таблица выглядит так (индексы для скорости):
-CREATE TABLE IF NOT EXISTS list_items (
-                                          id INT AUTO_INCREMENT PRIMARY KEY,
-                                          list_id INT NOT NULL,
-                                          album_id INT NOT NULL,
-                                          sort_order INT DEFAULT 0,
-                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                          FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
-                                          FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
-                                          UNIQUE (list_id, album_id)
-);
-
--- === ФУНДАМЕНТ ДЛЯ ДРУЗЕЙ/ПОДПИСЧИКОВ (На будущее) ===
-drop TABLE user_relations;
+-- === ФУНДАМЕНТ ДЛЯ ДРУЗЕЙ/ПОДПИСЧИКОВ ===
+DROP TABLE IF EXISTS user_relations;
 
 CREATE TABLE IF NOT EXISTS user_relations (
                                               id INT AUTO_INCREMENT PRIMARY KEY,
@@ -319,7 +308,7 @@ CREATE TABLE IF NOT EXISTS user_relations (
                                               FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Добавим таблицу для общих уведомлений, не связанных с подпиской (на будущее)
+-- Добавим таблицу для общих уведомлений
 CREATE TABLE IF NOT EXISTS notifications (
                                              id INT AUTO_INCREMENT PRIMARY KEY,
                                              user_id INT NOT NULL, -- Получатель

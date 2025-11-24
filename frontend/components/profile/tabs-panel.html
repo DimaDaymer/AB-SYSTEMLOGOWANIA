@@ -33,12 +33,12 @@
     .tab-content.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* === СТИЛИ ДЛЯ СПИСКА АЛЬБОМОВ (Из твоего user-actions.html/profile.js) === */
+    /* === СТИЛИ ДЛЯ СПИСКА АЛЬБОМОВ (Album Entry) === */
     .album-entry {
         display: flex;
         align-items: center;
         margin-bottom: 10px;
-        background: #1a1a1a; /* Или прозрачный, как было */
+        background: #1a1a1a;
         padding: 5px;
         border-radius: 4px;
     }
@@ -50,8 +50,28 @@
 
     /* Стили для рейтинга альбома справа */
     .rating-stars { color: #ffd700; letter-spacing: 2px; margin-left: auto; white-space: nowrap; }
+    .pagination-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        padding: 10px 0;
+    }
+    .pagination-button {
+        padding: 5px 10px;
+        background: #00ffcc;
+        color: #1a1a1a;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+    }
+    .pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
-    /* === СТИЛИ ДЛЯ ТЕГОВ (Из твоего profile.html) === */
+    /* === СТИЛИ ДЛЯ ТЕГОВ (Аккордеон) === */
     .tag-group { margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; }
     .tag-group-title {
         color: #00ffcc; cursor: pointer; padding: 10px 5px; margin: 0;
@@ -83,11 +103,12 @@
 <script>
     (function() {
         const ctx = window.profileContext;
+        const ALBUM_LIMIT = 10; // Ваш лимит для альбомов в табах
+        let currentPage = {}; // Хранилище текущих страниц для каждой вкладки
 
-        // 1. Вспомогательная функция звезд (Копия из твоего кода)
+        // 1. Вспомогательная функция звезд
         function scoreToStars(score) {
             if (score === null || typeof score === 'undefined') return '☆☆☆☆☆';
-            // Если оценка > 5, делим на 2 (логика из твоего profile.js)
             const stars = score <= 5 ? score : score / 2;
             const fullStars = Math.floor(stars);
             const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
@@ -95,19 +116,61 @@
             return '★'.repeat(Math.max(0, fullStars)) + halfStar + '☆'.repeat(Math.max(0, emptyStars));
         }
 
+        // Вспомогательная: Рендерит пагинацию
+        function renderPagination(container, tabName, totalCount) {
+            const totalPages = Math.ceil(totalCount / ALBUM_LIMIT);
+            const currentPageNum = currentPage[tabName] || 1;
+
+            // Удаляем старую пагинацию
+            container.querySelectorAll('.pagination-controls').forEach(el => el.remove());
+
+            if (totalPages <= 1) return;
+
+            const paginationDiv = document.createElement('div');
+            paginationDiv.className = 'pagination-controls';
+            paginationDiv.innerHTML = `
+                <button class="pagination-button" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>← Назад</button>
+                <span>Страница ${currentPageNum} из ${totalPages}</span>
+                <button class="pagination-button" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>Вперед →</button>
+            `;
+
+            paginationDiv.querySelectorAll('.pagination-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const action = button.dataset.action;
+                    let newPage = currentPageNum;
+                    if (action === 'prev') {
+                        newPage = Math.max(1, currentPageNum - 1);
+                    } else if (action === 'next') {
+                        newPage = Math.min(totalPages, currentPageNum + 1);
+                    }
+                    if (newPage !== currentPageNum) {
+                        currentPage[tabName] = newPage;
+                        // Перезагрузка данных для активной вкладки
+                        triggerLoad(tabName, newPage);
+                    }
+                });
+            });
+
+            container.appendChild(paginationDiv);
+        }
+
         // 2. Загрузка ОЦЕНЕННЫХ АЛЬБОМОВ (Recent)
-        async function loadRatedAlbums() {
+        async function loadRatedAlbums(page = 1) {
             const container = document.getElementById('recent');
-            if (!ctx.isPublic && !ctx.token) return;
+            const tabName = 'recent';
+            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
             container.innerHTML = '<div class="loading">Загрузка...</div>';
             try {
-                const url = ctx.getApiUrl('rated-albums');
+                const url = `${ctx.getApiUrl('rated-albums')}?page=${page}&limit=${ALBUM_LIMIT}`;
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
                 const res = await fetch(url, { headers });
                 if (!res.ok) throw new Error(`Status: ${res.status}`);
-                const albums = await res.json();
+
+                const data = await res.json();
+                const albums = data.items || data;
+                const totalCount = data.total_count || albums.length;
 
                 if (!albums || albums.length === 0) {
                     container.innerHTML = '<p>Пока нет оценок</p>';
@@ -118,7 +181,6 @@
                 albums.forEach(album => {
                     const albumEl = document.createElement('div');
                     albumEl.className = 'album-entry';
-                    // ВОЗВРАЩЕНА ПОЛНАЯ ССЫЛКА <A> И ЗВЕЗДЫ
                     albumEl.innerHTML = `
                     <div class="list-image">
                         <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
@@ -133,6 +195,9 @@
                 `;
                     container.appendChild(albumEl);
                 });
+
+                renderPagination(container, tabName, totalCount);
+
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<p>Не удалось загрузить оценки.</p>';
@@ -140,19 +205,23 @@
         }
 
         // 3. Загрузка Actions (Liked, Wishlist, Listen)
-        async function loadUserActions(type, containerId) {
+        async function loadUserActions(type, containerId, page = 1) {
             const container = document.getElementById(containerId);
-            if (!ctx.isPublic && !ctx.token) return;
+            const tabName = containerId;
+            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
             container.innerHTML = '<div class="loading">Загрузка...</div>';
             try {
-                const url = ctx.getActionUrl(type);
+                const url = `${ctx.getActionUrl(type)}?page=${page}&limit=${ALBUM_LIMIT}`;
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
                 const res = await fetch(url, { headers });
                 if (!res.ok) { container.innerHTML = '<p>Пусто.</p>'; return; }
 
-                const actions = await res.json();
+                const data = await res.json();
+                const actions = data.items || data;
+                const totalCount = data.total_count || actions.length;
+
                 if (!actions || actions.length === 0) {
                     container.innerHTML = `<p>Список пуст</p>`;
                     return;
@@ -162,7 +231,6 @@
                 actions.forEach(action => {
                     const actionEl = document.createElement('div');
                     actionEl.className = 'album-entry';
-                    // ВОЗВРАЩЕНА ПОЛНАЯ ССЫЛКА <A>
                     actionEl.innerHTML = `
                     <div class="list-image">
                         <img src="${action.cover_url || '/assets/album-placeholder.png'}" alt="${action.title}" class="album-cover-small" />
@@ -176,18 +244,19 @@
                 `;
                     container.appendChild(actionEl);
                 });
+
+                renderPagination(container, tabName, totalCount);
+
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<p>Не удалось загрузить список.</p>';
             }
         }
 
-        // 4. Загрузка Треков (Аккордеон + Звезды)
+        // 4. Загрузка Треков (Аккордеон + Звезды) - Пагинация не требуется
         async function loadAlbumsWithTrackRatings() {
             const container = document.getElementById('track-ratings-container');
-            // Проверка прав
-            if (!ctx.isPublic && !ctx.token) return;
-            if (ctx.isPublic && !ctx.username) return;
+            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
             container.innerHTML = '<div class="loading">Загрузка оценок треков...</div>';
             try {
@@ -207,7 +276,6 @@
                 albumsWithRatings.forEach(album => {
                     const albumElement = document.createElement('div');
                     albumElement.className = 'album-with-tracks';
-                    // Рендер шапки альбома
                     albumElement.innerHTML = `
                     <div class="album-header">
                         <div class="album-header-content">
@@ -227,14 +295,11 @@
                     const header = albumElement.querySelector('.album-header');
                     const tracksContainer = albumElement.querySelector('.tracks-container');
 
-                    // Логика клика (аккордеон)
                     header.addEventListener('click', () => {
-                        // Если контейнер пуст - рендерим
                         if (tracksContainer.innerHTML === '') {
                             album.tracks.forEach(track => {
                                 const tDiv = document.createElement('div');
                                 tDiv.className = 'track-item';
-                                // ВОЗВРАЩЕНЫ ЗВЕЗДЫ И ЦИФРЫ
                                 tDiv.innerHTML = `
                                 <div class="track-name">${track.track_number}. ${track.title}</div>
                                 <div class="track-rating">
@@ -245,7 +310,6 @@
                             });
                         }
 
-                        // Анимация открытия/закрытия
                         if (tracksContainer.style.maxHeight) {
                             tracksContainer.style.maxHeight = null;
                             header.querySelector('.toggle-icon').textContent = '▼';
@@ -261,14 +325,13 @@
             }
         }
 
-        // 5. Загрузка Тегов (Аккордеон)
+        // 5. Загрузка Тегов (Аккордеон) - Пагинация не требуется
         async function loadUserTags() {
             const container = document.getElementById('user-tags-container');
-            if (!ctx.isPublic && !ctx.token) return;
+            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
             container.innerHTML = '<div class="loading">Загрузка тегов...</div>';
             try {
-                // Специфичный роут для тегов
                 const url = ctx.isPublic
                     ? `/api/users/${ctx.username}/tags`
                     : `/api/tags/my-tags`;
@@ -284,7 +347,6 @@
                     return;
                 }
 
-                // Группировка
                 const groupedTags = {};
                 data.forEach(item => {
                     if (!groupedTags[item.tag_name]) groupedTags[item.tag_name] = [];
@@ -304,7 +366,6 @@
                     listDiv.className = 'tag-albums-list';
                     listDiv.style.maxHeight = '0px';
 
-                    // Рендер альбомов внутри тега
                     albums.forEach(album => {
                         const albumEl = document.createElement('div');
                         albumEl.className = 'album-entry';
@@ -324,7 +385,6 @@
                         listDiv.appendChild(albumEl);
                     });
 
-                    // Клик по заголовку тега
                     title.addEventListener('click', () => {
                         const isExpanded = groupDiv.classList.toggle('expanded');
                         if (isExpanded) {
@@ -345,6 +405,20 @@
             }
         }
 
+        // Главная функция-загрузчик
+        function triggerLoad(tabName, page = 1) {
+            currentPage[tabName] = page;
+            switch (tabName) {
+                case 'recent': loadRatedAlbums(page); break;
+                case 'albums': loadUserActions('listen', 'albums', page); break;
+                case 'liked': loadUserActions('like', 'liked', page); break;
+                case 'wishlist': loadUserActions('wishlist', 'wishlist', page); break;
+                case 'trackratings': loadAlbumsWithTrackRatings(); break; // Нет пагинации
+                case 'tags': loadUserTags(); break; // Нет пагинации
+            }
+        }
+
+
         // === ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ===
         const tabs = document.querySelectorAll('.tab');
         const contents = document.querySelectorAll('.tab-content');
@@ -358,22 +432,15 @@
                 const targetId = tab.dataset.tab;
                 document.getElementById(targetId).classList.add('active');
 
-                // Загрузка данных по клику
-                switch (targetId) {
-                    case 'recent': loadRatedAlbums(); break;
-                    case 'albums': loadUserActions('listen', 'albums'); break; // Listen
-                    case 'liked': loadUserActions('like', 'liked'); break;
-                    case 'wishlist': loadUserActions('wishlist', 'wishlist'); break;
-                    case 'trackratings': loadAlbumsWithTrackRatings(); break;
-                    case 'tags': loadUserTags(); break;
-                }
+                // Загрузка данных (начиная с 1 страницы)
+                triggerLoad(targetId, 1);
             });
         });
 
         // Загрузка первой вкладки при старте
         const activeTab = document.querySelector('.tab.active');
         if (activeTab && activeTab.dataset.tab === 'recent') {
-            loadRatedAlbums();
+            triggerLoad('recent', 1);
         }
 
     })();
