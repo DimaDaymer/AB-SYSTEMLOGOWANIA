@@ -1,23 +1,23 @@
 // frontend/js/list-app-modal.js
 
-// Предполагаем, что list-app-core.js уже загружен и ListApp существует
+// Assuming list-app-core.js is already loaded and ListApp exists
 (function(App) {
 
-    // === МОДУЛЬ ДОБАВЛЕНИЯ (Существующий) ===
+    // === ADDITION MODULE (Existing) ===
     App.modal = {
         async open(albumId) {
             if (!App.utils.getCurrentUser()) {
-                return App.utils.toast('Сначала войдите в аккаунт', 'error');
+                return App.utils.toast('Please log in first', 'error');
             }
 
             App.state.currentAlbumId = albumId;
             let overlay = document.getElementById('list-overlay');
 
-            // Загрузка HTML модального окна, если его еще нет
+            // Loading the modal window HTML if it's not already there
             if (!overlay) {
                 try {
                     const resp = await fetch('/components/lists/list_window.html');
-                    if (!resp.ok) throw new Error('Не удалось загрузить окно');
+                    if (!resp.ok) throw new Error('Failed to load window');
                     const html = await resp.text();
 
                     const parser = new DOMParser();
@@ -25,7 +25,7 @@
                     const style = doc.querySelector('style');
                     const modalHtml = doc.querySelector('.overlay');
 
-                    // Добавление стилей и самого HTML в DOM
+                    // Adding styles and the HTML itself to the DOM
                     if (style && !document.getElementById('list-window-styles')) {
                         style.id = 'list-window-styles';
                         document.head.appendChild(style);
@@ -38,11 +38,11 @@
                     }
                 } catch (e) {
                     console.error(e);
-                    return App.utils.toast('Ошибка интерфейса', 'error');
+                    return App.utils.toast('Interface error', 'error');
                 }
             }
 
-            // Загрузка списков пользователя и показ окна
+            // Loading user lists and showing the window
             this.loadUserLists();
             overlay.style.display = 'flex';
             document.body.classList.add('no-scroll');
@@ -78,7 +78,7 @@
             const existingTab = document.querySelector('[data-target="existing-lists"]');
             const newTab = document.querySelector('[data-target="new-list-form"]');
 
-            container.innerHTML = 'Загрузка...';
+            container.innerHTML = 'Loading...';
             if (addButton) addButton.setAttribute('disabled', 'disabled');
 
             try {
@@ -87,7 +87,7 @@
 
                 if (lists.length === 0) {
                     if(newTab) newTab.click();
-                    container.innerHTML = '<p>Нет списков. Создайте первый!</p>';
+                    container.innerHTML = '<p>No lists. Create the first one!</p>';
                     return;
                 }
 
@@ -110,7 +110,7 @@
                     container.appendChild(div);
                 });
             } catch (e) {
-                container.innerHTML = 'Ошибка загрузки';
+                container.innerHTML = 'Loading error';
             }
         },
 
@@ -123,7 +123,7 @@
                     method: 'POST',
                     body: JSON.stringify({ name, description: desc })
                 });
-                App.utils.toast('Список создан');
+                App.utils.toast('List created');
 
                 if (App.state.currentAlbumId) {
                     await this.addAlbum(res.listId);
@@ -141,18 +141,18 @@
             let listId = specificListId;
             if (!listId) {
                 const selected = document.querySelector('.list-item.selected');
-                if (!selected) return App.utils.toast('Выберите список', 'error');
+                if (!selected) return App.utils.toast('Select a list', 'error');
                 listId = selected.dataset.listId;
             }
 
-            if (!App.state.currentAlbumId) return App.utils.toast('Ошибка: нет ID альбома', 'error');
+            if (!App.state.currentAlbumId) return App.utils.toast('Error: no album ID', 'error');
 
             try {
                 await App.utils.fetchAPI(`/api/user-lists/${listId}/add`, {
                     method: 'POST',
                     body: JSON.stringify({ albumId: App.state.currentAlbumId })
                 });
-                App.utils.toast('Альбом добавлен!');
+                App.utils.toast('Album added!');
                 this.close();
             } catch (e) {
                 App.utils.toast(e.message, 'error');
@@ -160,7 +160,7 @@
         }
     };
 
-    // === НОВЫЙ МОДУЛЬ ДЛЯ РЕДАКТИРОВАНИЯ ===
+    // === NEW EDITING MODULE ===
     App.editModal = {
         currentListId: null,
 
@@ -168,11 +168,11 @@
             this.currentListId = listData.id;
             let overlay = document.getElementById('list-edit-overlay');
 
-            // Загрузка HTML модального окна редактирования, если его еще нет
+            // Loading the edit modal window HTML if it's not already there
             if (!overlay) {
                 try {
                     const resp = await fetch('/components/lists/edit_list_window.html');
-                    if (!resp.ok) throw new Error('Не удалось загрузить окно редактирования');
+                    if (!resp.ok) throw new Error('Failed to load edit window');
                     const html = await resp.text();
 
                     // Поскольку HTML содержит стили, используем DOMParser
@@ -193,16 +193,16 @@
                     }
                 } catch (e) {
                     console.error(e);
-                    return App.utils.toast('Ошибка интерфейса редактирования', 'error');
+                    return App.utils.toast('Editing interface error', 'error');
                 }
             }
 
-            // Заполнение полей данными
+            // Filling fields with data
             document.getElementById('edit-list-name').value = listData.name || '';
             document.getElementById('edit-list-description').value = listData.description || '';
             document.getElementById('edit-list-cover-url').value = listData.cover_url || '';
 
-            // Привязываем функцию удаления к кнопке (так как она в HTML модалки)
+            // Binding the delete function to the button (since it's in the modal HTML)
             const deleteBtn = document.getElementById('delete-list-btn');
             if (deleteBtn) {
                 // Убедимся, что ID списка установлен в App.state
@@ -211,7 +211,7 @@
             }
 
 
-            // Показ окна
+            // Showing the window
             overlay.style.display = 'flex';
             document.body.classList.add('no-scroll');
         },
@@ -229,10 +229,10 @@
             let cover_url = document.getElementById('edit-list-cover-url').value;
 
             if (!name) {
-                return App.utils.toast('Название не может быть пустым', 'error');
+                return App.utils.toast('Title cannot be empty', 'error');
             }
 
-            // Если поле обложки очищено, отправляем null для обнуления в базе, чтобы сработала логика первого альбома
+            // If the cover field is cleared, send null to reset it in the database, allowing the first album logic to work
             if (cover_url.trim() === '') {
                 cover_url = null;
             }
@@ -245,22 +245,21 @@
             };
 
             try {
-                // Используем функцию обновления из модуля деталей списка
+                // Using the update function from the list details module
                 await App.details.updateList(this.currentListId, updateData);
                 this.close();
 
             } catch (e) {
-                // Ошибка уже обработана в App.details.updateList
+                // Error is already handled in App.details.updateList
             }
         }
     };
 
 
-    // === ГЛОБАЛЬНЫЕ ПРИВЯЗКИ ===
+    // === GLOBAL BINDINGS ===
     window.openListWindow = (albumId) => App.modal.open(albumId);
     window.closeListWindow = () => App.modal.close();
     window.saveNewList = () => App.modal.createNew();
-    /** НОВАЯ ГЛОБАЛЬНАЯ ФУНКЦИЯ ДЛЯ РЕДАКТИРОВАНИЯ */
     window.showListEditModal = (listData) => App.editModal.open(listData);
 
 })(window.ListApp);

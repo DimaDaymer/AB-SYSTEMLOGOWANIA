@@ -1,10 +1,5 @@
 /**
- * StarRating Reusable Component
- * * Создает интерактивный компонент звездного рейтинга внутри любого контейнера.
- * * @param {HTMLElement} container - DOM-элемент, в который будет встроен компонент.
- * @param {object} options - Объект конфигурации.
- * @param {boolean} [options.showValue=true] - Показывать ли цифровое значение (e.g., "4.5").
- * @param {string} [options.clearableText='×'] - Текст для кнопки очистки.
+/frontend/js/StarRating.js
  */
 class StarRating {
     constructor(container, options = {}) {
@@ -26,7 +21,8 @@ class StarRating {
                 <div class="rating-clear-wrapper">
                     <span class="rating-clear-btn" title="Clear rating">${this.options.clearableText}</span>
                 </div>
-                <div class="rating-stars">
+                <div 
+                class="rating-stars">
                     </div>
             </div>
         `;
@@ -44,11 +40,8 @@ class StarRating {
             const isHalfStar = (value * 10) % 10 === 5;
             const starType = isHalfStar ? 'left' : 'right';
 
-            // =========================================================
-            // !!! ИСПРАВЛЕНИЕ: Заменяем '.' на '_' в ID для совместимости с querySelector !!!
             const safeValue = value.toString().replace('.', '_');
             const inputId = `star-${Math.random().toString(36).substring(2, 9)}-${safeValue}`;
-            // =========================================================
 
             starsHtml += `
                 <input type="radio" name="${inputId}-group" id="${inputId}" value="${value}">
@@ -126,19 +119,11 @@ class StarRating {
         this.wrapper.dataset.hasValue = (this.value > 0).toString();
     }
 
-    // --- Публичные методы ---
-
-    /**
-     * Устанавливает текущее значение рейтинга и обновляет UI.
-     * @param {number} rating - Новое значение рейтинга (0 для очистки).
-     * @param {boolean} [dispatchEvent=false] - Оповестить ли внешний код о изменении.
-     */
     setValue(rating, dispatchEvent = false) {
         this.value = parseFloat(rating) || 0;
         this.updateVisuals();
 
         if (dispatchEvent) {
-            // Создаем кастомное событие, чтобы внешний код мог его "слушать"
             this.container.dispatchEvent(new CustomEvent('ratingChanged', {
                 detail: { rating: this.value },
                 bubbles: true
@@ -146,9 +131,6 @@ class StarRating {
         }
     }
 
-    /**
-     * @returns {number} Текущее значение рейтинга.
-     */
     getValue() {
         return this.value;
     }

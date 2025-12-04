@@ -38,7 +38,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
-        /* Styles from new_releases.html will be loaded dynamically, but these are for main layout */
+        /* Styles from chart-page.html will be loaded dynamically, but these are for main layout */
         h1 {
             color: #f0f0f0;
             margin-bottom: 20px;
@@ -239,11 +239,11 @@
         .catch(err => console.error('Failed to load navbar:', err));
 
     // Load New Releases (album list)
-    fetch('/new_releases.html')
+    fetch('/chart-page.html')
         .then(response => response.text())
         .then(html => {
             document.getElementById('album-list-container').innerHTML = html;
-            // Execute scripts within new_releases.html if any, for example the DOMContentLoaded listener
+            // Execute scripts within chart-page.html if any, for example the DOMContentLoaded listener
             const scripts = document.getElementById('album-list-container').querySelectorAll('script');
             scripts.forEach(script => {
                 const newScript = document.createElement('script');

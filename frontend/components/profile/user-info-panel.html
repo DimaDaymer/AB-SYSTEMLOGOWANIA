@@ -1,22 +1,22 @@
 <div class="avatar-wrapper">
     <div class="avatar">
         <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
-        <label for="avatarUpload" id="change-avatar-label" class="change-avatar-label" style="display:none;">Сменить аватар</label>
+        <label for="avatarUpload" id="change-avatar-label" class="change-avatar-label" style="display:none;">Change Avatar</label>
         <input type="file" id="avatarUpload" accept="image/*" style="display: none;" />
     </div>
 </div>
 
 <div class="user-info-content">
     <h1 id="nickname">...</h1>
-    <span><strong>Имя пользователя:</strong> <span id="display-username">...</span></span>
+    <span><strong>Username:</strong> <span id="display-username">...</span></span>
 
     <div id="info-fields"></div>
-    <div id="loading-error" style="color:red; margin-top: 10px; display:none;">Ошибка загрузки профиля. Возможно, вы не авторизованы или API не отвечает JSON.</div>
+    <div id="loading-error" style="color:red; margin-top: 10px; display:none;">Profile loading error. You might not be authorized or the API is not returning JSON.</div>
 
     <div class="profile-actions" style="margin-top: 15px;">
-        <button id="editProfileButton" class="edit-button" style="display:none;">Редактировать профиль</button>
+        <button id="editProfileButton" class="edit-button" style="display:none;">Edit Profile</button>
 
-        <button id="followButton" class="follow-button" style="display:none;">Подписаться</button>
+        <button id="followButton" class="follow-button" style="display:none;">Follow</button>
     </div>
 </div>
 
@@ -26,7 +26,7 @@
     .info-line { margin: 5px 0; color: #ccc; }
     .change-avatar-label { cursor: pointer; color: #00ffcc; display: block; margin-top: 5px; font-size: 0.9em; }
 
-    /* Стили для кнопки подписки */
+    /* Styles for the follow button */
     .follow-button {
         background-color: #00ffcc; color: #000; border: none; padding: 8px 16px;
         cursor: pointer; font-weight: bold; border-radius: 4px;
@@ -44,31 +44,30 @@
         const errorEl = document.getElementById('loading-error');
 
         async function initUserInfo() {
-            // Если свой профиль:
+            // If it's the user's own profile:
             if (!ctx.isPublic) {
                 document.getElementById('change-avatar-label').style.display = 'block';
                 const editBtn = document.getElementById('editProfileButton');
                 editBtn.style.display = 'inline-block';
-                editBtn.onclick = () => window.location.href = '/edit-profile';
-            }
-            // Если чужой профиль и мы залогинены:
+                editBtn.onclick = () => window.location.href = '/edit-profile.html';            }
+            // If it's another user's profile and we are logged in:
             else if (ctx.token) {
                 checkFollowStatus();
             }
 
             try {
-                // ИСПРАВЛЕНИЕ: Передаем пустую строку, чтобы получить /api/users/:username или /api/users/me
+                // FIX: Passing an empty string to get /api/users/:username or /api/users/me
                 const url = ctx.getApiUrl('');
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
                 const res = await fetch(url, { headers });
 
                 if (!res.ok) {
-                    // Если статус не 200 (например, 404 или 500)
+                    // If status is not 200 (e.g., 404 or 500)
                     throw new Error(`Profile fetch failed with status: ${res.status}`);
                 }
 
-                // Проверяем Content-Type, чтобы убедиться, что это JSON
+                // Check Content-Type to ensure it's JSON
                 const contentType = res.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     throw new Error('Received non-JSON response from profile API');
@@ -86,10 +85,10 @@
                 }
 
                 const fields = [
-                    { label: 'Возраст', value: data.age },
-                    { label: 'Страна', value: data.country },
-                    { label: 'О себе', value: data.description, isBlock: true },
-                    { label: 'Музыка', value: data.music, isBlock: true }
+                    { label: 'Age', value: data.age },
+                    { label: 'Country', value: data.country },
+                    { label: 'About Me', value: data.description, isBlock: true },
+                    { label: 'Music', value: data.music, isBlock: true }
                 ];
 
                 const fieldsContainer = document.getElementById('info-fields');
@@ -100,13 +99,13 @@
 
             } catch (e) {
                 console.error("UserInfo Error:", e);
-                // Если произошла ошибка (включая ошибку парсинга JSON), показываем пользователю
+                // If an error occurred (including JSON parsing error), show it to the user
                 errorEl.style.display = 'block';
-                errorEl.textContent = 'Ошибка загрузки профиля. Возможно, вы не авторизованы или API не отвечает JSON.';
+                errorEl.textContent = 'Profile loading error. You might not be authorized or the API is not returning JSON.';
             }
         }
 
-        // Логика кнопки Подписаться
+        // Follow button logic
         async function checkFollowStatus() {
             const btn = document.getElementById('followButton');
             btn.style.display = 'inline-block';
@@ -130,25 +129,25 @@
                     });
                     if (res.ok) {
                         updateFollowButton(!isFollowing);
-                        // Обновляем список друзей на правой панели
+                        // Update the friends list on the right panel
                         window.dispatchEvent(new CustomEvent('updateRightPanel'));
                     }
-                } catch (e) { alert('Ошибка действия'); }
+                } catch (e) { alert('Action Error'); }
             };
         }
 
         function updateFollowButton(isFollowing) {
             const btn = document.getElementById('followButton');
             if (isFollowing) {
-                btn.textContent = 'В друзьях (Отписаться)';
+                btn.textContent = 'Following (Unfollow)';
                 btn.classList.add('following');
             } else {
-                btn.textContent = 'Подписаться';
+                btn.textContent = 'Follow';
                 btn.classList.remove('following');
             }
         }
 
-        // Логика загрузки аватара
+        // Avatar upload logic
         document.getElementById('avatarUpload').addEventListener('change', async (e) => {
             if (ctx.isPublic) return;
             const file = e.target.files[0];

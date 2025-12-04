@@ -163,3 +163,119 @@
         margin-bottom: 20px;
     }
 }
+
+.filter-option-button.excluded {
+    background-color: #ff4d4d !important; /* Красный */
+    color: white !important;
+    border-color: #ff4d4d !important;
+}
+.filter-option-button.excluded:hover {
+    background-color: #cc0000 !important;
+}
+/* Небольшой индикатор минуса для ясности */
+.filter-option-button.excluded::after {
+    content: " ✖";
+    font-size: 0.8em;
+    margin-left: 4px;
+    opacity: 0.8;
+}
+
+/* Styles for the Grid layout and individual Tag items, common to all filter lists (Genres, Descriptions, Languages) */
+
+.tags-container {
+    display: grid;
+    /* Адаптивная сетка, минимум 130px на колонку */
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 6px;
+}
+
+/* ОСНОВНОЙ КОНТЕЙНЕР ТЕГА */
+.tag-item-wrapper {
+    display: flex;
+    height: 36px;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 0.85em;
+    user-select: none;
+    transition: box-shadow 0.15s;
+    border: 1px solid #555; /* Начальная граница */
+}
+.tag-item-wrapper:hover {
+    box-shadow: 0 0 5px rgba(0, 255, 204, 0.4);
+}
+
+/* ЭЛЕМЕНТ С ИМЕНЕМ (МЕТОЙ) */
+.tag-name-label {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    background-color: #444;
+    color: #ccc;
+    /* Запрещаем клик по имени, чтобы не путать с кнопками */
+    pointer-events: none;
+}
+
+/* КОНТРОЛЫ ВКЛЮЧЕНИЯ/ИСКЛЮЧЕНИЯ */
+.tag-controls {
+    display: flex;
+    width: 50px; /* Фиксированная ширина для кнопок */
+}
+
+.control-area {
+    width: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.1s, color 0.1s;
+}
+
+/* СТИЛИ ДЛЯ ВКЛЮЧЕНИЯ (✔) */
+.control-include {
+    background-color: #555;
+    color: #ccc;
+}
+.control-include:hover {
+    background-color: #008066; /* Темно-зеленый при наведении */
+}
+
+/* СТИЛИ ДЛЯ ИСКЛЮЧЕНИЯ (✖) */
+.control-exclude {
+    background-color: #555;
+    color: #ccc;
+}
+.control-exclude:hover {
+    background-color: #cc0000; /* Темно-красный при наведении */
+}
+
+/* --- АКТИВНЫЕ СОСТОЯНИЯ (Applied states) --- */
+
+/* ТЕГ ВКЛЮЧЕН (ЗЕЛЕНЫЙ) */
+.tag-item-wrapper.included .tag-name-label,
+.tag-item-wrapper.included .control-include {
+    background-color: #00ffcc !important;
+    color: #1a1a1a !important;
+}
+.tag-item-wrapper.included .control-exclude {
+    background-color: #444; /* Сброс неактивного контрола */
+    color: #aaa;
+}
+.tag-item-wrapper.included .control-include:hover {
+    background-color: #008066; /* Сохраняем ховер-цвет при активном включении */
+}
+
+/* ТЕГ ИСКЛЮЧЕН (КРАСНЫЙ) */
+.tag-item-wrapper.excluded .tag-name-label,
+.tag-item-wrapper.excluded .control-exclude {
+    background-color: #ff4d4d !important;
+    color: white !important;
+}
+.tag-item-wrapper.excluded .control-include {
+    background-color: #444; /* Сброс неактивного контрола */
+    color: #aaa;
+}
+.tag-item-wrapper.excluded .control-exclude:hover {
+    background-color: #cc0000; /* Сохраняем ховер-цвет при активном исключении */
+}

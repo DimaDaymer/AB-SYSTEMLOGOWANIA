@@ -2,9 +2,7 @@
     <div class="tab-header">
         <div class="tab active" data-tab="trackRatings">Track Rating</div>
         <div class="tab" data-tab="credits">Credits</div>
-        <div class="tab" data-tab="catalog">Catalog</div>
-        <div class="tab" data-tab="tags">Tags</div>
-    </div>
+        <div class="tab" data-tab="lists">Lists</div> </div>
 
     <div class="tab-content-container">
 
@@ -14,37 +12,16 @@
 
         <div class="tab-content" id="credits-tab-content">
             <div class="credits-tab">
-                <div class="credits-container">
-                    <div class="loading">Loading credits...</div>
-                </div>
+                <div id="credits-container"></div>
             </div>
         </div>
 
-        <div class="tab-content" id="catalog-tab-content">
-            <div class="catalog-tab">
-                <div class="catalog-container">
-                    <div class="loading">Loading catalog info...</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="tags-tab-content">
-            <div class="tags-tab">
-                <div class="tags-container">
-                    <div class="tags-input-container">
-                        <input type="text" id="tag-input" placeholder="Add a tag...">
-                        <button id="add-tag-btn">Add</button>
-                    </div>
-                    <div class="tags-list">
-                        <div class="loading">Loading tags...</div>
-                    </div>
-                </div>
-            </div>
+        <div class="tab-content" id="lists-tab-content"> <div class="lists-tab">
+            <div id="album-lists-tab-container"></div>
         </div>
 
     </div>
 </div>
-
 <style>
     .tabs { margin-top: 0; }
     .tab-header { display: flex; border-bottom: 1px solid #444; margin-bottom: 15px; }
@@ -64,20 +41,17 @@
             const tab = e.target.closest('.tab');
             if (!tab) return;
 
-            // Переключение классов
             tabHeader.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
             tabContents.forEach(c => c.classList.remove('active'));
 
-            // Поиск контента по ID: "trackRatings" + "-tab-content"
             const tabId = tab.dataset.tab;
             const content = document.getElementById(`${tabId}-tab-content`);
 
             if (content) {
                 content.classList.add('active');
-                // Если компонент нужно обновить при клике (опционально)
-                // window.components[`${tabId}Tab`].update(...)
+
             }
         });
     })();

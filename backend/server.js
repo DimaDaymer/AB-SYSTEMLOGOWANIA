@@ -1,7 +1,8 @@
 // backend/server.js
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
-const cors = require('cors');const path = require('path');
+const cors = require('cors');
+const path = require('path');
 const { pool, initializeDatabase } = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,7 +12,13 @@ console.log('Database:', process.env.DB_NAME);
 console.log('JWT Secret:', process.env.JWT_SECRET ? 'Set' : 'Not set');
 
 app.use(express.json());
+// Статическая раздача файлов фронтенда
 app.use(express.static(path.join(__dirname, '../frontend')));
+const PUBLIC_DIR = path.join(__dirname, 'routes', 'public');
+app.use('/public', express.static(PUBLIC_DIR));
+const UPLOAD_DIR = path.join(__dirname, 'routes', 'public', 'uploads', 'avatars');
+
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.use(cors({
     origin: '*',
@@ -22,7 +29,6 @@ app.use(cors({
 const albumsRoute = require('./routes/albums')(pool);
 const authRoute = require('./routes/auth');
 const userRoutes = require('./routes/user');
-const uploadRoute = require('./routes/upload');
 const ratingsRoute = require('./routes/ratings');
 const actionsRoute = require('./routes/actions');
 const trackRatingsRoute = require('./routes/trackRatings')(pool);
@@ -30,32 +36,34 @@ const filtersRoute = require('./routes/filters')(pool);
 const userListsRoutes = require('./routes/userLists');
 const artistRoutes = require('./routes/artist')(pool);
 const tagsRouter = require('./routes/tags');
+const uploadRoute = require('./routes/upload');
+const reviewsRoutes = require('./routes/reviews');
+const creditsRoutes = require('./routes/credits');
 
-app.use('/api/track-ratings', trackRatingsRoute);
+// --- ИСПОЛЬЗОВАНИЕ РОУТОВ ---
 app.use('/api/albums', albumsRoute);
 app.use('/api/auth', authRoute);
-
 app.use('/api/users', userRoutes);
-app.use('/api/users/upload', uploadRoute);
-
 app.use('/api/ratings', ratingsRoute);
 app.use('/api/actions', actionsRoute);
+app.use('/api/track-ratings', trackRatingsRoute);
 app.use('/api/filters', filtersRoute);
 app.use('/api/user-lists', userListsRoutes);
-app.use('/api/artists', artistRoutes);
+app.use('/api/artist', artistRoutes);
 app.use('/api/tags', tagsRouter);
-
-// === HTML ROUTES ===
+app.use('/api/users/upload', uploadRoute);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/credits', creditsRoutes(pool));
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
 });
 
-app.get('/login.html', (req, res) => {
+app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
-app.get('/register.html', (req, res) => {
+app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/register.html'));
 });
 
@@ -64,15 +72,12 @@ app.get('/profile', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/profile.html'));
 });
 
-// *** НОВЫЙ МАРШРУТ: Профиль другого пользователя ***
 app.get('/user/:username', (req, res) => {
-    // Используем тот же файл, логика переключения "свой/чужой" будет на фронтенде
     res.sendFile(path.join(__dirname, '../frontend/profile.html'));
 });
-// ***************************************************
 
-app.get('/new_releases.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/new_releases.html'));
+app.get('/chart-page.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/chart-page.html'));
 });
 
 app.get('/release/album/:slug', (req, res) => {
@@ -83,27 +88,7 @@ app.get('/edit_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/edit_album.html'));
 });
 
-app.get('/genre_page.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/genres_list.html'));
-});
-
-app.get('/descripstion_list.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/genres_list.html'));
-});
-
-app.get('/language_list.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/language_list.html'));
-});
-
 app.get('/list.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
-});
-
-app.get('/list_window.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/components/lists/list_window.html'));
-});
-
-app.get('/lists_page.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
 });
 
@@ -115,11 +100,15 @@ app.get('/list/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
 });
 
-app.get('/artist', (req, res) => {
+app.get('/artist:slug', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/artist.html'));
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.get('/credits-tab.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/components/albums/credits.html'));
+});
+
+app.use('/uploads', express.static('uploads'));
 app.use('/js', express.static(path.join(__dirname, '../frontend/js')));
 
 app.use((req, res, next) => {

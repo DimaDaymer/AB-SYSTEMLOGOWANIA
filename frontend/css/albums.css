@@ -408,3 +408,33 @@ body {
     }
 }
 
+
+/* Добавленные стили для списков альбомов из HTML-фрагмента */
+
+#album-lists-content {
+    /* Добавляем стили для контейнера списка альбомов */
+    padding-top: 5px; /* Сохраняем inline стиль */
+}
+
+#album-lists-list-container {
+    /* Контейнер для флекс-обёртки списков */
+    display: flex;
+    flex-wrap: wrap;
+    /* Можно добавить gap, если нужно расстояние между элементами списка */
+    gap: 15px;
+    justify-content: flex-start; /* Начинаем элементы с начала */
+}
+
+#album-lists-list-container > p {
+    /* Стили для текста "Загрузка списков..." */
+    color: #777;
+    font-size: 0.9em;
+    padding: 10px 0; /* Для лучшего отступа */
+}
+
+#album-lists-footer {
+    /* Стили для футера списка альбомов (пагинация или дополнительная инфо) */
+    padding-top: 15px;
+    text-align: center;
+    color: #aaa; /* Цвет текста в футере */
+}

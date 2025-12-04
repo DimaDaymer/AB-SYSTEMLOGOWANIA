@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Список</title>
+    <title>List</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="/css/lists.css">
 </head>
@@ -11,27 +11,27 @@
 <div class="content-wrapper">
     <div class="list-header">
         <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <h1>Загрузка...</h1>
-            <button id="edit-list-btn" class="action-button" style="display:none; padding: 8px 12px; background: #555; color: #fff; border: none; border-radius: 4px; cursor: pointer;">✏️ Редактировать</button>
+            <h1>Loading...</h1>
+            <button id="edit-list-btn" class="action-button" style="display:none; padding: 8px 12px; background: #555; color: #fff; border: none; border-radius: 4px; cursor: pointer;">✏️ Edit</button>
         </div>
         <p>...</p>
         <div class="list-description" style="margin-top:10px; color:#aaa; font-style:italic;"></div>
     </div>
 
     <div class="list-controls">
-        <label for="sort-by">Сортировать:</label>
-        <select id="sort-by" aria-label="Параметр сортировки списка альбомов">
-            <option value="added_desc">Сначала новые</option>
-            <option value="added_asc">Сначала старые</option>
-            <option value="rating_desc">По рейтингу</option>
-            <option value="title_asc">По алфавиту (А-Я)</option>
-            <option value="sort_order_asc">Вручную (Drag & Drop)</option>
+        <label for="sort-by">Sort by:</label>
+        <select id="sort-by" aria-label="Album list sort parameter">
+            <option value="added_desc">Newest first</option>
+            <option value="added_asc">Oldest first</option>
+            <option value="rating_desc">By rating</option>
+            <option value="title_asc">Alphabetical (A-Z)</option>
+            <option value="sort_order_asc">Manual (Drag & Drop)</option>
         </select>
-        <button id="save-sort-btn" style="display:none; margin-left: 10px; padding: 8px 12px; background: #00ffcc; color: #111; border: none; border-radius: 4px; cursor: pointer;">Сохранить сортировку</button>
+        <button id="save-sort-btn" style="display:none; margin-left: 10px; padding: 8px 12px; background: #00ffcc; color: #111; border: none; border-radius: 4px; cursor: pointer;">Save sort order</button>
     </div>
 
     <div class="album-list-container">
-        <p style="color: #777;">Загрузка альбомов...</p>
+        <p style="color: #777;">Loading albums...</p>
     </div>
 </div>
 

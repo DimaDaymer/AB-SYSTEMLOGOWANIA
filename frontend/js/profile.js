@@ -80,12 +80,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // === 3. ЗАПУСК ===
     // Загружаем блоки.
+    // === 3. ЗАПУСК ===
     await Promise.all([
         loadComponent('user-info-component', '/components/profile/user-info-panel.html'),
         loadComponent('tabs-component', '/components/profile/tabs-panel.html'),
         loadComponent('right-panel-component', '/components/profile/right-panel.html'),
+        loadComponent('user-lists-component', '/components/profile/user_lists.html'),
 
-        // --- ДОБАВЛЕНА ЭТА СТРОКА ---
-        loadComponent('user-lists-component', '/components/profile/user_lists.html')
+        // --- ДОБАВЬТЕ ЭТУ СТРОКУ ---
+        loadComponent('comment-box-component', '/components/profile/comment-box-profile.html')
     ]);
 });

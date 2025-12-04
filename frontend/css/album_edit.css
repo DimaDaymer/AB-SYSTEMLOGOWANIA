@@ -1,0 +1,175 @@
+/* album_edit.css */
+
+/* Общие стили для контейнера формы */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background-color: #1f1f1f;
+    color: #f0f0f0;
+    padding: 40px 20px;
+}
+.form-container {
+    width: 100%;
+    max-width: 600px;
+}
+.form-card {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Заголовки (Цвет будет зависеть от страницы, см. ниже) */
+h1 {
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Общие стили для полей формы */
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+.form-control, .form-select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    background-color: #333;
+    color: #f0f0f0;
+    box-sizing: border-box;
+}
+.form-control:focus, .form-select:focus, textarea:focus {
+    outline: none;
+    /* Цвет границы при фокусе будет установлен в стилях конкретной страницы */
+}
+
+/* Стили для секции классификации (Primary Format и Attributes) */
+.classification-box {
+    background: #333;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    margin-bottom: 20px;
+}
+.classification-box > label {
+    margin-bottom: 10px;
+}
+.classification-box .form-select-group {
+    margin-bottom: 15px;
+}
+.classification-box label[style] { /* Применяется к label с font-size: 0.9em; color: #ccc; */
+    font-size: 0.9em;
+    color: #ccc;
+}
+.attr-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+.attr-grid label {
+    font-weight: normal;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.attr-grid input[type="checkbox"] {
+    margin-right: 8px;
+    width: auto; /* Переопределяем width: 100% от .form-control */
+}
+
+/* Стили для секции треклиста */
+.tracklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+#tracklist-container > div {
+    display: grid;
+    grid-template-columns: 50px 1fr 100px 30px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.track-delete {
+    cursor: pointer;
+    color: #ff5555;
+    font-weight: bold;
+    text-align: center;
+}
+.track-delete:hover {
+    color: #ff0000;
+}
+
+/* Общие стили для кнопок */
+.button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    color: #1f1f1f; /* Цвет текста будет зависеть от страницы */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+.button.small-btn { /* Стиль для кнопки '+ Add Track' */
+    width: auto;
+    margin-top: 0;
+    padding: 5px 15px;
+}
+
+/* Стили для формы РЕДАКТИРОВАНИЯ (акцент - оранжевый) */
+.edit-form-accent h1, .edit-form-accent .classification-box > label {
+    color: #FFC107;
+}
+.edit-form-accent .button {
+    background-color: #FFC107;
+    color: #1f1f1f;
+}
+.edit-form-accent .button:hover {
+    background-color: #e0ac06;
+}
+.edit-form-accent .form-control:focus, .edit-form-accent .form-select:focus, .edit-form-accent textarea:focus {
+    border-color: #FFC107;
+    box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+}
+
+
+/* Стили для формы ДОБАВЛЕНИЯ (акцент - зеленый) */
+.add-form-accent h1, .add-form-accent .classification-box > label {
+    color: #4CAF50;
+}
+.add-form-accent .button {
+    background-color: #4CAF50;
+    color: white;
+}
+.add-form-accent .button:hover {
+    background-color: #45a049;
+}
+.add-form-accent .form-control:focus, .add-form-accent .form-select:focus, .add-form-accent textarea:focus {
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+
+/* Стили для превью обложки в Edit */
+#current-cover {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 5px;
+}
+#no-cover-text {
+    color: #999;
+}

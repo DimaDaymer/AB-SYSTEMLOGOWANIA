@@ -1,24 +1,24 @@
 // frontend/js/list-app-core.js
 
 const ListApp = {
-    // === ОБЩИЙ СТЭЙТ ===
+    // === GLOBAL STATE ===
     state: {
-        currentAlbumId: null, // ID альбома для модального окна добавления
-        currentListSlug: null, // Slug текущего списка (для list.html)
+        currentAlbumId: null, // Album ID for the add modal window
+        currentListSlug: null, // Slug of the current list (for list.html)
         currentUser: null,
-        listId: null, // ID списка (для list.html)
-        isOwner: false, // Флаг владельца (для list.html)
-        isOrderModified: false, // Флаг для ручной сортировки (для list.html)
-        currentSortMethod: 'added_desc', // Текущий метод сортировки (для list.html)
+        listId: null, // List ID (for list.html)
+        isOwner: false, // Owner flag (for list.html)
+        isOrderModified: false, // Flag for manual sorting (for list.html)
+        currentSortMethod: 'added_desc', // Current sorting method (for list.html)
     },
 
-    // === УТИЛИТЫ ===
+    // === UTILITIES ===
     utils: {
         getCurrentUser() {
             const token = localStorage.getItem('token');
             if (!token) return null;
             try {
-                // Декодирование JWT
+                // JWT decoding
                 return JSON.parse(atob(token.split('.')[1]));
             } catch (e) {
                 return null;
@@ -32,7 +32,7 @@ const ListApp = {
 
             const response = await fetch(url, { ...options, headers });
 
-            // Обработка ошибок (не response.ok)
+            // Error handling (not response.ok)
             if (!response.ok) {
                 const isJson = response.headers.get('content-type')?.includes('application/json');
                 let data;
@@ -40,12 +40,12 @@ const ListApp = {
                 try {
                     data = await (isJson ? response.json() : response.text());
                 } catch(e) {
-                    data = `Ошибка чтения ответа от сервера. Статус: ${response.status}`;
+                    data = `Error reading response from server. Status: ${response.status}`;
                 }
 
                 if (response.status === 401) localStorage.removeItem('token');
 
-                const errorMessage = isJson ? (data.error || data.message || `Ошибка ${response.status}`) : `Ошибка API: ${response.status} ${response.statusText}`;
+                const errorMessage = isJson ? (data.error || data.message || `Error ${response.status}`) : `API Error: ${response.status} ${response.statusText}`;
 
                 throw new Error(errorMessage);
             }

@@ -188,9 +188,9 @@
 
     <div class="navbar-center">
         <a href="/browse.html">Browse</a>
-        <a href="/new_releases.html">New Releases</a>
+        <a href="/chart-page.html">Charts</a>
         <a href="/genres">Genres</a>
-        <a href="/components/lists/lists_page.html">Lists</a>
+        <a href="/global_lists.html">Lists</a>
     </div>
     <div class="navbar-right">
         <div class="search-container">
@@ -261,19 +261,25 @@
     }
     const currentPath = window.location.pathname;
     document.querySelectorAll('.navbar-center a').forEach(link => {
+        // Здесь используется `link.getAttribute('href')`, но `searchInput` не определен в этой области видимости.
+        // Переменную `searchInput` нужно объявить в скрипте.
         if (link.getAttribute('href') === currentPath) {
             link.classList.add('active');
         }
     });
-    searchInput.addEventListener('input', async (e) => {
-        const query = e.target.value;
-        if (query.length < 3) return;
 
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const results = await response.json();
+    const searchInput = document.querySelector('.search-input'); // Объявляем searchInput здесь
+    if (searchInput) {
+        searchInput.addEventListener('input', async (e) => {
+            const query = e.target.value;
+            if (query.length < 3) return;
 
-    });
-    document.addEventListener('DOMContentLoaded', initNavbar);
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const results = await response.json();
+            // Логика отображения результатов поиска отсутствует, но для работы навбара это не критично.
+        });
+    }
+
 </script>
 </body>
 </html>

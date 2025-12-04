@@ -2,21 +2,21 @@
     window.components = window.components || {};
     window.components.listsTab = {
 
-        // Для Recent (Rated Albums)
+        // For Recent (Rated Albums)
         loadRatedAlbums: async function(containerId) {
             const ctx = window.ProfileContext;
             const url = ctx.getApiUrl('rated-albums');
             await this._fetchAndRender(url, containerId);
         },
 
-        // Для Actions (Listen, Like, Wishlist)
+        // For Actions (Listen, Like, Wishlist)
         loadUserActions: async function(type, containerId) {
             const ctx = window.ProfileContext;
             const url = ctx.getActionUrl(type);
             await this._fetchAndRender(url, containerId);
         },
 
-        // Общая функция рендера
+        // Common render function
         _fetchAndRender: async function(url, containerId) {
             const container = document.getElementById(containerId);
             if(!container) return;
@@ -37,9 +37,9 @@
 
                 container.innerHTML = '';
                 items.forEach(item => {
-                    // Используем общий стиль списка
+                    // Use common list style
                     const div = document.createElement('div');
-                    div.className = 'album-entry'; // Предполагается, что CSS для этого в global или tab-panel
+                    div.className = 'album-entry'; // Assumes CSS for this is in global or tab-panel
                     div.innerHTML = `
                     <img src="${item.cover_url || '/assets/placeholder.png'}" class="list-cover">
                     <div class="list-info">

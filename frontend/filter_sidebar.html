@@ -14,45 +14,65 @@
         </select>
     </div>
 
-    <div class="filter-search-container">
-        <input type="text" class="filter-search-input" placeholder="Examples of filters" id="filter-search-input">
+    <div class="filter-section">
+        <h3>My Activity</h3>
+        <div class="status-filter-options" style="display: flex; flex-direction: column; gap: 5px;">
+            <label><input type="radio" name="user_status" value="all" checked> Show All</label>
+            <label><input type="radio" name="user_status" value="listened"> Only Listened</label>
+            <label><input type="radio" name="user_status" value="not_listened"> Exclude Listened</label>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid #444; padding-top: 10px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="one-per-artist" style="margin-right: 8px;">
+                One per artist <br><span style="font-size: 0.8em; color: #888; margin-left: 5px;">(Highest Rated)</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="filter-search-container" style="position: relative;">
+        <input type="text" class="filter-search-input" placeholder="Search (Artist, Title, Tags...)" id="filter-search-input">
         <span class="filter-search-icon">🔍</span>
+        <div id="autocomplete-results" class="autocomplete-results"></div> </div>
+
+    <div class="filter-section">
+        <h3>Format</h3>
+        <div class="tags-container" id="format-options-container">
+            <span style="color: #666; font-size: 0.9em;">Loading...</span>
+        </div>
     </div>
 
     <div class="filter-section">
-        <h3>Format</h3> <div class="filter-options-grid" id="format-options-container">
-        <span style="color: #666; font-size: 0.9em;">Loading...</span>
-    </div>
-    </div>
-
-    <div class="filter-section">
-        <h3>Attributes</h3> <div class="filter-options-grid" id="attribute-options-container">
-        <span style="color: #666; font-size: 0.9em;">Loading...</span>
-    </div>
+        <h3>Attributes</h3>
+        <div class="tags-container" id="attribute-options-container">
+            <span style="color: #666; font-size: 0.9em;">Loading...</span>
+        </div>
     </div>
 
     <div class="filter-section">
         <h3>Genres</h3>
-        <p class="metadata"><span id="genres-count">...</span> genres</p>
+        <p class="metadata">
+            <span id="genres-count">...</span> available
+            <span id="genres-selected-text" style="display:none; color: #00ffcc; margin-left: 5px;"></span>
+        </p>
         <a href="#" id="browse-genres-button" class="filter-link-button">Browse genres ▶</a>
     </div>
 
     <div class="filter-section">
         <h3>Descriptors</h3>
-        <p class="metadata"><span id="description-count">...</span> description</p>
+        <p class="metadata">
+            <span id="description-count">...</span> available
+            <span id="description-selected-text" style="display:none; color: #00ffcc; margin-left: 5px;"></span>
+        </p>
         <a href="#" id="browse-description-button" class="filter-link-button">Browse description ▶</a>
     </div>
 
     <div class="filter-section">
         <h3>Languages</h3>
-        <p class="metadata"><span id="language-count">...</span> language</p>
+        <p class="metadata">
+            <span id="language-count">...</span> available
+            <span id="language-selected-text" style="display:none; color: #00ffcc; margin-left: 5px;"></span>
+        </p>
         <a href="#" id="browse-language-button" class="filter-link-button">Browse language ▶</a>
-    </div>
-
-    <div class="filter-section">
-        <h3>Locations</h3>
-        <p class="metadata">257 locations</p>
-        <a href="#" class="filter-link-button">Browse locations ▶</a>
     </div>
 
     <div class="filter-section">
@@ -68,100 +88,246 @@
 </div>
 
 <script>
-    function updateUrl() {
-        const params = new URLSearchParams();
+    // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (Добавлены Форматы и Атрибуты) ---
+    window.selectedGenresArray = window.selectedGenresArray || [];
+    window.selectedDescriptionArray = window.selectedDescriptionArray || [];
+    window.selectedLanguageArray = window.selectedLanguageArray || [];
 
-        // Sorting & Search
+    window.selectedFormatArray = window.selectedFormatArray || [];
+    window.excludedFormatArray = window.excludedFormatArray || [];
+    window.selectedAttributeArray = window.selectedAttributeArray || [];
+    window.excludedAttributeArray = window.excludedAttributeArray || [];
+
+    // --- ГЛОБАЛЬНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ URL (Обновлена для форматов/атрибутов) ---
+    window.updateUrl = function() {
+        const params = new URLSearchParams(window.location.search);
+
+        // --- Standard Sort/Search ---
         const sortBy = document.getElementById('sort-by').value;
-        if (sortBy && sortBy !== 'release_date') params.set('sort', sortBy); // Если дефолт, то не отправляем
+        if (sortBy && sortBy !== 'release_date') params.set('sort', sortBy);
+        else params.delete('sort');
+
         const sortOrder = document.getElementById('sort-order').value;
-        if (sortOrder && sortOrder !== 'desc') params.set('order', sortOrder); // Если дефолт, то не отправляем
-        const searchInput = document.getElementById('filter-search-input').value;
-        if (searchInput) params.set('search', searchInput);
+        if (sortOrder && sortOrder !== 'desc') params.set('order', sortOrder);
+        else params.delete('order');
 
-        // === ОБНОВЛЕНО: Сбор данных с ДВУХ контейнеров ===
-        // Форматы
-        const selectedFormats = Array.from(document.querySelectorAll('#format-options-container .filter-option-button.active'))
-            .map(btn => btn.dataset.filterValue);
+        // --- Обработка поискового параметра ---
+        const searchInput = document.getElementById('filter-search-input');
+        if (searchInput && searchInput.value) params.set('search', searchInput.value);
+        else params.delete('search');
+        // ------------------------------------------
 
-        // Атрибуты (Теперь отдельный параметр)
-        const selectedAttrs = Array.from(document.querySelectorAll('#attribute-options-container .filter-option-button.active'))
-            .map(btn => btn.dataset.filterValue);
+        // --- User Activity Filters ---
+        const userStatus = document.querySelector('input[name="user_status"]:checked').value;
+        if (userStatus && userStatus !== 'all') params.set('status', userStatus);
+        else params.delete('status');
 
-        if (selectedFormats.length > 0) params.set('format', selectedFormats.join(','));
-        if (selectedAttrs.length > 0) params.set('attributes', selectedAttrs.join(',')); // <-- НОВЫЙ ПАРАМЕТР
+        const onePerArtist = document.getElementById('one-per-artist').checked;
+        if (onePerArtist) params.set('one_per_artist', 'true');
+        else params.delete('one_per_artist');
+        // ----------------------------------
 
-        // Genres, Desc, Lang
+        // --- Formats & Attributes (Используем новые глобальные массивы) ---
+        if (window.selectedFormatArray && window.selectedFormatArray.length > 0) params.set('format', window.selectedFormatArray.join(','));
+        else params.delete('format');
+        if (window.excludedFormatArray && window.excludedFormatArray.length > 0) params.set('exclude_format', window.excludedFormatArray.join(','));
+        else params.delete('exclude_format');
+
+        if (window.selectedAttributeArray && window.selectedAttributeArray.length > 0) params.set('attributes', window.selectedAttributeArray.join(','));
+        else params.delete('attributes');
+        if (window.excludedAttributeArray && window.excludedAttributeArray.length > 0) params.set('exclude_attributes', window.excludedAttributeArray.join(','));
+        else params.delete('exclude_attributes');
+
+        // --- Tags (Используем глобальные массивы) ---
         if (window.selectedGenresArray && window.selectedGenresArray.length > 0) params.set('genres', window.selectedGenresArray.join(','));
+        else params.delete('genres');
         if (window.selectedDescriptionArray && window.selectedDescriptionArray.length > 0) params.set('description', window.selectedDescriptionArray.join(','));
+        else params.delete('description');
         if (window.selectedLanguageArray && window.selectedLanguageArray.length > 0) params.set('language', window.selectedLanguageArray.join(','));
+        else params.delete('language');
 
-        // Years logic (без изменений)
-        const activeYearButton = document.querySelector('#year-grid .filter-option-button.active');
+        // --- Timeframe ---
         const timeframeRadio = document.querySelector('input[name="timeframe"]:checked');
         const timeframe = timeframeRadio ? timeframeRadio.value : 'all-time';
 
-        if (activeYearButton) {
-            if (activeYearButton.dataset.year) params.set('year', activeYearButton.dataset.year);
-            else if (activeYearButton.dataset.yearRange) params.set('yearRange', activeYearButton.dataset.yearRange);
-        } else {
-            if (timeframe === 'specific-year') {
-                const val = document.getElementById('specific-year-input').value;
-                if (val) val.endsWith('s') ? params.set('yearRange', val) : params.set('year', val);
-            } else if (timeframe === 'year-range') {
-                const val = document.getElementById('year-range-input').value;
-                if (val) params.set('yearRange', val);
-            }
+        params.delete('year');
+        params.delete('yearRange');
+
+        if (timeframe === 'specific-year') {
+            const val = document.getElementById('specific-year-input').value;
+            if (val) val.endsWith('s') ? params.set('yearRange', val) : params.set('year', val);
+        } else if (timeframe === 'year-range') {
+            const val = document.getElementById('year-range-input').value;
+            if (val) params.set('yearRange', val);
         }
 
-        history.pushState(null, '', `/new_releases.html?${params.toString()}`);
-        if (window.applyFilters) window.applyFilters();
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.pushState(null, '', newUrl);
+        if (window.applyFilters) window.applyFilters(); // Глобальная функция из main.js
+
+        updateSelectedCountsUI();
+    };
+
+
+    function updateSelectedCountsUI() {
+        const updateText = (arr, elId) => {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            // Проверяем все массивы (включенные/исключенные) для форматов/атрибутов,
+            // но для остальных только включенные.
+            let count = arr ? arr.length : 0;
+
+            if (elId === 'genres-selected-text') {
+                count = window.selectedGenresArray.length + window.excludedGenresArray.length;
+            } else if (elId === 'description-selected-text') {
+                count = window.selectedDescriptionArray.length + window.excludedDescriptionArray.length;
+            } else if (elId === 'language-selected-text') {
+                count = window.selectedLanguageArray.length + window.excludedLanguageArray.length;
+            }
+
+            // Форматы и Атрибуты не имеют отдельных счетчиков, только общее обновление.
+            // Их счетчики будут отображаться внутри самой кнопки, как у Жанров.
+
+            if (count > 0) {
+                el.textContent = `(${count} selected)`;
+                el.style.display = 'inline';
+            } else {
+                el.style.display = 'none';
+            }
+        };
+        updateText(window.selectedGenresArray, 'genres-selected-text');
+        updateText(window.selectedDescriptionArray, 'description-selected-text');
+        updateText(window.selectedLanguageArray, 'language-selected-text');
     }
 
-    // === ФУНКЦИИ ЗАГРУЗКИ И ИНИЦИАЛИЗАЦИИ ===
+    // --- Обновленная функция для загрузки форматов и атрибутов ---
     async function loadFormatsAndAttributes() {
         const formatContainer = document.getElementById('format-options-container');
         const attrContainer = document.getElementById('attribute-options-container');
+        if (!formatContainer || !attrContainer) return;
 
         try {
-            // Примечание: предполагаем, что этот API возвращает два списка
             const response = await fetch('/api/filters/formats');
             if (response.ok) {
-                const data = await response.json(); // Ожидаемый формат: { formats: [...], attributes: [...] }
-
-                // Рендер Форматов
+                const data = await response.json();
                 formatContainer.innerHTML = '';
-                data.formats.forEach(item => createButton(item, formatContainer));
-
-                // Рендер Атрибутов
+                data.formats.forEach(item => createTagElement(item, formatContainer, 'Format'));
                 attrContainer.innerHTML = '';
-                data.attributes.forEach(item => createButton(item, attrContainer));
-
-            } else {
-                formatContainer.innerHTML = 'Error';
-                attrContainer.innerHTML = 'Error';
+                data.attributes.forEach(item => createTagElement(item, attrContainer, 'Attribute'));
             }
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    function createButton(text, container) {
-        const btn = document.createElement('div');
-        btn.className = 'filter-option-button';
-        btn.dataset.filterValue = text;
-        btn.textContent = text;
-        btn.addEventListener('click', function() {
-            this.classList.toggle('active');
-            updateUrl();
+    /**
+     * Создает элемент тега с контролами включения/исключения.
+     * Аналогично логике из filter_list.js, но адаптировано для бокового меню.
+     */
+    function createTagElement(item, container, filterType) {
+        const selectedArrayName = `selected${filterType}Array`;
+        const excludedArrayName = `excluded${filterType}Array`;
+
+        let currentSelectedArray = window[selectedArrayName];
+        let currentExcludedArray = window[excludedArrayName];
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tag-item-wrapper';
+        wrapper.dataset.tag = item;
+
+        const nameLabel = document.createElement('div');
+        nameLabel.className = 'tag-name-label';
+        nameLabel.textContent = item;
+
+        const controls = document.createElement('div');
+        controls.className = 'tag-controls';
+
+        const includeBtn = document.createElement('div');
+        includeBtn.className = 'control-area control-include';
+        includeBtn.textContent = '✔';
+        includeBtn.dataset.action = 'include';
+
+        const excludeBtn = document.createElement('div');
+        excludeBtn.className = 'control-area control-exclude';
+        excludeBtn.textContent = '✖';
+        excludeBtn.dataset.action = 'exclude';
+
+        controls.appendChild(includeBtn);
+        controls.appendChild(excludeBtn);
+        wrapper.appendChild(nameLabel);
+        wrapper.appendChild(controls);
+
+        // --- ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ---
+        const checkState = () => {
+            wrapper.classList.remove('included', 'excluded');
+            if (currentSelectedArray.includes(item)) {
+                wrapper.classList.add('included');
+            } else if (currentExcludedArray.includes(item)) {
+                wrapper.classList.add('excluded');
+            }
+        };
+
+        checkState(); // Устанавливаем начальное состояние
+
+        // --- ОБРАБОТКА КЛИКА ---
+        wrapper.addEventListener('click', (e) => {
+            const target = e.target.closest('.control-area');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            const isIncluded = currentSelectedArray.includes(item);
+            const isExcluded = currentExcludedArray.includes(item);
+
+            // Удаление тега из обоих списков (нейтрализация)
+            const neutralize = () => {
+                window[selectedArrayName] = currentSelectedArray.filter(i => i !== item);
+                window[excludedArrayName] = currentExcludedArray.filter(i => i !== item);
+                currentSelectedArray = window[selectedArrayName];
+                currentExcludedArray = window[excludedArrayName];
+            };
+
+            if (action === 'include') {
+                if (isIncluded) {
+                    // Был включен -> Нейтрально
+                    neutralize();
+                } else {
+                    // Был исключен/нейтрально -> Включен
+                    neutralize();
+                    currentSelectedArray.push(item);
+                }
+            } else if (action === 'exclude') {
+                if (isExcluded) {
+                    // Был исключен -> Нейтрально
+                    neutralize();
+                } else {
+                    // Был включен/нейтрально -> Исключен
+                    neutralize();
+                    currentExcludedArray.push(item);
+                }
+            }
+
+            checkState();
+            window.updateUrl(); // Используем глобальную функцию для обновления URL и фильтрации
         });
-        container.appendChild(btn);
+
+        container.appendChild(wrapper);
     }
 
-    // ... helper functions (без изменений) ...
-    async function fetchGenreCount() { try { const r = await fetch('/api/filters/genres-count'); if(r.ok) document.getElementById('genres-count').textContent = (await r.json()).count.toLocaleString(); } catch(e){} }
-    async function fetchDescriptionCount() { try { const r = await fetch('/api/filters/description-count'); if(r.ok) document.getElementById('description-count').textContent = (await r.json()).count.toLocaleString(); } catch(e){} }
-    async function fetchLanguageCount() { try { const r = await fetch('/api/filters/language-count'); if(r.ok) document.getElementById('language-count').textContent = (await r.json()).count.toLocaleString(); } catch(e){} }
+    // Функция createButton больше не нужна для форматов/атрибутов
+
+    async function fetchCounts() {
+        const getCount = async (url, id) => {
+            try {
+                const r = await fetch(url, { cache: 'no-store' });
+                if (r.ok) {
+                    const d = await r.json();
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = d.count.toLocaleString();
+                }
+            } catch (e) {}
+        };
+        await getCount('/api/filters/genres-count', 'genres-count');
+        await getCount('/api/filters/description-count', 'description-count');
+        await getCount('/api/filters/language-count', 'language-count');
+    }
 
     function loadDynamicContent(url, cid) {
         const c = document.getElementById(cid); if(!c) return;
@@ -175,63 +341,104 @@
         });
     }
 
-    function loadGenresList() { loadDynamicContent('/genres_list.html', 'filter-sidebar-container'); }
-    function loadDescriptionList() { loadDynamicContent('/description_list.html', 'filter-sidebar-container'); }
-    function loadLanguageList() { loadDynamicContent('/language_list.html', 'filter-sidebar-container'); }
+    function setupNavButtons() {
+        const gb = document.getElementById('browse-genres-button');
+        if(gb) gb.addEventListener('click', (e)=>{e.preventDefault(); loadDynamicContent('/genres_list.html', 'filter-sidebar-container');});
+        const db = document.getElementById('browse-description-button');
+        if(db) db.addEventListener('click', (e)=>{e.preventDefault(); loadDynamicContent('/description_list.html', 'filter-sidebar-container');});
+        const lb = document.getElementById('browse-language-button');
+        if(lb) lb.addEventListener('click', (e)=>{e.preventDefault(); loadDynamicContent('/language_list.html', 'filter-sidebar-container');});
+    }
 
-    async function initFilters() {
+    // --- ГЛОБАЛЬНАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ФИЛЬТРОВ (Обновлена) ---
+    window.initFilters = async function() {
         const params = new URLSearchParams(window.location.search);
 
+        const parseParam = (key) => {
+            const val = params.get(key);
+            return val ? val.split(',').map(v => v.trim()).filter(v => v) : [];
+        };
+
+        // Инициализация глобальных массивов для всех типов фильтров
+        window.selectedGenresArray = parseParam('genres');
+        // Добавление инициализации excluded массивов
+        window.excludedGenresArray = parseParam('exclude_genres');
+
+        window.selectedDescriptionArray = parseParam('description');
+        window.excludedDescriptionArray = parseParam('exclude_description');
+
+        window.selectedLanguageArray = parseParam('language');
+        window.excludedLanguageArray = parseParam('exclude_language');
+
+        // Инициализация форматов и атрибутов
+        window.selectedFormatArray = parseParam('format');
+        window.excludedFormatArray = parseParam('exclude_format');
+        window.selectedAttributeArray = parseParam('attributes');
+        window.excludedAttributeArray = parseParam('exclude_attributes');
+
+        updateSelectedCountsUI();
         await loadFormatsAndAttributes();
 
-        // Восстановление состояния кнопок
-        const formatParam = params.get('format') || '';
-        const attributesParam = params.get('attributes') || ''; // <-- НОВЫЙ ПАРАМЕТР
+        const sortEl = document.getElementById('sort-by');
+        const orderEl = document.getElementById('sort-order');
+        const searchEl = document.getElementById('filter-search-input');
 
-        // Объединяем параметры для подсветки
-        const selectedVals = [...formatParam.split(',').map(v => v.trim()), ...attributesParam.split(',').map(v => v.trim())].filter(v => v.length > 0);
+        if(sortEl) sortEl.value = params.get('sort') || 'release_date';
+        if(orderEl) orderEl.value = params.get('order') || 'desc';
+        if(searchEl) searchEl.value = params.get('search') || '';
 
-        document.querySelectorAll('.filter-option-button').forEach(btn => {
-            if (selectedVals.includes(btn.dataset.filterValue)) {
-                btn.classList.add('active');
-            }
-        });
+        // --- Init User Status ---
+        const status = params.get('status');
+        if (status) {
+            const radio = document.querySelector(`input[name="user_status"][value="${status}"]`);
+            if (radio) radio.checked = true;
+        }
+        // --- Init One Per Artist ---
+        const onePerArtist = params.get('one_per_artist');
+        if (onePerArtist === 'true') {
+            document.getElementById('one-per-artist').checked = true;
+        }
 
-        // Остальная инициализация (sort, search, time)
-        document.getElementById('sort-by').value = params.get('sort') || 'release_date';
-        document.getElementById('sort-order').value = params.get('order') || 'desc';
-        if(document.getElementById('filter-search-input')) document.getElementById('filter-search-input').value = params.get('search') || '';
-
-        // Time init code (без изменений) ...
+        // --- Time logic ---
         const year = params.get('year');
         const yearRange = params.get('yearRange');
         if (year) {
             document.getElementById('time-specific-year').checked = true;
             document.getElementById('specific-year-input').value = year;
         } else if (yearRange) {
-            if (yearRange.endsWith('s')) { document.getElementById('time-specific-year').checked = true; document.getElementById('specific-year-input').value = yearRange; }
-            else { document.getElementById('time-year-range').checked = true; document.getElementById('year-range-input').value = yearRange; }
+            if (yearRange.endsWith('s')) {
+                document.getElementById('time-specific-year').checked = true;
+                document.getElementById('specific-year-input').value = yearRange;
+            } else {
+                document.getElementById('time-year-range').checked = true;
+                document.getElementById('year-range-input').value = yearRange;
+            }
         } else {
-            document.getElementById('time-all-time').checked = true;
+            const allTime = document.getElementById('time-all-time');
+            if(allTime) allTime.checked = true;
         }
 
         // Event Listeners
-        document.querySelectorAll('.filter-dropdown').forEach(d => d.addEventListener('change', updateUrl));
-        const sInput = document.getElementById('filter-search-input');
-        if(sInput) sInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') updateUrl(); });
-        document.querySelectorAll('input[name="timeframe"]').forEach(r => r.addEventListener('change', updateUrl));
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.addEventListener('change', window.updateUrl));
+        document.querySelectorAll('input[name="user_status"]').forEach(r => r.addEventListener('change', window.updateUrl));
+        document.getElementById('one-per-artist').addEventListener('change', window.updateUrl);
+        document.querySelectorAll('input[name="timeframe"]').forEach(r => r.addEventListener('change', window.updateUrl));
+
+        // Листенер для поля поиска, который теперь обрабатывается autocomplete.js,
+        // но оставим Enter для прямой отправки
+        if(searchEl) searchEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') window.updateUrl(); });
 
         const yInput = document.getElementById('specific-year-input');
-        if(yInput) yInput.addEventListener('keypress', (e)=>{if(e.key==='Enter'){document.getElementById('time-specific-year').checked=true; updateUrl();}});
+        if(yInput) yInput.addEventListener('keypress', (e)=>{if(e.key==='Enter'){document.getElementById('time-specific-year').checked=true; window.updateUrl();}});
         const yrInput = document.getElementById('year-range-input');
-        if(yrInput) yrInput.addEventListener('keypress', (e)=>{if(e.key==='Enter'){document.getElementById('time-year-range').checked=true; updateUrl();}});
+        if(yrInput) yrInput.addEventListener('keypress', (e)=>{if(e.key==='Enter'){document.getElementById('time-year-range').checked=true; window.updateUrl();}});
 
-        const gb = document.getElementById('browse-genres-button'); if(gb) gb.addEventListener('click', (e)=>{e.preventDefault(); loadGenresList();});
-        const db = document.getElementById('browse-description-button'); if(db) db.addEventListener('click', (e)=>{e.preventDefault(); loadDescriptionList();});
-        const lb = document.getElementById('browse-language-button'); if(lb) lb.addEventListener('click', (e)=>{e.preventDefault(); loadLanguageList();});
+        setupNavButtons();
+        fetchCounts();
+    };
 
-        fetchGenreCount(); fetchDescriptionCount(); fetchLanguageCount();
+    document.addEventListener('DOMContentLoaded', window.initFilters);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        window.initFilters();
     }
-
-    document.addEventListener('DOMContentLoaded', initFilters);
 </script>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Добавить в список</title>
+    <title>Add to List</title>
     <style>
-        /* Стили для модального окна */
+        /* Styles for the modal window */
         .overlay {
             position: fixed;
             top: 0;
@@ -37,7 +37,7 @@
             margin-bottom: 15px;
         }
 
-        /* Табы */
+        /* Tabs */
         .list-tabs {
             display: flex;
             margin-bottom: 15px;
@@ -63,7 +63,7 @@
             padding: 10px 0;
         }
 
-        /* Список существующих элементов */
+        /* List of existing elements */
         #lists-container {
             max-height: 200px;
             overflow-y: auto;
@@ -86,7 +86,7 @@
             font-weight: bold;
         }
 
-        /* Форма создания нового списка */
+        /* New list creation form */
         label {
             display: block;
             margin-top: 10px;
@@ -103,7 +103,7 @@
             color: #fff;
         }
 
-        /* Кнопки действий */
+        /* Action buttons */
         .action-buttons {
             display: flex;
             justify-content: flex-end;
@@ -138,33 +138,33 @@
 
 <div id="list-overlay" class="overlay">
     <div class="list-window">
-        <h2>Управление списками</h2>
+        <h2>Manage Lists</h2>
 
         <div class="list-tabs">
-            <button class="list-tab-button active" data-target="existing-lists">Добавить в существующий</button>
-            <button class="list-tab-button" data-target="new-list-form">Создать новый</button>
+            <button class="list-tab-button active" data-target="existing-lists">Add to Existing</button>
+            <button class="list-tab-button" data-target="new-list-form">Create New</button>
         </div>
 
         <div id="existing-lists" class="list-tab-content" style="display: block;">
             <div id="lists-container">
-                <p style="text-align: center; color: #777;">Загрузка ваших списков...</p>
+                <p style="text-align: center; color: #777;">Loading your lists...</p>
             </div>
 
             <div class="action-buttons">
-                <button class="add-button" onclick="ListApp.modal.addAlbum()" disabled>Добавить</button>
-                <button class="cancel-button" onclick="ListApp.modal.close()">Отмена</button>
+                <button class="add-button" onclick="ListApp.modal.addAlbum()" disabled>Add</button>
+                <button class="cancel-button" onclick="ListApp.modal.close()">Cancel</button>
             </div>
         </div>
 
         <div id="new-list-form" class="list-tab-content" style="display: none;">
-            <label for="list-name">Название</label>
-            <input type="text" id="list-name" placeholder="Название списка">
-            <label for="list-description">Описание</label>
-            <textarea id="list-description" rows="4" placeholder="Краткое описание"></textarea>
+            <label for="list-name">Title</label>
+            <input type="text" id="list-name" placeholder="List Title">
+            <label for="list-description">Description</label>
+            <textarea id="list-description" rows="4" placeholder="Short description"></textarea>
 
             <div class="action-buttons">
-                <button class="save-button" onclick="ListApp.modal.createNew()">Сохранить</button>
-                <button class="cancel-button" onclick="ListApp.modal.close()">Отмена</button>
+                <button class="save-button" onclick="ListApp.modal.createNew()">Save</button>
+                <button class="cancel-button" onclick="ListApp.modal.close()">Cancel</button>
             </div>
         </div>
     </div>

@@ -1,100 +1,129 @@
-// frontend/js/edit-profile.js
+// js/edit-profile.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    const username = localStorage.getItem('username');
+document.addEventListener('DOMContentLoaded', async () => {
+    // === 0. ЗАГРУЗКА НАВБАРА ===
+    const navContainer = document.getElementById('navbar-container');
+    if (navContainer) {
+        try {
+            const res = await fetch('/navbar.html');
+            if (res.ok) {
+                navContainer.innerHTML = await res.text();
+                // Активируем скрипты навбара (например, поиск)
+                navContainer.querySelectorAll('script').forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) newScript.src = script.src;
+                    else newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
+                });
+            }
+        } catch (e) {
+            console.error('Error loading navbar:', e);
+        }
+    }
+    // ===========================
+
     const form = document.getElementById('editProfileForm');
-    const updateMessage = document.getElementById('updateMessage');
+    const messageEl = document.getElementById('updateMessage');
+    const token = localStorage.getItem('token');
 
-    if (!token || !username) {
+    // 1. Проверка авторизации
+    if (!token) {
         window.location.href = '/login.html';
         return;
     }
 
-    // *** ИЗМЕНЕНИЕ 1: Использование нового маршрута /user/me для ЗАГРУЗКИ данных ***
-    fetch(`/user/me`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
+    // 2. Функция загрузки текущих данных
+    async function loadCurrentProfile() {
+        try {
+            const res = await fetch('/api/users/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error('Failed to load profile');
+
+            const data = await res.json();
+
+            document.getElementById('firstName').value = data.first_name || '';
+            document.getElementById('lastName').value = data.last_name || '';
+            document.getElementById('location').value = data.location || '';
+            document.getElementById('country').value = data.country || '';
+            document.getElementById('contactEmail').value = data.contact_email || '';
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('music').value = data.music || '';
+            document.getElementById('movies').value = data.movies || '';
+            document.getElementById('gender').value = data.gender || '';
+
+            if (data.social) {
+                if (typeof data.social === 'object') {
+                    document.getElementById('social').value = JSON.stringify(data.social);
+                } else {
+                    document.getElementById('social').value = data.social;
+                }
+            }
+
+            if (data.birth_date) {
+                const dateObj = new Date(data.birth_date);
+                if (!isNaN(dateObj.getTime())) {
+                    const isoDate = dateObj.toISOString().split('T')[0];
+                    document.getElementById('birthDate').value = isoDate;
+                }
+            }
+
+        } catch (err) {
+            console.error(err);
+            messageEl.textContent = 'Ошибка загрузки данных профиля.';
+            messageEl.style.color = 'red';
         }
-    })
-        .then(res => {
-            if (res.status === 401) {
-                // Если токен недействителен, перенаправляем на логин
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                window.location.href = '/login.html';
-                return Promise.reject(new Error('Unauthorized'));
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data) {
-                // Присваиваем значения полям формы для редактирования
-                document.getElementById('firstName').value = data.first_name || ''; // Используем data.first_name
-                document.getElementById('lastName').value = data.last_name || '';   // Используем data.last_name
+    }
 
-                // Преобразование даты в формат YYYY-MM-DD
-                let birthDate = data.birth_date ? new Date(data.birth_date).toISOString().split('T')[0] : '';
-                document.getElementById('birthDate').value = birthDate;
-
-                document.getElementById('gender').value = data.gender || '';
-                document.getElementById('location').value = data.location || '';
-                document.getElementById('country').value = data.country || '';
-
-                // Соцсети и медиа, если они передаются как объекты/массивы, нужно преобразовать обратно в строки
-                document.getElementById('social').value = data.social ? (typeof data.social === 'string' ? data.social : JSON.stringify(data.social)) : '';
-                document.getElementById('contactEmail').value = data.contact_email || '';
-                document.getElementById('description').value = data.description || '';
-                document.getElementById('music').value = data.music ? (typeof data.music === 'string' ? data.music : data.music.join(', ')) : '';
-                document.getElementById('movies').value = data.movies ? (typeof data.movies === 'string' ? data.movies : data.movies.join(', ')) : '';
-            }
-        })
-        .catch(err => {
-            console.error('Error loading profile data:', err);
-            updateMessage.textContent = 'Ошибка загрузки данных для редактирования.';
-        });
-
+    // 3. Обработка отправки формы
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        updateMessage.textContent = 'Updating...';
+        messageEl.textContent = 'Сохранение...';
+        messageEl.style.color = '#fff';
 
-        const profileData = {
-            // *** ИЗМЕНЕНИЕ 2: Использование ключей first_name и last_name для соответствия БД ***
-            first_name: document.getElementById('firstName').value,
-            last_name: document.getElementById('lastName').value,
-            // ----------------------------------------------------------------------------------
-            birth_date: document.getElementById('birthDate').value, // Соответствие ключу БД
+        const payload = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            birthDate: document.getElementById('birthDate').value,
             gender: document.getElementById('gender').value,
             location: document.getElementById('location').value,
             country: document.getElementById('country').value,
             social: document.getElementById('social').value,
-            contact_email: document.getElementById('contactEmail').value,
+            contactEmail: document.getElementById('contactEmail').value,
             description: document.getElementById('description').value,
             music: document.getElementById('music').value,
             movies: document.getElementById('movies').value
         };
 
         try {
-            // *** ИЗМЕНЕНИЕ 3: Роут обновления оставлен как /user/profile/update, как в твоем бэкенде ***
-            const res = await fetch(`/user/profile/update`, {
+            const res = await fetch('/api/users/profile/update', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(profileData)
+                body: JSON.stringify(payload)
             });
 
-            const result = await res.json();
             if (res.ok) {
-                updateMessage.textContent = 'Профиль успешно обновлен!';
-                // Опционально: обновить локальное хранилище или перенаправить
+                messageEl.textContent = 'Профиль успешно обновлен!';
+                messageEl.style.color = 'lightgreen';
+                setTimeout(() => {
+                    window.location.href = '/profile.html';
+                }, 1500);
             } else {
-                updateMessage.textContent = result.error || 'Ошибка обновления профиля.';
+                const errData = await res.json();
+                throw new Error(errData.error || 'Ошибка обновления');
             }
         } catch (err) {
-            updateMessage.textContent = 'Ошибка связи с сервером при обновлении профиля.';
             console.error(err);
+            messageEl.textContent = `Ошибка: ${err.message}`;
+            messageEl.style.color = 'red';
         }
     });
+
+    loadCurrentProfile();
 });

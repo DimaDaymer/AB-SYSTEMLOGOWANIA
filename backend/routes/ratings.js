@@ -4,83 +4,61 @@ const router = express.Router();
 const { pool } = require('../db');
 const authenticate = require('../authMiddleware');
 
-// === ФУНКЦИЯ ОБНОВЛЕНИЯ СТАТИСТИКИ И РАНГОВ ===
-async function updateStatsAndRanks(targetAlbumId) {
-    let connection;
+// === ЕДИНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ===
+async function updateStats(targetAlbumId) {
+    let connection = null;
     try {
         connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        // 1. Обновляем статистику ЦЕЛЕВОГО альбома (того, кому поставили оценку)
-        // Используем ON DUPLICATE KEY, чтобы не упало, если строки еще нет (хотя триггер должен был создать)
         await connection.query(`
             UPDATE album_stats ast
-            JOIN (
-                SELECT COUNT(*) as cnt, AVG(score) as avg_sc 
-                FROM ratings WHERE album_id = ?
-            ) r_data
-            SET 
-                ast.ratings_count = COALESCE(r_data.cnt, 0), 
-                ast.avg_score = COALESCE(r_data.avg_sc, 0)
+            SET
+                ratings_count = (SELECT COUNT(*) FROM ratings WHERE album_id = ?),
+                avg_score = (SELECT COALESCE(AVG(score), 0) FROM ratings WHERE album_id = ?),
+                reviews_count = (SELECT COUNT(*) FROM reviews WHERE album_id = ?),
+                last_updated = CURRENT_TIMESTAMP
             WHERE ast.album_id = ?
-        `, [targetAlbumId, targetAlbumId]);
+        `, [targetAlbumId, targetAlbumId, targetAlbumId, targetAlbumId]);
 
-        // 2. Пересчитываем РАНГИ ГЛОБАЛЬНО (для всех)
-        // ВАЖНО: Мы используем подзапрос для вычисления ранга.
-        // RANK() OVER (ORDER BY avg_score DESC, ratings_count DESC)
-        // Это обеспечит, что 4.75 будет выше 3.50.
-
-        await connection.query(`
-            UPDATE album_stats ast
-            JOIN (
-                SELECT album_id, 
-                RANK() OVER (ORDER BY avg_score DESC, ratings_count DESC, album_id ASC) as new_rank
-                FROM album_stats
-                WHERE avg_score > 0
-            ) as ranked ON ast.album_id = ranked.album_id
-            SET 
-                ast.current_rank = ranked.new_rank, 
-                ast.chart_slug = 'all-time-top'
-        `);
-
-        // 3. Сбрасываем ранг у тех, у кого нет оценок (на всякий случай)
-        await connection.query(`
-            UPDATE album_stats SET current_rank = NULL, chart_slug = NULL WHERE avg_score = 0
-        `);
-
-        await connection.commit();
     } catch (err) {
-        if (connection) await connection.rollback();
-        console.error("Auto-rank update failed:", err);
+        console.error("Stats update failed:", err);
     } finally {
         if (connection) connection.release();
     }
 }
+
 router.post('/:id/ratings', authenticate, async (req, res) => {
     try {
         const { id: albumId } = req.params;
         const { score } = req.body;
         const userId = req.user.id;
-        // ... валидация ...
-        await pool.execute(`INSERT INTO ratings (user_id, album_id, score) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE score = VALUES(score)`, [userId, albumId, score]);
 
-        updateStatsAndRanks(albumId); // ВЫЗОВ ОБНОВЛЕНИЯ
-
+        await pool.execute(
+            `INSERT INTO ratings (user_id, album_id, score) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+            [userId, albumId, score]
+        );
+        await updateStats(albumId);
         res.json({ message: 'Rating saved' });
-    } catch (err) { res.status(500).json({ error: 'Failed' }); }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to save rating' });
+    }
 });
 
 router.delete('/:id/ratings', authenticate, async (req, res) => {
     try {
         const { id: albumId } = req.params;
         const userId = req.user.id;
+
         await pool.execute('DELETE FROM ratings WHERE user_id = ? AND album_id = ?', [userId, albumId]);
-
-        updateStatsAndRanks(albumId); // ВЫЗОВ ОБНОВЛЕНИЯ
-
+        await updateStats(albumId);
         res.json({ success: true, message: 'Rating deleted' });
-    } catch (err) { res.status(500).json({ error: 'Failed' }); }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete rating' });
+    }
 });
+
 // GET User Rating
 router.get('/:id/user-rating', authenticate, async (req, res) => {
     try {

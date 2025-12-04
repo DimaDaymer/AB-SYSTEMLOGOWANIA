@@ -1,34 +1,52 @@
 DROP DATABASE IF EXISTS `melody_rater`;
-CREATE DATABASE melody_rater;
+CREATE DATABASE melody_rater CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE melody_rater;
 
--- === ПОЛЬЗОВАТЕЛИ ===
+-- ==========================================
+-- 1. ПОЛЬЗОВАТЕЛИ И ПРОФИЛИ
+-- ==========================================
 CREATE TABLE IF NOT EXISTS users (
                                      id INT AUTO_INCREMENT PRIMARY KEY,
                                      username VARCHAR(50) UNIQUE NOT NULL,
                                      email VARCHAR(100) UNIQUE NOT NULL,
                                      password_hash VARCHAR(255) NOT NULL,
-                                     profile_pic VARCHAR(255),
-                                     description TEXT,
-                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                     first_name VARCHAR(100),
-                                     last_name VARCHAR(100),
-                                     birth_date DATE,
-                                     gender VARCHAR(20),
-                                     location VARCHAR(100),
-                                     country VARCHAR(100),
-                                     social VARCHAR(255),
-                                     contact_email VARCHAR(100),
-                                     music TEXT,
-                                     movies TEXT,
-                                     role ENUM('user', 'admin') NOT NULL DEFAULT 'user'
+                                     role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+                                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- === СПРАВОЧНИКИ (ЖАНРЫ, РОЛИ, ФОРМАТЫ) ===
+CREATE TABLE IF NOT EXISTS user_profiles (
+                                             user_id INT PRIMARY KEY,
+                                             first_name VARCHAR(100),
+                                             last_name VARCHAR(100),
+                                             profile_pic VARCHAR(255),
+                                             description TEXT,
+                                             location VARCHAR(100),
+                                             country VARCHAR(100),
+                                             social VARCHAR(255),
+                                             birth_date DATE,
+                                             gender VARCHAR(20),
+                                             contact_email VARCHAR(100),
+                                             music TEXT,
+                                             movies TEXT,
+                                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
+-- ==========================================
+-- 2. СПРАВОЧНИКИ (Genres, Formats, Meta)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS genres (
                                       id INT AUTO_INCREMENT PRIMARY KEY,
                                       name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS languages (
+                                         id INT AUTO_INCREMENT PRIMARY KEY,
+                                         name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS descriptors (
+                                           id INT AUTO_INCREMENT PRIMARY KEY,
+                                           name VARCHAR(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS credit_roles (
@@ -36,27 +54,25 @@ CREATE TABLE IF NOT EXISTS credit_roles (
                                             name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- Основной формат релиза (взаимоисключающий)
 CREATE TABLE IF NOT EXISTS release_formats (
                                                id INT AUTO_INCREMENT PRIMARY KEY,
                                                name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- Наполняем базовыми форматами
 INSERT INTO release_formats (name) VALUES
                                        ('Album'), ('EP'), ('Single'), ('Mixtape'), ('DJ Mix'), ('Compilation'), ('Video');
 
--- Дополнительные атрибуты (могут сочетаться)
 CREATE TABLE IF NOT EXISTS release_attributes (
                                                   id INT AUTO_INCREMENT PRIMARY KEY,
                                                   name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- Наполняем базовыми атрибутами
 INSERT INTO release_attributes (name) VALUES
                                           ('Live'), ('Soundtrack'), ('Unauthorized'), ('Demo'), ('Box Set');
 
--- === АРТИСТЫ ===
+-- ==========================================
+-- 3. АРТИСТЫ
+-- ==========================================
 CREATE TABLE IF NOT EXISTS artists (
                                        id INT AUTO_INCREMENT PRIMARY KEY,
                                        name VARCHAR(255) NOT NULL UNIQUE,
@@ -79,29 +95,28 @@ CREATE TABLE IF NOT EXISTS artist_genres (
                                              FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
 );
 
--- === АЛЬБОМЫ ===
+-- ==========================================
+-- 4. АЛЬБОМЫ (Нормализованная версия)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS albums (
                                       id INT AUTO_INCREMENT PRIMARY KEY,
                                       title VARCHAR(255) NOT NULL,
                                       slug VARCHAR(255) UNIQUE NOT NULL,
                                       release_date DATE,
                                       cover_url VARCHAR(255),
-
-                                      release_format_id INT, -- Ссылка на основной формат (Album, EP...)
-
+                                      release_format_id INT,    -- Связь 1-ко-Многим (Один формат на альбом)
                                       label VARCHAR(100),
-                                      language VARCHAR(50),
-                                      description TEXT,
-
-                                      genres TEXT, -- Денормализованное поле для упрощения
-
+                                      description TEXT,         -- Текстовое описание/био релиза
                                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
                                       FOREIGN KEY (release_format_id) REFERENCES release_formats(id) ON DELETE SET NULL
 );
 
--- Связь Альбом <-> Атрибуты (Many-to-Many: Live, Bootleg...)
+-- ==========================================
+-- 5. СВЯЗУЮЩИЕ ТАБЛИЦЫ АЛЬБОМОВ
+-- ==========================================
+
+-- Альбом <-> Атрибуты (Live, Demo и т.д.)
 CREATE TABLE IF NOT EXISTS album_release_attributes (
                                                         album_id INT NOT NULL,
                                                         attribute_id INT NOT NULL,
@@ -110,42 +125,34 @@ CREATE TABLE IF NOT EXISTS album_release_attributes (
                                                         FOREIGN KEY (attribute_id) REFERENCES release_attributes(id) ON DELETE CASCADE
 );
 
--- === СТАТИСТИКА АЛЬБОМОВ ===
-CREATE TABLE IF NOT EXISTS album_stats (
-                                           album_id INT PRIMARY KEY,
-                                           avg_score DECIMAL(3, 2) DEFAULT 0.00,
-                                           ratings_count INT DEFAULT 0,
-                                           reviews_count INT DEFAULT 0,
-                                           likes_count INT DEFAULT 0,
-                                           wishlist_count INT DEFAULT 0,
-                                           in_lists_count INT DEFAULT 0,
-                                           current_rank INT DEFAULT NULL,
-                                           chart_slug VARCHAR(100) DEFAULT NULL,
-                                           last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                           FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
-);
-
--- === ТРИГГЕР ДЛЯ album_stats ===
-DELIMITER //
-CREATE TRIGGER after_album_insert
-    AFTER INSERT ON albums
-    FOR EACH ROW
-BEGIN
-    -- Мы передаем только ID, остальные поля заполнятся значениями DEFAULT (0, NULL и т.д.)
-    INSERT INTO album_stats (album_id) VALUES (NEW.id);
-END;
-//
-DELIMITER ;
-
--- Связи (Жанры, Артисты)
+-- Альбом <-> Жанры
 CREATE TABLE IF NOT EXISTS album_genres (
-                                            album_id INT,
-                                            genre_id INT,
+                                            album_id INT NOT NULL,
+                                            genre_id INT NOT NULL,
                                             PRIMARY KEY (album_id, genre_id),
                                             FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
                                             FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
 );
 
+-- Альбом <-> Языки
+CREATE TABLE IF NOT EXISTS album_languages (
+                                               album_id INT NOT NULL,
+                                               language_id INT NOT NULL,
+                                               PRIMARY KEY (album_id, language_id),
+                                               FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                               FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE CASCADE
+);
+
+-- Альбом <-> Дескрипторы (Vibe tags)
+CREATE TABLE IF NOT EXISTS album_descriptors (
+                                                 album_id INT NOT NULL,
+                                                 descriptor_id INT NOT NULL,
+                                                 PRIMARY KEY (album_id, descriptor_id),
+                                                 FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                                 FOREIGN KEY (descriptor_id) REFERENCES descriptors(id) ON DELETE CASCADE
+);
+
+-- Альбом <-> Артисты
 CREATE TABLE IF NOT EXISTS album_artists (
                                              album_id INT NOT NULL,
                                              artist_id INT NOT NULL,
@@ -155,7 +162,28 @@ CREATE TABLE IF NOT EXISTS album_artists (
                                              FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
 );
 
--- === ТРЕКИ ===
+
+
+-- ==========================================
+-- 6. СТАТИСТИКА АЛЬБОМОВ
+-- ==========================================
+CREATE TABLE IF NOT EXISTS album_stats (
+                                           album_id INT PRIMARY KEY,
+                                           avg_score DECIMAL(3, 2) DEFAULT 0.00,
+                                           ratings_count INT DEFAULT 0,
+                                           reviews_count INT DEFAULT 0,
+                                           likes_count INT DEFAULT 0,
+                                           wishlist_count INT DEFAULT 0,
+                                           listens_count INT DEFAULT 0,
+                                           in_lists_count INT DEFAULT 0,
+                                           chart_slug VARCHAR(100) DEFAULT NULL,
+                                           last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                           FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- 7. ТРЕКИ И КРЕДИТЫ
+-- ==========================================
 CREATE TABLE IF NOT EXISTS tracks (
                                       id INT AUTO_INCREMENT PRIMARY KEY,
                                       album_id INT NOT NULL,
@@ -166,7 +194,6 @@ CREATE TABLE IF NOT EXISTS tracks (
                                       UNIQUE KEY unique_track_in_album (album_id, track_number)
 );
 
--- === КРЕДИТЫ ===
 CREATE TABLE IF NOT EXISTS album_credits (
                                              id INT AUTO_INCREMENT PRIMARY KEY,
                                              album_id INT NOT NULL,
@@ -187,7 +214,9 @@ CREATE TABLE IF NOT EXISTS track_credits (
                                              FOREIGN KEY (role_id) REFERENCES credit_roles(id) ON DELETE SET NULL
 );
 
--- === ОЦЕНКИ ===
+-- ==========================================
+-- 8. РЕЙТИНГИ И ОЦЕНКИ
+-- ==========================================
 CREATE TABLE IF NOT EXISTS ratings (
                                        id INT AUTO_INCREMENT PRIMARY KEY,
                                        user_id INT NOT NULL,
@@ -211,7 +240,9 @@ CREATE TABLE IF NOT EXISTS track_ratings (
                                              FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
 );
 
--- Создаем новую таблицу lists с добавленным cover_url, slug и views_count
+-- ==========================================
+-- 9. СПИСКИ (LISTS)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS lists (
                                      id INT AUTO_INCREMENT PRIMARY KEY,
                                      user_id INT NOT NULL,
@@ -219,13 +250,12 @@ CREATE TABLE IF NOT EXISTS lists (
                                      slug VARCHAR(255) UNIQUE NOT NULL,
                                      description TEXT,
                                      saved_sort_by VARCHAR(50) NOT NULL DEFAULT 'added_desc',
-                                     cover_url VARCHAR(255), -- НОВОЕ ПОЛЕ
+                                     cover_url VARCHAR(255),
                                      views_count INT DEFAULT 0,
                                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Создаем заново зависимую таблицу list_items
 CREATE TABLE IF NOT EXISTS list_items (
                                           id INT AUTO_INCREMENT PRIMARY KEY,
                                           list_id INT NOT NULL,
@@ -237,7 +267,9 @@ CREATE TABLE IF NOT EXISTS list_items (
                                           UNIQUE (list_id, album_id)
 );
 
--- === ДЕЙСТВИЯ И КОНТЕНТ ===
+-- ==========================================
+-- 10. ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЕЙ (TAGS, ACTIONS)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS user_album_tags (
                                                id INT AUTO_INCREMENT PRIMARY KEY,
                                                user_id INT NOT NULL,
@@ -253,13 +285,16 @@ CREATE TABLE IF NOT EXISTS user_album_actions (
                                                   id INT AUTO_INCREMENT PRIMARY KEY,
                                                   user_id INT NOT NULL,
                                                   album_id INT NOT NULL,
-                                                  action_type ENUM('listen', 'wishlist', 'like', 'add-to-list') NOT NULL,
+                                                  action_type ENUM('listen', 'wishlist', 'like', 'add-to-list', 'tags') NOT NULL,
                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                                   UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
                                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                                                   FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
+-- ==========================================
+-- 11. ОТЗЫВЫ (REVIEWS)
+-- ==========================================
 CREATE TABLE IF NOT EXISTS reviews (
                                        id INT AUTO_INCREMENT PRIMARY KEY,
                                        user_id INT NOT NULL,
@@ -285,6 +320,9 @@ CREATE TABLE IF NOT EXISTS review_votes (
                                             FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
 );
 
+-- ==========================================
+-- 12. ССЫЛКИ И СОЦ. ФУНКЦИИ
+-- ==========================================
 CREATE TABLE IF NOT EXISTS album_links (
                                            id INT AUTO_INCREMENT PRIMARY KEY,
                                            album_id INT NOT NULL,
@@ -293,26 +331,23 @@ CREATE TABLE IF NOT EXISTS album_links (
                                            FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 );
 
--- === ФУНДАМЕНТ ДЛЯ ДРУЗЕЙ/ПОДПИСЧИКОВ ===
 DROP TABLE IF EXISTS user_relations;
-
 CREATE TABLE IF NOT EXISTS user_relations (
                                               id INT AUTO_INCREMENT PRIMARY KEY,
-                                              follower_id INT NOT NULL, -- Тот, кто подписался
-                                              followed_id INT NOT NULL, -- Тот, на кого подписались
+                                              follower_id INT NOT NULL,
+                                              followed_id INT NOT NULL,
                                               relation_type ENUM('follow') NOT NULL DEFAULT 'follow',
-                                              is_new_notification BOOLEAN DEFAULT TRUE, -- Для уведомлений
+                                              is_new_notification BOOLEAN DEFAULT TRUE,
                                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                               UNIQUE KEY unique_follow (follower_id, followed_id),
                                               FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
                                               FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Добавим таблицу для общих уведомлений
 CREATE TABLE IF NOT EXISTS notifications (
                                              id INT AUTO_INCREMENT PRIMARY KEY,
-                                             user_id INT NOT NULL, -- Получатель
-                                             sender_id INT, -- Отправитель (если есть)
+                                             user_id INT NOT NULL,
+                                             sender_id INT,
                                              type ENUM('new_follow', 'new_comment', 'list_update') NOT NULL,
                                              content TEXT NOT NULL,
                                              is_read BOOLEAN DEFAULT FALSE,
@@ -321,3 +356,45 @@ CREATE TABLE IF NOT EXISTS notifications (
                                              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                                              FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- ==========================================
+-- 13. ИНДЕКСЫ
+-- ==========================================
+CREATE INDEX idx_album_stats_ranking ON album_stats (avg_score DESC, ratings_count DESC);
+CREATE INDEX idx_albums_release_date ON albums (release_date);
+CREATE INDEX idx_ratings_album_score ON ratings (album_id, score);
+
+-- ==========================================
+-- 14. КОММЕНТАРИИ К ПРОФИЛЮ
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS user_comments (
+                                             id INT AUTO_INCREMENT PRIMARY KEY,
+    -- ID пользователя, которому адресован комментарий (владелец профиля)
+                                             profile_user_id INT NOT NULL,
+    -- ID пользователя, который оставил комментарий (автор)
+                                             author_id INT NOT NULL,
+    -- Содержимое комментария
+                                             content TEXT NOT NULL,
+    -- Статистика
+                                             likes_count INT DEFAULT 0,
+    -- Время создания
+                                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Время последнего обновления
+                                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                                             FOREIGN KEY (profile_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                             FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Таблица для лайков комментариев
+CREATE TABLE IF NOT EXISTS user_comment_votes (
+                                                  comment_id INT NOT NULL,
+                                                  user_id INT NOT NULL,
+                                                  PRIMARY KEY (comment_id, user_id),
+                                                  FOREIGN KEY (comment_id) REFERENCES user_comments(id) ON DELETE CASCADE,
+                                                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+ALTER TABLE user_comments ADD COLUMN parent_id INT DEFAULT NULL;
+ALTER TABLE user_comments ADD FOREIGN KEY (parent_id) REFERENCES user_comments(id) ON DELETE CASCADE;

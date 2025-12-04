@@ -1,27 +1,27 @@
 <div class="overlay" id="list-edit-overlay">
     <div class="list-window">
-        <h2>Редактировать список</h2>
+        <h2>Edit list</h2>
 
         <div class="form-group">
-            <label for="edit-list-name">Название</label>
+            <label for="edit-list-name">Title</label>
             <input type="text" id="edit-list-name" maxlength="100">
         </div>
 
         <div class="form-group">
-            <label for="edit-list-description">Описание</label>
+            <label for="edit-list-description">Description</label>
             <textarea id="edit-list-description" rows="4"></textarea>
         </div>
 
         <div class="form-group">
-            <label for="edit-list-cover-url">Обложка (URL)</label>
-            <input type="text" id="edit-list-cover-url" placeholder="Оставьте пустым, чтобы использовать первый альбом">
+            <label for="edit-list-cover-url">Cover (URL)</label>
+            <input type="text" id="edit-list-cover-url" placeholder="Leave empty to use the first album">
         </div>
 
         <div class="action-buttons" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <button class="delete-button" id="delete-list-btn" style="background: #e74c3c;">Удалить список</button>
+            <button class="delete-button" id="delete-list-btn" style="background: #e74c3c;">Delete list</button>
             <div style="display:flex; gap: 10px;">
-                <button class="cancel-button" onclick="ListApp.editModal.close()">Отмена</button>
-                <button class="save-button" onclick="ListApp.editModal.saveChanges()" style="background: #00ffcc; color: #111;">Сохранить</button>
+                <button class="cancel-button" onclick="ListApp.editModal.close()">Cancel</button>
+                <button class="save-button" onclick="ListApp.editModal.saveChanges()" style="background: #00ffcc; color: #111;">Save</button>
             </div>
         </div>
     </div>

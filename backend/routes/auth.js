@@ -11,7 +11,6 @@ router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // *** Валідація вводу ***
         if (!username || !email || !password) {
             return res.status(400).json({ error: 'All fields (username, email, password) are required.' });
         }
@@ -23,11 +22,9 @@ router.post('/register', async (req, res) => {
         if (!/\S+@\S+\.\S+/.test(email)) {
             return res.status(400).json({ error: 'Invalid email format.' });
         }
-        // *** Кінець Валідації ***
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Вставка користувача з роллю 'user' за замовчуванням
         await pool.execute(
             'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
             [username, email, hashedPassword, 'user']
@@ -53,7 +50,6 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Username and password are required for login.' });
         }
 
-        // Отримати користувача, включаючи role
         const [users] = await pool.execute(
             'SELECT id, username, password_hash, role FROM users WHERE username = ?',
             [username]
@@ -69,14 +65,12 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Створення токена, включаючи role
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        // Повернення токена та ролі
         res.json({ token, role: user.role });
     } catch (err) {
         console.error('Login error:', err);

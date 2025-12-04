@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Releases</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/filter_styles.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        #navbar-container {
+            width: 100%;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: row;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            gap: 20px;
+        }
+
+        /* === СТИЛИ ДЛЯ ЛИПКОГО САЙДБАРА === */
+        #filter-sidebar-container {
+            position: sticky;
+            top: 20px; /* Отступ от верха, когда "прилип" */
+            align-self: flex-start;
+            height: fit-content;
+            min-width: 400px;
+            max-width: 500px;
+        }
+
+        .filter-sidebar {
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        /* === КОНЕЦ СТИЛЕЙ САЙДБАРА === */
+
+        /* === СТИЛИ ДЛЯ АВТОДОПОЛНЕНИЯ (autocomplete.js) === */
+        .filter-search-container {
+            position: relative; /* Для позиционирования выпадающего списка */
+            margin-bottom: 20px;
+        }
+        .filter-search-input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #333;
+            color: #f0f0f0;
+        }
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: #333;
+            border: 1px solid #555;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .autocomplete-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #444;
+            transition: background-color 0.2s;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover {
+            background-color: #555;
+        }
+        .autocomplete-label {
+            font-size: 0.8em;
+            color: #00ffcc;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        /* === КОНЕЦ СТИЛЕЙ АВТОДОПОЛНЕНИЯ === */
+
+
+        h1 {
+            color: #f0f0f0;
+            margin-bottom: 20px;
+        }
+
+        .main-content-wrapper {
+            flex-grow: 1;
+        }
+
+        #album-list-container {
+            width: 100%;
+        }
+
+        /* === HEADER С ПАГИНАЦИЕЙ (Кол-во на странице) === */
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .pagination-options label {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-right: 5px;
+        }
+
+        .pagination-options select {
+            background-color: #333;
+            color: #f0f0f0;
+            border: 1px solid #555;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .album-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* === ИЗМЕНЕНИЯ В СТИЛЯХ КАРТОЧКИ === */
+        .album-card {
+            display: flex;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            align-items: flex-start;
+            transition: box-shadow 0.5s ease, transform 0.3s ease;
+            position: relative;
+        }
+
+        .album-card.highlighted {
+            box-shadow: 0 0 20px 5px rgba(0, 255, 204, 0.6);
+            border: 1px solid #00ffcc;
+            transform: scale(1.02);
+        }
+
+        /* === НОВЫЙ СТИЛЬ ДЛЯ РАНГА === */
+        .chart-rank {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background-color: #00ffcc;
+            color: #1a1a1a;
+            padding: 5px 15px;
+            border-radius: 8px 0 8px 0;
+            font-size: 1.5em;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        /* Ссылка только на картинку */
+        .album-cover-link {
+            display: block;
+            flex-shrink: 0;
+            margin-right: 15px;
+            text-decoration: none;
+        }
+
+        .album-cover-link img {
+            width: 120px;
+            height: 120px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        /* Контейнер для текста и кнопок */
+        .album-details-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ссылка только на текст */
+        .album-text-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .album-text-link h2 {
+            font-size: 1.2em;
+            margin: 0 0 5px 0;
+            color: #e0e0e0;
+            transition: color 0.2s;
+        }
+
+        .album-text-link:hover h2 {
+            color: #00ffcc;
+        }
+
+        .album-text-link p {
+            font-size: 0.85em;
+            color: #b0b0b0;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .rating-info {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .rating-info span {
+            margin-right: 5px;
+        }
+
+        .rating-info .score {
+            font-weight: bold;
+            color: #f5c518;
+            margin-right: 15px;
+        }
+
+        /* Блок кнопок отделен от ссылок */
+        .album-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .action-button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #444;
+            color: #f0f0f0;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-button:hover {
+            background-color: #555;
+        }
+
+        /* Стили активной кнопки */
+        .action-button.active {
+            background-color: #00ffcc;
+            color: #1a1a1a;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+        }
+
+        /* === ПАГИНАЦИЯ (FOOTER) === */
+        #pagination-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            padding-bottom: 20px;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #555;
+            background-color: transparent;
+            color: #ccc;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 0.9em;
+        }
+
+        .page-btn:hover {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .page-btn.active {
+            background-color: #00ffcc;
+            color: #1a1a1a;
+            border-color: #00ffcc;
+            font-weight: bold;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .pagination-info {
+            width: 100%;
+            text-align: center;
+            color: #777;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+<div id="navbar-container"></div>
+<div class="content-wrapper">
+    <div class="main-content-wrapper">
+        <div id="album-list-container">
+            <div class="header-controls">
+                <h1 id="main-content-title">New Releases</h1>
+                <div class="pagination-options">
+                    <label for="itemsPerPage">Show:</label>
+                    <select id="itemsPerPage">
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="newReleasesContainer" class="album-list">
+                <p>Loading new releases...</p>
+            </div>
+
+            <div id="pagination-footer"></div>
+        </div>
+    </div>
+    <div id="filter-sidebar-container"></div>
+</div>
+
+<script type="module" src="/js/charts/main.js"></script>
+<script src="/js/charts/filter_list.js"></script></body>
+</html>

@@ -8,19 +8,16 @@ module.exports = async function authenticate(req, res, next) {
 
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-
-        // *** ИЗМЕНЕННЫЙ КОД: Получение username и role ***
         const [users] = await pool.execute(
-            'SELECT id, username, role FROM users WHERE id = ?', // <-- ДОБАВЛЕНО: role
+            'SELECT id, username, role FROM users WHERE id = ?',
             [payload.id]
         );
-        // *** КОНЕЦ ИЗМЕНЕННОГО КОДА ***
 
         if (users.length === 0) {
             return res.status(401).json({ error: 'Пользователь не найден' });
         }
 
-        req.user = users[0]; // Теперь req.user будет содержать id, username и role
+        req.user = users[0];
         next();
     } catch (err) {
         console.error('Ошибка аутентификации:', err);

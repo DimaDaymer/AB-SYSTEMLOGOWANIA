@@ -1,4 +1,7 @@
-export function showMessage(message, isError = false) {
+// js/albums1.js
+
+// === ГЛОБАЛЬНЫЕ ФУНКЦИИ (Доступны везде) ===
+function showMessage(message, isError = false) {
     const existingMessages = document.querySelectorAll('.global-message');
     existingMessages.forEach(msg => msg.remove());
     const messageDiv = document.createElement('div');
@@ -19,12 +22,10 @@ export function showMessage(message, isError = false) {
 }
 window.showMessage = showMessage;
 
-export async function loadComponent(containerId, componentPath) {
+async function loadComponent(containerId, componentPath) {
     try {
         const container = document.getElementById(containerId);
-        // Если контейнера нет, возвращаем false, чтобы знать об ошибке
         if (!container) {
-            console.warn(`Container #${containerId} not found for ${componentPath}`);
             return false;
         }
 
@@ -40,6 +41,8 @@ export async function loadComponent(containerId, componentPath) {
             if (script.src) newScript.src = script.src;
             else newScript.textContent = script.textContent;
             document.head.appendChild(newScript);
+            // Удаляем старый скрипт, чтобы не засорять DOM,
+            // но помните, что appendChild в head все равно выполняет его.
             script.remove();
         });
         return true;
@@ -50,25 +53,24 @@ export async function loadComponent(containerId, componentPath) {
 }
 window.loadComponent = loadComponent;
 
+// === ЛОГИКА АЛЬБОМОВ ===
 let currentAlbumId = null;
 let albumDataCache = null;
 window.components = window.components || {};
 
 document.addEventListener('DOMContentLoaded', async () => {
+    if (!document.getElementById('album-cover-container')) {
+        return;
+    }
+
     try {
         const slug = getSlugFromURL();
         if (!slug) throw new Error('No slug provided');
 
-        // 1. Загружаем Навбар
         await loadNavbar();
-
-        // 2. !!! ВАЖНО: Сначала грузим ОСНОВНЫЕ контейнеры !!!
         await loadBaseComponents();
-
-        // 3. !!! ВАЖНО: Теперь, когда Tabs Container создан, грузим ВЛОЖЕННЫЕ компоненты !!!
         await loadChildComponents();
 
-        // 4. Получаем данные и обновляем всё
         albumDataCache = await fetchAlbum(slug);
         currentAlbumId = albumDataCache.id;
         window.currentAlbumId = currentAlbumId;
@@ -98,31 +100,45 @@ function getSlugFromURL() {
 async function loadNavbar() {
     const cont = document.getElementById('navbar-container');
     if(cont) {
-        const res = await fetch('/navbar.html');
-        cont.innerHTML = await res.text();
-        if (typeof initNavbar === 'function') initNavbar();
+        try {
+            const res = await fetch('/navbar.html');
+            if(res.ok) {
+                cont.innerHTML = await res.text();
+                cont.querySelectorAll('script').forEach(s => {
+                    const sc = document.createElement('script');
+                    if(s.src) sc.src = s.src;
+                    else sc.textContent = s.textContent;
+                    document.body.appendChild(sc);
+                });
+                if (window.initNavbar) {
+                    window.initNavbar();
+                }
+            }
+        } catch(e) { console.error('Navbar load failed', e); }
     }
 }
 
-// Загрузка каркаса (Родительские блоки)
 async function loadBaseComponents() {
     const baseComponents = [
         { id: 'album-cover-container', path: '/components/albums/album-cover.html' },
         { id: 'tracklist-container', path: '/components/albums/tracklist.html' },
         { id: 'album-info-container', path: '/components/albums/album-info.html' },
-        { id: 'tabs-container', path: '/components/albums/tabs-container.html' }, // <--- Создает DIV для треков
+        { id: 'tabs-container', path: '/components/albums/tabs-container.html' },
         { id: 'user-actions-container', path: '/components/albums/user-actions.html' },
-        { id: 'album-star-rating-host', path: '/components/albums/album-rating-stars.html' },
-        { id: 'histogram-container', path: '/components/albums/histogram.html' },
-        { id: 'media-links-container', path: '/components/albums/media-links.html' }
+        { id: 'media-links-container', path: '/components/albums/media-links.html' },
+        { id: 'album-ratings-host-container', path: '/components/albums/album-ratings.html' },
     ];
     await Promise.all(baseComponents.map(c => loadComponent(c.id, c.path)));
 }
 
-// Загрузка вложенных элементов (Дочерние блоки)
 async function loadChildComponents() {
-    // Этот компонент грузится ВНУТРЬ tabs-container.html, поэтому ждем
     await loadComponent('track-ratings-tab-container', '/components/albums/track-ratings-tab.html');
+    await loadComponent('album-lists-tab-container', '/components/albums/album-lists.html');
+    await loadComponent('histogram-container', '/components/albums/histogram.html');
+    await loadComponent('album-star-rating-host', '/components/albums/album-rating-stars.html');
+    // Здесь загружается компонент комментариев, который внутри себя проверит загружен ли core.js
+    await loadComponent('comments-container', '/components/albums/comment-box-album.html');
+    await loadComponent('credits-container', '/components/albums/credits.html');
 }
 
 async function fetchAlbum(slug) {
@@ -139,22 +155,44 @@ function updateComponents(data) {
     if (window.components.tracklist) window.components.tracklist.update(data.tracks || []);
     if (window.components.albumInfo) window.components.albumInfo.update(data);
     if (window.components.histogram) window.components.histogram.update(data.id);
-    if (window.components.mediaLinks) window.components.mediaLinks.update(data.id);
 
-    // Обновляем рейтинг треков
+    // Безопасное обновление Media Links
+    if (window.components.mediaLinks) {
+        try {
+            window.components.mediaLinks.update(data.id);
+        } catch (e) {
+            console.warn("Media Links update failed (likely JSON error):", e);
+        }
+    }
+
     if (window.components.trackRatingsTab && data.tracks) {
         window.components.trackRatingsTab.update(data.tracks, {});
+    }
+
+    // Старый инициализатор удален, так как новый comments-box сам себя инициализирует
+    // через внутренний скрипт и CommentsCore
+    // if (window.CommentSystem && data.id) { window.CommentSystem.init(data.id); }
+
+    if (window.initCreditsModule && data.id) {
+        window.initCreditsModule(data.id);
     }
 }
 
 function updateScoresDisplay(stats) {
-    const userScoreEl = document.querySelector('.score-value');
-    const userRatingsCountEl = document.querySelector('.score-ratings');
+    const userScoreEl = document.getElementById('global-album-score');
+    const userRatingsCountEl = document.getElementById('global-ratings-count');
+
     if (!stats) return;
-    const rawScore = parseFloat(stats.average_score || stats.average_rating);
-    const userAvgScore = (isNaN(rawScore) || rawScore === 0) ? 'N/A' : rawScore.toFixed(2);
-    const userTotalRatings = stats.total_ratings || stats.rating_count || 0;
-    if (userScoreEl) userScoreEl.innerHTML = `${userAvgScore} <span style="font-size:1.5rem;color:#ADFF2F;">★</span>`;
+
+    const rawScore = parseFloat(stats.average_rating || stats.average_score);
+    const userTotalRatings = parseInt(stats.total_ratings || stats.rating_count || 0);
+    let displayScore = 'N/A';
+
+    if (!isNaN(rawScore) && (rawScore > 0 || userTotalRatings > 0)) {
+        displayScore = rawScore.toFixed(2);
+    }
+
+    if (userScoreEl) userScoreEl.innerHTML = `${displayScore} <span style="font-size:1.5rem;color:#ADFF2F;">★</span>`;
     if (userRatingsCountEl) userRatingsCountEl.textContent = `based on ${userTotalRatings.toLocaleString()} ratings`;
 }
 
@@ -189,21 +227,25 @@ async function loadUserData(albumId) {
     }
 }
 
-// Глобальные функции
 window.rateAlbum = async (rating) => {
     try {
         const token = localStorage.getItem('token');
         if (!token) return window.location.href = '/login.html';
+
         const res = await fetch(`/api/ratings/${currentAlbumId}/ratings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ score: rating })
         });
+
         if (!res.ok) throw new Error('Failed');
         showMessage('Rating saved!');
+
         window.currentAlbumRating = rating;
         if (window.components.albumRatingStars) window.components.albumRatingStars.updateRating(rating);
-        refreshStats();
+
+        setTimeout(() => { refreshStats(); }, 500);
+
     } catch(e) { showMessage('Error saving rating', true); }
 };
 
@@ -211,23 +253,31 @@ window.clearAlbumRating = async () => {
     try {
         const token = localStorage.getItem('token');
         if (!token) return window.location.href = '/login.html';
+
         const res = await fetch(`/api/ratings/${currentAlbumId}/ratings`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {'Authorization': `Bearer ${token}`}
         });
+
         if (!res.ok) throw new Error('Failed');
         showMessage('Rating cleared!');
+
         window.currentAlbumRating = 0;
-        if (window.components.albumRatingStars) window.components.albumRatingStars.updateRating(0);
-        refreshStats();
+        if (window.components.albumRatingStars){
+            window.components.albumRatingStars.updateRating(0);
+        }
+        setTimeout(() => { refreshStats(); }, 500);
+
     } catch(e) { showMessage('Error clearing rating', true); }
 };
 
 async function refreshStats() {
     try {
         const res = await fetch(`/api/ratings/album/${currentAlbumId}/stats`);
-        if (res.ok) updateScoresDisplay(await res.json());
-
+        if (res.ok) {
+            const data = await res.json();
+            updateScoresDisplay(data);
+        }
         if (window.components.histogram) {
             window.components.histogram.update(currentAlbumId);
         }
@@ -276,64 +326,9 @@ async function checkAdminRights(slug) {
         }
     } catch(e) {}
 }
-// Экспорты для HTML
-
-async function openListWindow() {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login.html';
-            return;
-        }
-        const response = await fetch('/list_window.html');
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const styleElement = doc.querySelector('style');
-        if (styleElement) {
-            const head = document.head || document.getElementsByTagName('head')[0];
-            if (!head.querySelector('#list-window-styles')) {
-                const newStyle = document.createElement('style');
-                newStyle.id = 'list-window-styles';
-                newStyle.textContent = styleElement.textContent;
-                head.appendChild(newStyle);
-            }
-        }
-
-        const overlay = doc.querySelector('.overlay');
-        let existingOverlay = document.getElementById('list-overlay');
-        if (!existingOverlay) {
-            overlay.id = 'list-overlay';
-            document.body.appendChild(overlay);
-        } else {
-            existingOverlay.innerHTML = overlay.innerHTML;
-        }
-
-        const scripts = doc.querySelectorAll('script');
-        scripts.forEach(script => {
-            const newScript = document.createElement('script');
-            if (script.src) newScript.src = script.src;
-            else newScript.textContent = script.textContent;
-            document.body.appendChild(newScript);
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 50));
-        const targetOverlay = document.getElementById('list-overlay');
-        if (targetOverlay) {
-            targetOverlay.style.display = 'flex';
-            document.body.classList.add('no-scroll');
-            if (window.loadUserLists) window.loadUserLists();
-            if (window.setupTabSwitching) window.setupTabSwitching();
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
 
 async function openTagWindow() {
     try {
-        console.log('Attempting to open tag window...');
         const token = localStorage.getItem('token');
         if (!token) {
             window.location.href = '/login.html';
@@ -346,32 +341,23 @@ async function openTagWindow() {
             throw new Error(`Failed to fetch tag_window.html: ${response.status}`);
         }
         const html = await response.text();
-
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
 
         const head = document.head;
         const styleElement = doc.querySelector('style');
-        if (styleElement) {
-            if (!head.querySelector('#tag-window-styles')) {
-                const newStyle = document.createElement('style');
-                newStyle.id = 'tag-window-styles';
-                newStyle.textContent = styleElement.textContent;
-                head.appendChild(newStyle);
-                console.log('Tag window styles added to head.');
-            }
+        if (styleElement && !head.querySelector('#tag-window-styles')) {
+            const newStyle = document.createElement('style');
+            newStyle.id = 'tag-window-styles';
+            newStyle.textContent = styleElement.textContent;
+            head.appendChild(newStyle);
         }
 
         const overlayElement = doc.querySelector('.overlay');
-        if (!overlayElement) {
-            console.error('Overlay element not found in tag_window.html');
-            window.showMessage('Modal content error.', true);
-            return;
-        }
+        if (!overlayElement) return;
 
         let existingOverlay = document.getElementById('tag-overlay');
         if (existingOverlay) existingOverlay.remove();
-        console.log('Old overlay removed, new overlay element found.');
 
         overlayElement.id = 'tag-overlay';
         document.body.appendChild(overlayElement);
@@ -381,7 +367,6 @@ async function openTagWindow() {
         if (targetOverlay) {
             targetOverlay.style.display = 'flex';
             document.body.classList.add('no-scroll');
-            console.log('Tag window displayed.');
         }
 
         doc.querySelectorAll('script').forEach(script => {
@@ -389,21 +374,18 @@ async function openTagWindow() {
             newScript.textContent = script.textContent;
             document.body.appendChild(newScript);
         });
-        console.log('Tag window scripts executed.');
 
         if (window.loadAlbumTags) {
             window.loadAlbumTags();
         }
-
     } catch (err) {
         console.error('Failed to open tag window:', err);
-        window.showMessage('Failed to open tag window. Check console.', true);
     }
 }
 
 window.openTagWindow = openTagWindow;
 window.sendAlbumAction = sendAlbumAction;
 window.rateAlbum = rateAlbum;
-window.clearAlbumRating = clearAlbumRating; // <-- Добавляем новую функцию в window
+window.clearAlbumRating = clearAlbumRating;
 window.currentAlbumId = currentAlbumId;
 window.albumDataCache = albumDataCache;

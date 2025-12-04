@@ -8,11 +8,11 @@
             <strong>Attributes:</strong> <span id="album-attributes"></span>
         </span>
 
-        <span><strong>Release Date:</strong> <a href="#" id="release-date-link"></a></span>
+        <span><strong>Release Date:</strong><br> <a href="#" id="release-date-link"></a></span>
         <span><strong>Genres:</strong> <span id="album-genres"></span></span>
         <span><strong>Label:</strong> <span id="album-label"></span></span>
         <span><strong>Language:</strong> <span id="album-language"></span></span>
-        <span><strong>Description:</strong> <span id="album-description"></span></span>
+        <span><strong>Descriptors:</strong> <span id="album-description"></span></span>
 
         <span id="album-rank-container" style="display: none;">
             <strong>Ranked:</strong>
@@ -33,7 +33,7 @@
         const elements = getSplitArray(dataArray);
         if (elements.length > 0) {
             container.innerHTML = elements.map(item =>
-                `<a href="/new_releases.html?${paramName}=${encodeURIComponent(item)}">${item}</a>`
+                `<a href="/chart-page.html?${paramName}=${encodeURIComponent(item)}">${item}</a>`
             ).join(', ');
             return true;
         } else {
@@ -54,23 +54,26 @@
 
             // Format & Attributes (Links)
             createLinks('album-format', albumData.format_name, 'format', 'Unknown');
-            const hasAttrs = createLinks('album-attributes', albumData.attributes, 'format', '');
+            const hasAttrs = createLinks('album-attributes', albumData.attributes, 'attributes', '');
             if(document.getElementById('album-attributes-wrapper')) {
                 document.getElementById('album-attributes-wrapper').style.display = hasAttrs ? 'inline' : 'none';
             }
 
             // Meta
             createLinks('album-genres', albumData.genres, 'genres');
-            createLinks('album-label', albumData.label, 'label');
-            createLinks('album-language', albumData.language, 'language');
-            createLinks('album-description', albumData.description, 'description');
+            setText('album-label', albumData.label || 'N/A');
+            createLinks('album-language', albumData.languages, 'language');
+
+            // ИСПРАВЛЕНИЕ: Используем 'descriptors' из API для отображения дескрипторов
+            // и передаем 'description' как имя параметра для фильтра (как и было)
+            createLinks('album-description', albumData.descriptors, 'description');
 
             // Date
             const dateLink = document.getElementById('release-date-link');
             if (dateLink && albumData.release_date) {
                 const year = new Date(albumData.release_date).getFullYear();
                 dateLink.textContent = albumData.release_date.split('T')[0];
-                dateLink.href = `/new_releases.html?year=${year}`;
+                dateLink.href = `/chart-page.html?year=${year}`;
             }
 
             // === RANK DISPLAY LOGIC ===
@@ -83,20 +86,18 @@
 
                 // 1. General Rank (Всегда показываем, если есть)
                 if (albumData.current_rank) {
-                    const generalUrl = `/new_releases.html?sort=rating${slugHash}`;
+                    const generalUrl = `/chart-page.html?sort=rating${slugHash}`;
                     ranksHTML.push(`<a href="${generalUrl}" style="color: greenyellow; text-decoration: none; font-weight: bold;">#${albumData.current_rank} in General</a>`);
                 }
 
                 // 2. Format Rank
-                // Логика: Показывать, если это НЕ "Album", или если это "Album" но есть атрибуты.
-                // Если это чистый "Album" без атрибутов — не показывать (так хотел пользователь).
                 if (albumData.extra_ranks && albumData.extra_ranks.format) {
                     const fRank = albumData.extra_ranks.format;
                     const isStandardAlbum = (fRank.name === 'Album');
                     const hasAttributes = (albumData.attributes && albumData.attributes.length > 0);
 
                     if (!isStandardAlbum || hasAttributes) {
-                        const url = `/new_releases.html?format=${encodeURIComponent(fRank.name)}&sort=rating${slugHash}`;
+                        const url = `/chart-page.html?format=${encodeURIComponent(fRank.name)}&sort=rating${slugHash}`;
                         ranksHTML.push(`<a href="${url}" style="color: #00ffcc; text-decoration: none;">#${fRank.rank} for ${fRank.name}</a>`);
                     }
                 }
@@ -104,7 +105,7 @@
                 // 3. Attribute Ranks (Всегда показываем все)
                 if (albumData.extra_ranks && albumData.extra_ranks.attributes) {
                     albumData.extra_ranks.attributes.forEach(attr => {
-                        const url = `/new_releases.html?format=${encodeURIComponent(attr.name)}&sort=rating${slugHash}`;
+                        const url = `/chart-page.html?attributes=${encodeURIComponent(attr.name)}&sort=rating${slugHash}`;
                         ranksHTML.push(`<a href="${url}" style="color: #ff99cc; text-decoration: none;">#${attr.rank} for ${attr.name}</a>`);
                     });
                 }

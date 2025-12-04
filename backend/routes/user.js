@@ -5,13 +5,17 @@ const { pool } = require('../db');
 const authenticate = require('../authMiddleware');
 const authorizeAdmin = require('../adminAuth');
 
+// --- ОБНОВЛЕННЫЕ КОНСТАНТЫ ПОЛЕЙ ДЛЯ JOIN ---
+// u - users (основные данные), p - user_profiles (данные профиля)
 const PUBLIC_PROFILE_FIELDS = `
-    id, username, role, first_name, last_name, birth_date, gender,
-    location, country, social, description,
-    music, movies, profile_pic, created_at
+    u.id, u.username, u.role, u.created_at,
+    p.first_name, p.last_name, p.birth_date, p.gender,
+    p.location, p.country, p.social, p.description,
+    p.music, p.movies, p.profile_pic
 `;
 
-const PRIVATE_PROFILE_FIELDS = `${PUBLIC_PROFILE_FIELDS}, contact_email`;
+const PRIVATE_PROFILE_FIELDS = `${PUBLIC_PROFILE_FIELDS}, u.email, p.contact_email`;
+// u.email: Email теперь в таблице users и доступен владельцу
 
 function processProfileData(user) {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
@@ -48,8 +52,12 @@ function processProfileData(user) {
 router.get('/me', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
+        // Используем JOIN для получения данных из обеих таблиц
         const [rows] = await pool.execute(
-            `SELECT ${PRIVATE_PROFILE_FIELDS} FROM users WHERE id = ?`,
+            `SELECT ${PRIVATE_PROFILE_FIELDS}
+             FROM users u
+                      LEFT JOIN user_profiles p ON u.id = p.user_id
+             WHERE u.id = ?`,
             [userId]
         );
 
@@ -75,19 +83,30 @@ router.put('/profile/update', authenticate, async (req, res) => {
         } = req.body;
 
         if (!birthDate || birthDate.trim() === '') birthDate = null;
-        if (typeof social === 'object') social = JSON.stringify(social);
-
+        if (typeof social === 'object' && social !== null) social = JSON.stringify(social);
+        // Используем INSERT...ON DUPLICATE KEY UPDATE для профиля (только user_profiles)
         await pool.execute(
-            `UPDATE users SET
-                              first_name = ?, last_name = ?, birth_date = ?, gender = ?,
-                              location = ?, country = ?, social = ?, contact_email = ?,
-                              description = ?, music = ?, movies = ?
-             WHERE id = ?`,
+            `INSERT INTO user_profiles (
+                user_id, first_name, last_name, birth_date, gender,
+                location, country, social, contact_email,
+                description, music, movies
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                                  first_name = VALUES(first_name),
+                                  last_name = VALUES(last_name),
+                                  birth_date = VALUES(birth_date),
+                                  gender = VALUES(gender),
+                                  location = VALUES(location),
+                                  country = VALUES(country),
+                                  social = VALUES(social),
+                                  contact_email = VALUES(contact_email),
+                                  description = VALUES(description),
+                                  music = VALUES(music),
+                                  movies = VALUES(movies)`,
             [
-                firstName, lastName, birthDate, gender,
+                userId, firstName, lastName, birthDate, gender,
                 location, country, social, contactEmail,
-                description, music, movies,
-                userId
+                description, music, movies
             ]
         );
 
@@ -108,8 +127,16 @@ router.get('/track-ratings', authenticate, async (req, res) => {
     return fetchTrackRatings(req.user.id, res);
 });
 
+// --- НОВЫЙ РОУТ: КОММЕНТАРИИ ПОЛЬЗОВАТЕЛЯ (Свои) ---
+router.get('/reviews', authenticate, async (req, res) => {
+    return fetchUserReviews(req.user.id, req, res);
+});
+// ----------------------------------------------------
+
+// РОУТ: Получение всех пользователей (для Админа)
 router.get('/admin/all-users', authorizeAdmin, async (req, res) => {
     try {
+        // Запрос только к таблице users
         const [rows] = await pool.execute('SELECT id, username, email, role, created_at FROM users');
         res.json(rows);
     } catch (err) {
@@ -124,9 +151,10 @@ router.get('/notifications/my', authenticate, async (req, res) => {
     try {
         const [rows] = await pool.execute(`
             SELECT n.id, n.type, n.content, n.is_read, n.created_at,
-                   u.username as sender_username, u.profile_pic as sender_pic
+                   u.username as sender_username, p.profile_pic as sender_pic
             FROM notifications n
                      LEFT JOIN users u ON n.sender_id = u.id
+                     LEFT JOIN user_profiles p ON n.sender_id = p.user_id
             WHERE n.user_id = ?
             ORDER BY n.created_at DESC
             LIMIT 20
@@ -152,6 +180,7 @@ router.post('/notifications/read', authenticate, async (req, res) => {
 // === ПУБЛИЧНЫЕ РОУТЫ (Для просмотра чужих профилей) ===
 
 async function getUserIdByUsername(username) {
+    // Ищем в таблице users
     const [rows] = await pool.execute('SELECT id FROM users WHERE username = ?', [username]);
     return rows.length > 0 ? rows[0].id : null;
 }
@@ -160,8 +189,12 @@ async function getUserIdByUsername(username) {
 router.get('/:username', async (req, res) => {
     try {
         const username = req.params.username;
+        // Используем JOIN для получения данных из обеих таблиц
         const [rows] = await pool.execute(
-            `SELECT ${PUBLIC_PROFILE_FIELDS} FROM users WHERE username = ?`,
+            `SELECT ${PUBLIC_PROFILE_FIELDS}
+             FROM users u
+                      LEFT JOIN user_profiles p ON u.id = p.user_id
+             WHERE u.username = ?`,
             [username]
         );
 
@@ -204,7 +237,7 @@ router.post('/:username/follow', authenticate, async (req, res) => {
         await pool.execute(`
             INSERT INTO notifications (user_id, sender_id, type, content)
             VALUES (?, ?, 'new_follow', ?)
-        `, [followedId, followerId, `${myUsername} подписался на вас`]);
+        `, [followedId, followerId, `${myUsername} subscribe on you`]);
 
         res.json({ success: true });
     } catch (err) {
@@ -258,10 +291,11 @@ router.get('/:username/friends', async (req, res) => {
 
         // Логика: Друзья = те, на кого подписан юзер (r1) И кто подписан на юзера (r2)
         const query = `
-            SELECT u.username, u.profile_pic, u.first_name, u.last_name
+            SELECT u.username, p.profile_pic, p.first_name, p.last_name
             FROM user_relations r1
                      JOIN user_relations r2 ON r1.followed_id = r2.follower_id
                      JOIN users u ON u.id = r1.followed_id
+                     LEFT JOIN user_profiles p ON u.id = p.user_id
             WHERE r1.follower_id = ?
               AND r2.followed_id = ?
             LIMIT 10
@@ -289,6 +323,14 @@ router.get('/:username/track-ratings', async (req, res) => {
     if (!userId) return res.status(404).json({ error: 'User not found' });
     return fetchTrackRatings(userId, res);
 });
+
+// --- НОВЫЙ РОУТ: КОММЕНТАРИИ ПОЛЬЗОВАТЕЛЯ (Публичные) ---
+router.get('/:username/reviews', async (req, res) => {
+    const userId = await getUserIdByUsername(req.params.username);
+    if (!userId) return res.status(404).json({ error: 'User not found' });
+    return fetchUserReviews(userId, req, res);
+});
+// --------------------------------------------------------
 
 router.get('/:username/tags', async (req, res) => {
     const userId = await getUserIdByUsername(req.params.username);
@@ -325,11 +367,11 @@ router.get('/:username/lists', async (req, res) => {
 
         // 2. Получить списки этого пользователя
         const [lists] = await pool.execute(
-            `SELECT 
-                l.id, l.name, l.slug, l.description, l.created_at, l.cover_url,
-                COUNT(li.album_id) AS albums_count
+            `SELECT
+                 l.id, l.name, l.slug, l.description, l.created_at, l.cover_url,
+                 COUNT(li.album_id) AS albums_count
              FROM lists l
-             LEFT JOIN list_items li ON l.id = li.list_id
+                      LEFT JOIN list_items li ON l.id = li.list_id
              WHERE l.user_id = ?
              GROUP BY l.id, l.name, l.slug, l.description, l.created_at, l.cover_url
              ORDER BY l.created_at DESC`,
@@ -380,7 +422,60 @@ router.get('/:username/actions/:type', async (req, res) => {
 });
 
 
-// === ОБЩИЕ ФУНКЦИИ (Без изменений) ===
+// === ОБЩИЕ ФУНКЦИИ ===
+
+// --- НОВАЯ ОБЩАЯ ФУНКЦИЯ ДЛЯ КОММЕНТАРИЕВ ---
+async function fetchUserReviews(userId, req, res) {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        // Query: Reviews + Album Info + Artist Name + User's Numeric Rating (if exists)
+        const query = `
+            SELECT
+                r.id,
+                r.title AS review_title,
+                r.content,
+                r.created_at,
+                a.title AS album_title,
+                a.slug,
+                a.cover_url,
+                rt.score AS user_score,
+                GROUP_CONCAT(art.name ORDER BY aa.is_main DESC SEPARATOR ', ') AS artist
+            FROM reviews r
+            JOIN albums a ON r.album_id = a.id
+            LEFT JOIN album_artists aa ON a.id = aa.album_id
+            LEFT JOIN artists art ON aa.artist_id = art.id
+            LEFT JOIN ratings rt ON r.user_id = rt.user_id AND r.album_id = rt.album_id
+            WHERE r.user_id = ?
+            GROUP BY r.id, r.title, r.content, r.created_at, a.title, a.slug, a.cover_url, rt.score
+            ORDER BY r.created_at DESC
+            LIMIT ${limit} OFFSET ${offset}
+        `;
+
+        const [reviews] = await pool.execute(query, [userId]);
+
+        // Get total count for pagination
+        const [countRows] = await pool.execute(
+            'SELECT COUNT(*) as total FROM reviews WHERE user_id = ?',
+            [userId]
+        );
+
+        res.json({
+            items: reviews,
+            total_count: countRows[0].total,
+            page,
+            limit
+        });
+
+    } catch (err) {
+        console.error('Error fetching user reviews:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+}
+// ---------------------------------------------
+
 
 async function fetchRatedAlbums(userId, res) {
     try {
@@ -446,5 +541,167 @@ async function fetchTrackRatings(userId, res) {
         res.status(500).json({ error: 'Failed to load track ratings' });
     }
 }
+
+// === КОММЕНТАРИИ ПРОФИЛЯ (WALL) ===
+
+// 1. Получить комментарии профиля (с пагинацией)
+router.get('/:username/comments', async (req, res) => {
+    try {
+        const { username } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sort = req.query.sort || 'newest';
+
+        // Вычисляем offset
+        const offset = (page - 1) * limit;
+
+        const profileId = await getUserIdByUsername(username);
+        if (!profileId) return res.status(404).json({ error: 'User not found' });
+
+        let orderBy = 'c.created_at DESC';
+        if (sort === 'popular') orderBy = 'c.likes_count DESC, c.created_at DESC';
+
+        // ИСПРАВЛЕНИЕ: Вставляем limit и offset прямо в строку,
+        // убираем их из массива параметров [profileId]
+        const [comments] = await pool.execute(`
+            SELECT c.*,
+                   u.username, u.role,
+                   p.profile_pic,
+                   (SELECT COUNT(*) FROM user_comments WHERE parent_id = c.id) as replies_count
+            FROM user_comments c
+                     JOIN users u ON c.author_id = u.id
+                     LEFT JOIN user_profiles p ON u.id = p.user_id
+            WHERE c.profile_user_id = ? AND c.parent_id IS NULL
+            ORDER BY ${orderBy}
+            LIMIT ${limit} OFFSET ${offset}
+        `, [profileId]);
+
+        // Считаем общее кол-во
+        const [countRows] = await pool.execute(
+            'SELECT COUNT(*) as total FROM user_comments WHERE profile_user_id = ? AND parent_id IS NULL',
+            [profileId]
+        );
+        const total = countRows[0].total;
+
+        res.json({
+            comments,
+            page,
+            totalPages: Math.ceil(total / limit)
+        });
+
+    } catch (err) {
+        console.error('Error fetching profile comments:', err);
+        res.status(500).json({ error: 'Db error' });
+    }
+});
+
+// 2. Получить ветку ответов (Thread)
+router.get('/comments/thread/:parentId', async (req, res) => {
+    try {
+        const { parentId } = req.params;
+        const [replies] = await pool.execute(`
+            SELECT c.*,
+                   u.username, u.role,
+                   p.profile_pic
+            FROM user_comments c
+                     JOIN users u ON c.author_id = u.id
+                     LEFT JOIN user_profiles p ON u.id = p.user_id
+            WHERE c.parent_id = ?
+            ORDER BY c.created_at ASC
+        `, [parentId]);
+        res.json(replies);
+    } catch (err) {
+        res.status(500).json({ error: 'Db error' });
+    }
+});
+
+// 3. Оставить комментарий (или ответ)
+router.post('/:username/comments', authenticate, async (req, res) => {
+    try {
+        const { username } = req.params;
+        const { content, parentId } = req.body;
+        const authorId = req.user.id;
+
+        const profileId = await getUserIdByUsername(username);
+        if (!profileId) return res.status(404).json({ error: 'User not found' });
+
+        if (!content || !content.trim()) return res.status(400).json({ error: 'Empty content' });
+
+        await pool.execute(`
+            INSERT INTO user_comments (profile_user_id, author_id, content, parent_id)
+            VALUES (?, ?, ?, ?)
+        `, [profileId, authorId, content, parentId || null]);
+
+        // Уведомление владельцу профиля (если пишет не он сам)
+        if (profileId !== authorId) {
+            const [me] = await pool.execute('SELECT username FROM users WHERE id = ?', [authorId]);
+            const senderName = me[0].username;
+            const type = parentId ? 'new_reply' : 'new_comment'; // new_reply нет в ENUM init.sql, используйте new_comment
+
+            // Проверка на спам уведомлениями
+            await pool.execute(`
+                INSERT INTO notifications (user_id, sender_id, type, content, related_slug)
+                VALUES (?, ?, 'new_comment', ?, ?)
+            `, [profileId, authorId, `User ${senderName} commented on your profile`, username]);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Db error' });
+    }
+});
+
+// 4. Редактировать комментарий
+router.put('/comments/:id', authenticate, async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const authorId = req.user.id;
+        const { content } = req.body;
+
+        // Проверяем права (только автор может редактировать)
+        const [check] = await pool.execute('SELECT author_id FROM user_comments WHERE id = ?', [commentId]);
+        if (check.length === 0) return res.status(404).json({ error: 'Not found' });
+        if (check[0].author_id !== authorId) return res.status(403).json({ error: 'Forbidden' });
+
+        await pool.execute('UPDATE user_comments SET content = ? WHERE id = ?', [content, commentId]);
+
+        // Возвращаем обновленный контент
+        res.json({ content });
+    } catch (err) {
+        res.status(500).json({ error: 'Db error' });
+    }
+});
+
+// 5. Лайкнуть комментарий
+router.post('/comments/:id/vote', authenticate, async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const userId = req.user.id;
+
+        // Проверяем, лайкнул ли уже
+        const [existing] = await pool.execute(
+            'SELECT 1 FROM user_comment_votes WHERE comment_id = ? AND user_id = ?',
+            [commentId, userId]
+        );
+
+        let action;
+        if (existing.length > 0) {
+            // Убираем лайк
+            await pool.execute('DELETE FROM user_comment_votes WHERE comment_id = ? AND user_id = ?', [commentId, userId]);
+            await pool.execute('UPDATE user_comments SET likes_count = likes_count - 1 WHERE id = ?', [commentId]);
+            action = 'removed';
+        } else {
+            // Ставим лайк
+            await pool.execute('INSERT INTO user_comment_votes (comment_id, user_id) VALUES (?, ?)', [commentId, userId]);
+            await pool.execute('UPDATE user_comments SET likes_count = likes_count + 1 WHERE id = ?', [commentId]);
+            action = 'added';
+        }
+
+        res.json({ action });
+    } catch (err) {
+        res.status(500).json({ error: 'Db error' });
+    }
+});
 
 module.exports = router;

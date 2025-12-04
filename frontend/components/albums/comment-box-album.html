@@ -1,0 +1,81 @@
+<link rel="stylesheet" href="/css/comments.css">
+<div class="comment-section-wrapper" id="album-comments-root">
+    <div class="comment-header">
+        <h3>Reviews & Comments</h3>
+        <div class="sort-controls">
+            <select class="sort-select">
+                <option value="popular">Top Rated</option>
+                <option value="newest">Newest</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="comment-input-area">
+        <img src="/uploads/avatars/default.png" class="user-avatar-small" id="current-user-avatar-album">
+        <div class="input-wrapper">
+            <textarea class="comment-textarea main-input" placeholder="Share your thoughts on this album..."></textarea>
+            <button class="post-btn main-post-btn">Post Review</button>
+        </div>
+    </div>
+
+    <div class="comments-list"></div>
+    <div class="pagination"></div>
+</div>
+
+<div class="thread-overlay" id="thread-overlay-shared">
+    <div class="thread-modal">
+        <div class="thread-header">
+            <span>Thread</span>
+            <span class="close-thread" id="thread-close-btn">&times;</span>
+        </div>
+        <div class="thread-body" id="thread-content-shared"></div>
+        <div class="thread-footer">
+            <div class="input-wrapper">
+                <textarea class="comment-textarea" id="thread-reply-input" placeholder="Write a reply..." style="min-height:40px;"></textarea>
+                <button class="post-btn" id="thread-send-btn">Reply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Инициализация для альбома
+    (function(){
+        // Используем интервал для ожидания загрузки скрипта ядра и получения ID
+        const checkAndInit = setInterval(() => {
+            // Проверяем, загрузилось ли ядро
+            if (typeof window.CommentsCore === 'undefined') {
+                // Если ядро еще не загружено, попробуем загрузить его динамически, если его нет в head
+                if (!document.querySelector('script[src="/js/comments-core.js"]')) {
+                    const s = document.createElement('script');
+                    s.src = '/js/comments-core.js';
+                    document.head.appendChild(s);
+                }
+                return;
+            }
+
+            // Получаем ID альбома
+            // Приоритет: global variable > URL parsing
+            let finalId = window.currentAlbumId;
+
+            if (!finalId) {
+                const urlParts = window.location.pathname.split('/');
+                const idFromUrl = urlParts[urlParts.length - 1];
+                if (idFromUrl && idFromUrl !== 'album') {
+                    finalId = idFromUrl;
+                }
+            }
+
+            if (finalId) {
+                clearInterval(checkAndInit);
+                console.log("Initializing Comments for Album ID:", finalId);
+
+                new window.CommentsCore({
+                    mode: 'ALBUM',
+                    entityId: finalId,
+                    containerId: 'album-comments-root'
+                });
+            }
+        }, 300);
+    })();
+</script>

@@ -19,16 +19,12 @@
             if(!container || !albumId) return;
 
             try {
-                // Fetch from the NEW route we added in Step 1
                 const res = await fetch(`/api/ratings/album/${albumId}/histogram`);
                 if(!res.ok) throw new Error('Failed to load histogram');
 
-                const data = await res.json(); // Array of {score: 5, count: 10}
-
-                // Calculate total to determine percentage width
+                const data = await res.json();
                 const total = data.reduce((acc, row) => acc + row.count, 0);
 
-                // Prepare all stars 5 down to 0.5
                 let html = '';
                 const scores = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 

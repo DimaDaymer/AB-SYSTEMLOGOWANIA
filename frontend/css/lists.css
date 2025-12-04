@@ -97,8 +97,9 @@ select {
     gap: 15px;
 }
 
-/* --- Стили для отдельных карточек --- */
-.album-card, .list-card {
+/* --- Стили для карточек СПИСКОВ (list-card) --- */
+/* (Селектор .album-card удален отсюда) */
+.list-card {
     background-color: #1e1e1e;
     border-radius: 8px;
     padding: 15px;
@@ -110,15 +111,16 @@ select {
     color: inherit;
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: center; /* Сохраняем выравнивание по центру для .list-card */
     min-height: 100px;
 }
 
-.album-card:hover, .list-card:hover {
+.list-card:hover {
     background-color: #252525;
     transform: translateY(-2px);
     border-color: #333;
 }
+
 
 /* Новый стиль для Placeholder / Обложки списка */
 .list-cover-placeholder {
@@ -198,3 +200,141 @@ select {
     text-align: center;
 }
 
+
+/* === НОВЫЕ СТИЛИ (скопированы из chart-page.html) === */
+
+/* Стили для карточки АЛЬБОМА (.album-card) */
+.album-card {
+    display: flex;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    align-items: flex-start; /* Выравнивание по верху! */
+    transition: box-shadow 0.5s ease, transform 0.3s ease;
+    position: relative;
+    border: 1px solid #2a2a2a; /* Добавлено для согласованности с :hover */
+}
+
+.album-card:hover {
+    background-color: #2f2f2f;
+    transform: translateY(-2px);
+    border-color: #333;
+}
+
+.album-card.highlighted {
+    box-shadow: 0 0 20px 5px rgba(0, 255, 204, 0.6);
+    border: 1px solid #00ffcc;
+    transform: scale(1.02);
+}
+
+/* Ссылка только на картинку */
+.album-cover-link {
+    display: block;
+    flex-shrink: 0;
+    margin-right: 15px;
+    text-decoration: none;
+}
+
+.album-cover-link img {
+    width: 120px;
+    height: 120px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+/* Контейнер для текста и кнопок */
+.album-details-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    /* Добавлено, чтобы кнопки не выходили за пределы */
+    min-width: 0;
+}
+
+/* Ссылка только на текст */
+.album-text-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.album-text-link h2 {
+    font-size: 1.2em;
+    margin: 0 0 5px 0;
+    color: #e0e0e0;
+    transition: color 0.2s;
+    /* Для переноса длинных названий */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.album-text-link:hover h2 {
+    color: #00ffcc;
+}
+
+.album-text-link p {
+    font-size: 0.85em;
+    color: #b0b0b0;
+    margin: 0;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rating-info {
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    color: #b0b0b0;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.rating-info span {
+    margin-right: 5px;
+}
+
+.rating-info .score {
+    font-weight: bold;
+    color: #f5c518;
+    margin-right: 15px;
+}
+
+/* Блок кнопок */
+.album-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    position: relative;
+    z-index: 2;
+}
+
+.action-button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    background-color: #444;
+    color: #f0f0f0;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.action-button:hover {
+    background-color: #555;
+}
+
+/* Стили активной кнопки */
+.action-button.active {
+    background-color: #00ffcc;
+    color: #1a1a1a;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+}

@@ -1,10 +1,10 @@
 <div class="tabs-header">
-    <div class="tab active" data-tab="recent">Оцененные альбомы</div>
-    <div class="tab" data-tab="trackratings">Оценки треков</div>
-    <div class="tab" data-tab="liked">Понравилось (Like)</div>
-    <div class="tab" data-tab="wishlist">Хочу послушать (Wishlist)</div>
-    <div class="tab" data-tab="albums">Прослушано (Listen)</div>
-    <div class="tab" data-tab="tags">Теги</div>
+    <div class="tab active" data-tab="recent">Rated Albums</div>
+    <div class="tab" data-tab="trackratings">Track Ratings</div>
+    <div class="tab" data-tab="reviews">Reviews</div> <div class="tab" data-tab="liked">Liked</div>
+    <div class="tab" data-tab="wishlist">Wishlist</div>
+    <div class="tab" data-tab="albums">Listened</div>
+    <div class="tab" data-tab="tags">Tags</div>
 </div>
 
 <div class="tabs-body">
@@ -13,6 +13,8 @@
     <div id="trackratings" class="tab-content">
         <div id="track-ratings-container"></div>
     </div>
+
+    <div id="reviews" class="tab-content"></div>
 
     <div id="liked" class="tab-content"></div>
     <div id="wishlist" class="tab-content"></div>
@@ -24,7 +26,7 @@
 </div>
 
 <style>
-    /* === ОБЩИЕ СТИЛИ ТАБОВ === */
+    /* === GENERAL TAB STYLES === */
     .tabs-header { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
     .tab { padding: 10px 15px; cursor: pointer; color: #888; transition: color 0.2s, border-bottom 0.2s; font-weight: 500; }
     .tab:hover { color: #fff; }
@@ -33,22 +35,49 @@
     .tab-content.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* === СТИЛИ ДЛЯ СПИСКА АЛЬБОМОВ (Album Entry) === */
+    /* === ALBUM LIST STYLES (Album Entry) === */
     .album-entry {
         display: flex;
-        align-items: center;
-        margin-bottom: 10px;
+        flex-direction: column; /* Изменено на column для поддержки текста комментария */
+        margin-bottom: 15px;
         background: #1a1a1a;
-        padding: 5px;
+        padding: 10px;
         border-radius: 4px;
+    }
+    .album-entry-header {
+        display: flex;
+        align-items: center;
+        width: 100%;
     }
     .list-image { width: 50px; height: 50px; margin-right: 15px; flex-shrink: 0; }
     .album-cover-small { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
-    .album-details { display: flex; flex-direction: column; justify-content: center; }
+    .album-details { display: flex; flex-direction: column; justify-content: center; flex-grow: 1;}
     .title { font-weight: bold; color: #fff; font-size: 1em; }
     .artist-year { color: #aaa; font-size: 0.9em; }
 
-    /* Стили для рейтинга альбома справа */
+    /* Review Text Styles */
+    .review-block {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #333;
+        color: #ddd;
+        font-size: 0.95em;
+        line-height: 1.4;
+    }
+    .review-title {
+        font-weight: bold;
+        color: #fff;
+        margin-bottom: 5px;
+        display: block;
+    }
+    .review-date {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 5px;
+        display: block;
+    }
+
+    /* Album rating styles on the right */
     .rating-stars { color: #ffd700; letter-spacing: 2px; margin-left: auto; white-space: nowrap; }
     .pagination-controls {
         display: flex;
@@ -71,7 +100,7 @@
         cursor: not-allowed;
     }
 
-    /* === СТИЛИ ДЛЯ ТЕГОВ (Аккордеон) === */
+    /* === TAG STYLES (Accordion) === */
     .tag-group { margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; }
     .tag-group-title {
         color: #00ffcc; cursor: pointer; padding: 10px 5px; margin: 0;
@@ -85,10 +114,10 @@
     .tag-group.expanded .tag-group-title::after { transform: rotate(180deg); }
     .tag-albums-list {
         overflow: hidden; transition: max-height 0.3s ease-out;
-        display: flex; flex-direction: column; gap: 10px; padding: 0; /* Скрыто по умолчанию */
+        display: flex; flex-direction: column; gap: 10px; padding: 0; /* Hidden by default */
     }
 
-    /* === СТИЛИ ДЛЯ ТРЕКОВ (Аккордеон) === */
+    /* === TRACK STYLES (Accordion) === */
     .album-with-tracks { margin-bottom: 15px; background: #1e1e1e; border-radius: 5px; overflow: hidden; }
     .album-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer; background: #252525; }
     .album-header-content { display: flex; align-items: center; gap: 10px; }
@@ -103,12 +132,11 @@
 <script>
     (function() {
         const ctx = window.profileContext;
-        const ALBUM_LIMIT = 10; // Ваш лимит для альбомов в табах
-        let currentPage = {}; // Хранилище текущих страниц для каждой вкладки
+        const ALBUM_LIMIT = 10;
+        let currentPage = {};
 
-        // 1. Вспомогательная функция звезд
         function scoreToStars(score) {
-            if (score === null || typeof score === 'undefined') return '☆☆☆☆☆';
+            if (score === null || typeof score === 'undefined') return '';
             const stars = score <= 5 ? score : score / 2;
             const fullStars = Math.floor(stars);
             const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
@@ -116,12 +144,10 @@
             return '★'.repeat(Math.max(0, fullStars)) + halfStar + '☆'.repeat(Math.max(0, emptyStars));
         }
 
-        // Вспомогательная: Рендерит пагинацию
         function renderPagination(container, tabName, totalCount) {
             const totalPages = Math.ceil(totalCount / ALBUM_LIMIT);
             const currentPageNum = currentPage[tabName] || 1;
 
-            // Удаляем старую пагинацию
             container.querySelectorAll('.pagination-controls').forEach(el => el.remove());
 
             if (totalPages <= 1) return;
@@ -129,9 +155,9 @@
             const paginationDiv = document.createElement('div');
             paginationDiv.className = 'pagination-controls';
             paginationDiv.innerHTML = `
-                <button class="pagination-button" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>← Назад</button>
-                <span>Страница ${currentPageNum} из ${totalPages}</span>
-                <button class="pagination-button" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>Вперед →</button>
+                <button class="pagination-button" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>← Previous</button>
+                <span>Page ${currentPageNum} of ${totalPages}</span>
+                <button class="pagination-button" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>Next →</button>
             `;
 
             paginationDiv.querySelectorAll('.pagination-button').forEach(button => {
@@ -145,7 +171,6 @@
                     }
                     if (newPage !== currentPageNum) {
                         currentPage[tabName] = newPage;
-                        // Перезагрузка данных для активной вкладки
                         triggerLoad(tabName, newPage);
                     }
                 });
@@ -154,13 +179,72 @@
             container.appendChild(paginationDiv);
         }
 
-        // 2. Загрузка ОЦЕНЕННЫХ АЛЬБОМОВ (Recent)
+        // --- НОВАЯ ФУНКЦИЯ: Load User Reviews ---
+        async function loadUserReviews(page = 1) {
+            const container = document.getElementById('reviews');
+            const tabName = 'reviews';
+            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
+
+            container.innerHTML = '<div class="loading">Loading reviews...</div>';
+            try {
+                // Использует getApiUrl('reviews'), который теперь разрешается в /api/users/:username/reviews или /api/users/reviews
+                const url = `${ctx.getApiUrl('reviews')}?page=${page}&limit=${ALBUM_LIMIT}`;
+                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error(`Status: ${res.status}`);
+
+                const data = await res.json();
+                const reviews = data.items || [];
+                const totalCount = data.total_count || 0;
+
+                if (!reviews || reviews.length === 0) {
+                    container.innerHTML = '<p>No reviews written yet.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                reviews.forEach(review => {
+                    const reviewEl = document.createElement('div');
+                    reviewEl.className = 'album-entry'; // Переиспользуем стиль обертки
+                    reviewEl.innerHTML = `
+                    <div class="album-entry-header">
+                        <div class="list-image">
+                            <img src="${review.cover_url || '/assets/album-placeholder.png'}" alt="${review.album_title}" class="album-cover-small" />
+                        </div>
+                        <a href="/release/album/${review.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                            <div class="album-details">
+                                <span class="title">${review.album_title}</span>
+                                <span class="artist-year">${review.artist || 'Unknown Artist'}</span>
+                            </div>
+                            <span class="rating-stars">${scoreToStars(review.user_score)}</span>
+                        </a>
+                    </div>
+                    <div class="review-block">
+                        ${review.review_title ? `<span class="review-title">${review.review_title}</span>` : ''}
+                        ${review.content}
+                        <span class="review-date">${new Date(review.created_at).toLocaleDateString()}</span>
+                    </div>
+                    `;
+                    container.appendChild(reviewEl);
+                });
+
+                renderPagination(container, tabName, totalCount);
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p>Failed to load reviews.</p>';
+            }
+        }
+        // ---------------------------------------------
+
+
         async function loadRatedAlbums(page = 1) {
             const container = document.getElementById('recent');
             const tabName = 'recent';
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
-            container.innerHTML = '<div class="loading">Загрузка...</div>';
+            container.innerHTML = '<div class="loading">Loading...</div>';
             try {
                 const url = `${ctx.getApiUrl('rated-albums')}?page=${page}&limit=${ALBUM_LIMIT}`;
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
@@ -173,7 +257,7 @@
                 const totalCount = data.total_count || albums.length;
 
                 if (!albums || albums.length === 0) {
-                    container.innerHTML = '<p>Пока нет оценок</p>';
+                    container.innerHTML = '<p>No ratings yet</p>';
                     return;
                 }
 
@@ -182,16 +266,18 @@
                     const albumEl = document.createElement('div');
                     albumEl.className = 'album-entry';
                     albumEl.innerHTML = `
-                    <div class="list-image">
-                        <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
-                    </div>
-                    <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                        <div class="album-details">
-                            <span class="title">${album.title}</span>
-                            <span class="artist-year">${album.artist}</span>
+                    <div class="album-entry-header">
+                        <div class="list-image">
+                            <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
                         </div>
-                        <span class="rating-stars">${scoreToStars(album.score)}</span>
-                    </a>
+                        <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                            <div class="album-details">
+                                <span class="title">${album.title}</span>
+                                <span class="artist-year">${album.artist}</span>
+                            </div>
+                            <span class="rating-stars">${scoreToStars(album.score)}</span>
+                        </a>
+                    </div>
                 `;
                     container.appendChild(albumEl);
                 });
@@ -200,30 +286,29 @@
 
             } catch (err) {
                 console.error(err);
-                container.innerHTML = '<p>Не удалось загрузить оценки.</p>';
+                container.innerHTML = '<p>Failed to load ratings.</p>';
             }
         }
 
-        // 3. Загрузка Actions (Liked, Wishlist, Listen)
         async function loadUserActions(type, containerId, page = 1) {
             const container = document.getElementById(containerId);
             const tabName = containerId;
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
-            container.innerHTML = '<div class="loading">Загрузка...</div>';
+            container.innerHTML = '<div class="loading">Loading...</div>';
             try {
                 const url = `${ctx.getActionUrl(type)}?page=${page}&limit=${ALBUM_LIMIT}`;
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
                 const res = await fetch(url, { headers });
-                if (!res.ok) { container.innerHTML = '<p>Пусто.</p>'; return; }
+                if (!res.ok) { container.innerHTML = '<p>Empty.</p>'; return; }
 
                 const data = await res.json();
                 const actions = data.items || data;
                 const totalCount = data.total_count || actions.length;
 
                 if (!actions || actions.length === 0) {
-                    container.innerHTML = `<p>Список пуст</p>`;
+                    container.innerHTML = `<p>List is empty</p>`;
                     return;
                 }
 
@@ -232,15 +317,17 @@
                     const actionEl = document.createElement('div');
                     actionEl.className = 'album-entry';
                     actionEl.innerHTML = `
-                    <div class="list-image">
-                        <img src="${action.cover_url || '/assets/album-placeholder.png'}" alt="${action.title}" class="album-cover-small" />
-                    </div>
-                    <a href="/release/album/${action.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                        <div class="album-details">
-                            <span class="title">${action.title}</span>
-                            <span class="artist-year">${action.artist}</span>
+                    <div class="album-entry-header">
+                        <div class="list-image">
+                            <img src="${action.cover_url || '/assets/album-placeholder.png'}" alt="${action.title}" class="album-cover-small" />
                         </div>
-                    </a>
+                        <a href="/release/album/${action.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                            <div class="album-details">
+                                <span class="title">${action.title}</span>
+                                <span class="artist-year">${action.artist}</span>
+                            </div>
+                        </a>
+                    </div>
                 `;
                     container.appendChild(actionEl);
                 });
@@ -249,16 +336,15 @@
 
             } catch (err) {
                 console.error(err);
-                container.innerHTML = '<p>Не удалось загрузить список.</p>';
+                container.innerHTML = '<p>Failed to load list.</p>';
             }
         }
 
-        // 4. Загрузка Треков (Аккордеон + Звезды) - Пагинация не требуется
         async function loadAlbumsWithTrackRatings() {
             const container = document.getElementById('track-ratings-container');
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
-            container.innerHTML = '<div class="loading">Загрузка оценок треков...</div>';
+            container.innerHTML = '<div class="loading">Loading track ratings...</div>';
             try {
                 const url = ctx.getApiUrl('track-ratings');
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
@@ -268,12 +354,14 @@
                 const albumsWithRatings = await res.json();
 
                 if (!albumsWithRatings || albumsWithRatings.length === 0) {
-                    container.innerHTML = '<div class="no-ratings">Пока нет оценок треков</div>';
+                    container.innerHTML = '<div class="no-ratings">No track ratings yet</div>';
                     return;
                 }
 
                 container.innerHTML = '';
                 albumsWithRatings.forEach(album => {
+                    const displayArtist = album.artist ? album.artist.split(',')[0].trim() : 'Unknown Artist';
+
                     const albumElement = document.createElement('div');
                     albumElement.className = 'album-with-tracks';
                     albumElement.innerHTML = `
@@ -283,7 +371,7 @@
                                  alt="${album.title}" class="album-cover-small" style="width:40px; height:40px;">
                             <div>
                                 <div class="album-title" style="color:#fff; font-weight:bold;">${album.title}</div>
-                                <div class="album-artist" style="color:#888; font-size:0.9em;">${album.artist}</div>
+                                <div class="album-artist" style="color:#888; font-size:0.9em;">${displayArtist}</div>
                             </div>
                         </div>
                         <div class="toggle-icon">▼</div>
@@ -321,16 +409,15 @@
                 });
             } catch (err) {
                 console.error(err);
-                container.innerHTML = '<p>Ошибка загрузки треков.</p>';
+                container.innerHTML = '<p>Error loading tracks.</p>';
             }
         }
 
-        // 5. Загрузка Тегов (Аккордеон) - Пагинация не требуется
         async function loadUserTags() {
             const container = document.getElementById('user-tags-container');
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
-            container.innerHTML = '<div class="loading">Загрузка тегов...</div>';
+            container.innerHTML = '<div class="loading">Loading tags...</div>';
             try {
                 const url = ctx.isPublic
                     ? `/api/users/${ctx.username}/tags`
@@ -343,7 +430,7 @@
                 const data = await res.json();
 
                 if (data.length === 0) {
-                    container.innerHTML = '<p>Тегов пока нет.</p>';
+                    container.innerHTML = '<p>No tags yet.</p>';
                     return;
                 }
 
@@ -370,17 +457,19 @@
                         const albumEl = document.createElement('div');
                         albumEl.className = 'album-entry';
                         albumEl.innerHTML = `
-                     <div class="list-image">
-                        <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                             alt="${album.title}" class="album-cover-small" />
-                    </div>
-                    <a href="/release/album/${album.slug}"
-                       style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                        <div class="album-details">
-                            <span class="title">${album.title}</span>
-                            <span class="artist-year">${album.artist_name || album.artist} (${new Date(album.release_date).getFullYear()})</span>
+                     <div class="album-entry-header">
+                        <div class="list-image">
+                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
+                                 alt="${album.title}" class="album-cover-small" />
                         </div>
-                    </a>
+                        <a href="/release/album/${album.slug}"
+                           style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                            <div class="album-details">
+                                <span class="title">${album.title}</span>
+                                <span class="artist-year">${album.artist_name || album.artist} (${new Date(album.release_date).getFullYear()})</span>
+                            </div>
+                        </a>
+                    </div>
                 `;
                         listDiv.appendChild(albumEl);
                     });
@@ -401,11 +490,10 @@
 
             } catch (err) {
                 console.error('Error loading tags:', err);
-                container.innerHTML = '<p style="color:red">Ошибка при загрузке тегов</p>';
+                container.innerHTML = '<p style="color:red">Error loading tags</p>';
             }
         }
 
-        // Главная функция-загрузчик
         function triggerLoad(tabName, page = 1) {
             currentPage[tabName] = page;
             switch (tabName) {
@@ -413,13 +501,12 @@
                 case 'albums': loadUserActions('listen', 'albums', page); break;
                 case 'liked': loadUserActions('like', 'liked', page); break;
                 case 'wishlist': loadUserActions('wishlist', 'wishlist', page); break;
-                case 'trackratings': loadAlbumsWithTrackRatings(); break; // Нет пагинации
-                case 'tags': loadUserTags(); break; // Нет пагинации
+                case 'reviews': loadUserReviews(page); break; // ДОБАВЛЕН ТРИГГЕР
+                case 'trackratings': loadAlbumsWithTrackRatings(); break;
+                case 'tags': loadUserTags(); break;
             }
         }
 
-
-        // === ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК ===
         const tabs = document.querySelectorAll('.tab');
         const contents = document.querySelectorAll('.tab-content');
 
@@ -432,12 +519,10 @@
                 const targetId = tab.dataset.tab;
                 document.getElementById(targetId).classList.add('active');
 
-                // Загрузка данных (начиная с 1 страницы)
                 triggerLoad(targetId, 1);
             });
         });
 
-        // Загрузка первой вкладки при старте
         const activeTab = document.querySelector('.tab.active');
         if (activeTab && activeTab.dataset.tab === 'recent') {
             triggerLoad('recent', 1);

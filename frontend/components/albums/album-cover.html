@@ -8,7 +8,7 @@
         update: function(albumData) {
             const albumCover = document.getElementById('album-cover');
             if (albumCover) {
-                albumCover.src = albumData.cover_url || '/assets/album-placeholder.png';
+                albumCover.src = albumData.cover_url || '/public/uploads/placeholder.jpg';
 
                 // Добавляем обработчик для установки правильных пропорций
                 albumCover.onload = function() {

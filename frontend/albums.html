@@ -8,8 +8,13 @@
 
     <link rel="stylesheet" href="/css/albums.css">
     <link rel="stylesheet" href="/css/stars.css">
+    <link rel="stylesheet" href="/css/comments.css">
 
     <script src="/js/StarRating.js"></script>
+    <script src="/js/list-app-core.js"></script>
+    <script src="/js/list-app-modal.js"></script>
+    <script src="/js/comments-core.js"></script>
+
 </head>
 <body>
 <div id="navbar-container"></div>
@@ -24,32 +29,23 @@
     <div class="center-panel">
         <div id="album-info-container"></div>
         <div id="tabs-container"></div>
+        <div id="comments-container"></div>
     </div>
 
     <div class="right-panel">
         <div id="user-actions-container"></div>
 
-        <div class="score-block">
-            <div class="score-value">Loading...</div>
-            <div class="score-ratings"></div>
-
-            <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
-
-            <div style="margin-bottom: 8px; color: #aaa; font-size: 0.9rem;">Your Rating:</div>
-            <div id="album-star-rating-host"></div>
-        </div>
-
-        <div id="histogram-container"></div>
+        <div id="album-ratings-host-container"></div>
 
         <div id="media-links-container"></div>
-
         <div class="album-info-container">
-            <button id="edit-album-btn" class="button" style="display: none;">Edit Album</button>
+            <button id="edit-album-btn" class="button" style="display: none;">Редактировать альбом</button>
         </div>
+
+
     </div>
 </div>
 
-<script src="/js/lists.js"></script>
-<script src="/js/albums1.js" type="module"></script>
+<script type="module" src="/js/albums1.js"></script>
 </body>
 </html>
