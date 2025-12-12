@@ -3,64 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Исполнитель - Melody Rater</title>
-    <link rel="stylesheet" href="./css/style.css"> <link rel="stylesheet" href="./css/artist.css"> </head>
+    <title>Artist | Melody Rater</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/artist.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
 <body>
 
+<div id="dynamic-background"></div>
 <div id="navbar-container"></div>
 
-<main class="artist-page-container">
-    <div id="artist-banner-overlay"></div>
+<div class="container">
 
-    <section id="artist-header">
-        <div id="artist-info">
-            <img id="artist-picture" src="" alt="Фото исполнителя" class="artist-picture">
-            <div class="artist-details">
-                <h1 id="artist-name">Loading...</h1>
-                <div id="artist-genres" class="artist-genres"></div>
-                <p id="artist-meta">
-                    <span id="artist-country"></span>
-                    <span id="artist-formed-year"></span>
-                </p>
-                <div class="artist-stats">
-                    <span id="artist-albums-count">0 Albums</span> •
-                    <span id="artist-followers-count">0 Followers</span>
+    <aside class="left-panel">
+        <div class="artist-card-sticky">
+            <div class="artist-image-wrapper">
+                <img id="artist-picture" src="/images/default-artist.png" alt="Artist">
+            </div>
+
+            <h1 id="artist-name">Loading...</h1>
+            <div id="artist-genres" class="genre-badges"></div>
+
+            <div class="artist-meta-block">
+                <div class="meta-row">
+                    <i class="fas fa-map-marker-alt"></i> <span id="artist-country">-</span>
+                </div>
+                <div class="meta-row">
+                    <i class="fas fa-calendar-alt"></i> <span id="artist-formed-year">-</span>
                 </div>
             </div>
+
+            <div class="score-block">
+                <div class="score-label">Avg. Score</div>
+                <div class="score-value" id="artist-global-score">N/A</div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="follow-button" class="btn btn-block btn-outline">
+                    <i class="fas fa-plus"></i> Follow
+                </button>
+                <button id="edit-bio-btn" class="btn btn-block btn-secondary" style="display:none;">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+            </div>
+
+            <div class="followers-stat">
+                <i class="fas fa-users"></i> <span id="artist-followers-count">0</span> followers
+            </div>
         </div>
-        <div id="artist-actions">
-            <button class="follow-button">+ Follow</button>
+    </aside>
+
+    <main class="center-panel">
+
+        <div class="tabs">
+            <div class="tab active" data-tab="discography">Discography</div>
+            <div class="tab" data-tab="bio">Biography & Members</div>
         </div>
-    </section>
 
-    <div class="main-content-area">
-        <section id="artist-tabs" class="tabs-container">
-            <button class="tab-button active" data-tab="discography">Discography</button>
-            <button class="tab-button" data-tab="bio">Biography</button>
-            <button class="tab-button" data-tab="reviews">Reviews</button>
-        </section>
-
-        <div id="tabs-content">
-            <div id="discography" class="tab-content active">
-                <div id="discography-list"></div>
+        <div id="discography" class="tab-content active">
+            <div class="sort-controls">
+                <label for="sort-select">Sort By:</label>
+                <select id="sort-select" class="form-control">
+                    <option value="release_date_desc">Year (Newest First)</option>
+                    <option value="release_date_asc">Year (Oldest First)</option>
+                    <option value="average_rating_desc">Rating (Highest First)</option>
+                    <option value="ratings_count_desc">Ratings Count (Highest First)</option>
+                    <option value="title_asc">Title (A-Z)</option>
+                </select>
             </div>
-
-            <div id="bio" class="tab-content">
-                <h2 class="section-title">About</h2>
-                <p id="artist-description" style="line-height: 1.6; color: #ccc;">Загрузка описания...</p>
+            <div id="discography-list">
             </div>
+        </div>
 
-            <div id="reviews" class="tab-content">
-                <h2 class="section-title">User Reviews</h2>
-                <p style="color: #888;">Reviews coming soon.</p>
+        <div id="bio" class="tab-content">
+            <div id="members-module-container">
             </div>
+            <div class="info-box">
+                <h3>Biography</h3>
+                <div id="artist-description" class="bio-text">No biography available.</div>
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<div id="edit-bio-modal" class="modal-overlay" style="display: none;">
+    <div class="form-container" style="margin-top: 10vh; max-width: 600px;">
+        <div class="form-card">
+            <h2>Edit Artist Details</h2>
+            <form id="edit-bio-form">
+                <div class="form-group">
+                    <label>Biography</label>
+                    <textarea id="modal-bio" class="form-control"></textarea>
+                </div>
+                <div class="form-group" style="display:flex; gap:10px;">
+                    <div style="flex:1">
+                        <label>Formed Year</label>
+                        <input type="text" id="modal-formed-year" class="form-control">
+                    </div>
+                    <div style="flex:1">
+                        <label>Country</label>
+                        <input type="text" id="modal-country" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Picture URL</label>
+                    <input type="text" id="modal-picture" class="form-control">
+                </div>
+                <div class="form-footer">
+                    <button type="submit" class="btn">Save Changes</button>
+                    <button type="button" id="close-modal-btn" class="btn btn-outline" style="margin-left: 10px;">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
-</main>
+</div>
 
-<script src="/js/auth.js"></script>
-<script src="/js/common.js"></script>
-<script src="/js/artist.js"></script>
-
+<script type="module" src="/js/artist.js"></script>
+<script src="/js/members.js"></script>
+<script src="/js/autocomplete.js"></script>
 </body>
 </html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Details | MelodyRater</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/track.css">
+    <link rel="stylesheet" href="/css/stars.css">
+    <link rel="stylesheet" href="/css/comments.css">
+
+    <script src="/js/StarRating.js"></script>
+    <script src="/js/comments-core.js"></script>
+    <script src="/js/list-app-core.js"></script>
+    <script src="/js/list-app-modal.js"></script>
+</head>
+<body>
+<div id="navbar-container"></div>
+<div id="dynamic-background"></div>
+
+<div class="container">
+    <div class="left-panel">
+        <div id="album-cover-container"></div>
+    </div>
+
+    <div class="center-panel">
+        <div id="track-info-container"></div>
+        <div id="comments-container"></div>
+    </div>
+
+    <div class="right-panel">
+        <div class="score-block">
+            <div id="global-track-score" class="score-value">
+                N/A
+            </div>
+            <div id="global-ratings-count" class="score-ratings">
+                based on 0 ratings
+            </div>
+            <div id="track-star-rating-host">
+            </div>
+        </div>
+
+        <div id="media-links-container"></div>
+    </div>
+</div>
+
+<script>
+    // Глобальные переменные
+    let currentTrackId = null;
+    window.components = window.components || {};
+
+    // === ГЛОБАЛЬНЫЕ ФУНКЦИИ (Копирование из albums1.js) ===
+    function showMessage(message, isError = false) {
+        // ... (функция showMessage)
+        const existingMessages = document.querySelectorAll('.global-message');
+        existingMessages.forEach(msg => msg.remove());
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'global-message';
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; background: ${isError ? '#ffdddd' : '#ddffdd'};
+            color: ${isError ? '#ff0000' : '#008800'}; border: 1px solid ${isError ? '#ff0000' : '#008800'};
+            border-radius: 5px; z-index: 1000; font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(messageDiv);
+        setTimeout(() => {
+            messageDiv.style.opacity = '0';
+            setTimeout(() => messageDiv.remove(), 300);
+        }, 5000);
+    }
+    window.showMessage = showMessage;
+
+    async function loadComponent(containerId, componentPath) {
+        try {
+            const container = document.getElementById(containerId);
+            if (!container) return false;
+
+            const response = await fetch(componentPath);
+            // !!! ВАЖНО: Проверка, что компонент не вернул 404/500 ошибку
+            if (!response.ok) throw new Error(`HTTP ${response.status} when fetching ${componentPath}`);
+
+            const html = await response.text();
+            container.innerHTML = html;
+
+            // Загружаем скрипты компонента, чтобы избежать ошибок 'has already been declared'
+            // Скрипты, которые уже загружены через <script src="...">, не должны быть загружены снова.
+            // Исполняем только inline-скрипты, если они есть.
+            const scripts = container.querySelectorAll('script:not([src])');
+            scripts.forEach(script => {
+                try {
+                    // Используем eval/new Function для выполнения inline-скриптов
+                    // (Безопасно, т.к. это ваш код)
+                    new Function(script.textContent)();
+                } catch(e) {
+                    console.error(`Error executing inline script in ${componentPath}:`, e);
+                }
+            });
+            return true;
+        } catch (error) {
+            console.warn(`[Component] Failed to load ${componentPath}:`, error);
+            return false;
+        }
+    }
+    window.loadComponent = loadComponent;
+
+    // === ЛОГИКА СТРАНИЦЫ ТРЕКА ===
+
+    function getSlugFromURL() {
+        const path = window.location.pathname;
+        const parts = path.split('/');
+        // Ищем последний непустой элемент
+        const slug = parts.pop() || parts.pop();
+        return (slug && slug !== 'track') ? slug : null;
+    }
+
+    async function loadNavbar() {
+        const cont = document.getElementById('navbar-container');
+        if(cont) {
+            try {
+                const res = await fetch('/navbar.html');
+                if(res.ok) {
+                    cont.innerHTML = await res.text();
+                    // !!! ИСПРАВЛЕНИЕ ОШИБКИ currentPath !!!
+                    // Исполняем скрипты навигации только один раз,
+                    // используя механизм loadComponent или явно.
+                    // Если navbar.html содержит объявление 'currentPath',
+                    // то нужно его исполнить безопасно:
+                    cont.querySelectorAll('script').forEach(s => {
+                        if(s.src) { // Загружаем внешний скрипт
+                            const sc = document.createElement('script');
+                            sc.src = s.src;
+                            document.body.appendChild(sc);
+                        } else { // Исполняем inline-скрипты
+                            try {
+                                new Function(s.textContent)();
+                            } catch(e) {
+                                // Игнорируем ошибку, если currentPath уже объявлен
+                                if (!e.message.includes('has already been declared')) {
+                                    console.error('Error executing navbar script:', e);
+                                }
+                            }
+                        }
+                    });
+
+                    if (window.initNavbar) {
+                        window.initNavbar();
+                    }
+                }
+            } catch(e) { console.error('Navbar load failed', e); }
+        }
+    }
+
+    async function loadBaseComponents() {
+        const baseComponents = [
+            // Обложка
+            { id: 'album-cover-container', path: '/components/albums/album-cover.html' },
+            // Инфо: (ВАЖНО: Имя файла в реальной структуре может быть другим.
+            // Предполагаю, что track-info.html находится в корне /components/albums/)
+            { id: 'track-info-container', path: '/components/tracks/track-info.html' },
+            // Звезды
+            { id: 'track-star-rating-host', path: '/components/albums/album-rating-stars.html' },
+            // Комментарии
+            { id: 'comments-container', path: '/components/albums/comment-box-album.html' },
+            // Медиа-ссылки (можно опустить, если не нужно, но оставлю для полноты)
+            { id: 'media-links-container', path: '/components/albums/media-links.html' },
+
+            // УДАЛЕНЫ: user-actions-container, tabs-container
+        ];
+        await Promise.all(baseComponents.map(c => loadComponent(c.id, c.path)));
+    }
+
+    async function fetchTrack(slug) {
+        const response = await fetch(`/api/tracks/${slug}`);
+
+        // !!! ИСПРАВЛЕНИЕ ОШИБКИ: SyntaxError: Unexpected token '<'
+        // Если API возвращает HTML (например, страницу 404), а не JSON,
+        // то response.json() падает.
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            // Если это не JSON, то это ошибка
+            const errorText = await response.text(); // Читаем тело ошибки/страницы
+            throw new Error(`Server returned HTML/Non-JSON instead of data. Check API route. Response Status: ${response.status}`);
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(errorData.message || `Track not found (Status: ${response.status})`);
+        }
+
+        return await response.json();
+    }
+
+    function updateComponents(data) {
+        // ... (Ваша логика updateComponents, она верна)
+        // 1. Динамический фон
+        const bg = document.getElementById('dynamic-background');
+        const coverUrl = data.album ? data.album.cover_url : (data.cover_url || null);
+        if (bg && coverUrl) bg.style.backgroundImage = `url('${coverUrl}')`;
+
+        // 2. Обложка альбома
+        if (window.components.albumCover) window.components.albumCover.update(data.album || data);
+
+        // 3. Информация о треке
+        if (window.components.trackInfo) window.components.trackInfo.update(data);
+
+        // 4. Медиа-ссылки
+        if (window.components.mediaLinks) {
+            try {
+                window.components.mediaLinks.update(data.id || (data.album ? data.album.id : null), 'track');
+            } catch (e) {
+                console.warn("Media Links update failed:", e);
+            }
+        }
+
+        // 5. Комментарии
+        if (window.CommentSystem && data.id) {
+            window.CommentSystem.init(data.id, 'track');
+        }
+        // ...
+    }
+
+    function updateScoresDisplay(stats) {
+        // ... (Ваша логика updateScoresDisplay, она верна)
+        const userScoreEl = document.getElementById('global-track-score');
+        const userRatingsCountEl = document.getElementById('global-ratings-count');
+
+        if (!stats) return;
+
+        const rawScore = parseFloat(stats.average_rating || stats.average_score);
+        const userTotalRatings = parseInt(stats.total_ratings || stats.rating_count || 0);
+        let displayScore = 'N/A';
+
+        if (!isNaN(rawScore) && (rawScore > 0 || userTotalRatings > 0)) {
+            displayScore = rawScore.toFixed(2);
+        }
+
+        if (userScoreEl) userScoreEl.innerHTML = `${displayScore}`;
+        if (userRatingsCountEl) userRatingsCountEl.textContent = `based on ${userTotalRatings.toLocaleString()} ratings`;
+    }
+
+    async function loadTrackUserData(trackId) {
+        // ... (Ваша логика loadTrackUserData, она верна)
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Загрузка пользовательского рейтинга трека
+        fetch(`/api/track-ratings/${trackId}/user-rating`, { headers: { 'Authorization': `Bearer ${token}` }})
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                // ... (логика обновления звезд)
+                if (data && data.score !== null && window.components.albumRatingStars) {
+                    window.currentTrackRating = parseFloat(data.score);
+                    // Компонент звезд используется тот же, что и для альбома, но с логикой для трека
+                    window.components.albumRatingStars.updateRating(window.currentTrackRating);
+                }
+            });
+
+        // Загрузка пользовательских действий (если оставили, иначе удалить)
+        // Удалил логику user-actions, так как контейнер удален.
+    }
+
+    // ВАЖНО: Добавляем функции rateAlbum и clearAlbumRating, которые вызываются из компонента звезд
+    window.rateAlbum = async (rating) => {
+        // Здесь должна быть логика отправки рейтинга трека на API: /api/track-ratings/${currentTrackId}
+        showMessage(`Track rating set to ${rating.toFixed(1)}!`, false);
+        // После успешного сохранения нужно обновить статистику трека
+        // updateScoresDisplay(await fetch(`/api/track-ratings/${currentTrackId}/stats`).then(res => res.json()));
+    };
+
+    window.clearAlbumRating = async () => {
+        // Здесь должна быть логика удаления рейтинга трека
+        showMessage('Track rating cleared!', false);
+        // После успешного удаления нужно обновить статистику трека
+        // updateScoresDisplay(await fetch(`/api/track-ratings/${currentTrackId}/stats`).then(res => res.json()));
+    };
+
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const slug = getSlugFromURL();
+        if (!slug) {
+            document.getElementById('track-info-container').innerHTML = '<h1 class="album-title" style="color: red;">Error: No track slug provided in URL.</h1>';
+            return;
+        }
+
+        try {
+            await loadNavbar();
+            // Загрузка всех компонентов (теперь их скрипты выполнятся безопасно)
+            await loadBaseComponents();
+
+            const trackData = await fetchTrack(slug);
+            currentTrackId = trackData.id;
+            window.currentTrackId = currentTrackId;
+            window.trackDataCache = trackData;
+
+            updateComponents(trackData);
+
+            const statsRes = await fetch(`/api/track-ratings/${currentTrackId}/stats`);
+            if(statsRes.ok) {
+                const stats = await statsRes.json();
+                updateScoresDisplay(stats);
+            }
+
+            await loadTrackUserData(currentTrackId);
+
+        } catch (error) {
+            console.error('[Track] Init error:', error);
+            const trackInfoContainer = document.getElementById('track-info-container');
+            if (trackInfoContainer) {
+                trackInfoContainer.innerHTML = `<h1 class="album-title" style="color: red; padding: 20px;">Error loading track: ${error.message}</h1>`;
+            }
+        }
+    });
+
+</script>
+</body>
+</html>

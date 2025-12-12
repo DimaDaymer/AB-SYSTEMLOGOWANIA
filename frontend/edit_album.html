@@ -101,7 +101,49 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+
+    async function enforceAdminAccess() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            // Если нет токена, перенаправляем на логин
+            alert('Для редактирования альбома необходима авторизация.');
+            window.location.href = '/login.html';
+            return false;
+        }
+
+        try {
+            const res = await fetch('/api/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error('Failed to fetch user data');
+
+            const user = await res.json();
+
+            if (user.role !== 'admin') {
+                // Если не админ, перенаправляем на главную или страницу ошибки
+                alert('У вас нет прав администратора для доступа к этой странице.');
+                window.location.href = '/';
+                return false;
+            }
+            // Пользователь - админ, доступ разрешен
+            return true;
+
+        } catch(e) {
+            console.error('Admin check failed:', e);
+            alert('Ошибка проверки прав доступа. Попробуйте войти снова.');
+            window.location.href = '/login.html';
+            return false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {        // 1. Проверка прав администратора
+        const hasAccess = await enforceAdminAccess();
+        if (!hasAccess) {
+            // Прерываем выполнение всего остального скрипта, если доступа нет
+            return;
+        }
+
         const form = document.getElementById('editAlbumForm');
         const tracklistContainer = document.getElementById('tracklist-container');
         const addTrackBtn = document.getElementById('add-track-btn');

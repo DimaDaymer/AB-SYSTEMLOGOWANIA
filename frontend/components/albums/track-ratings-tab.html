@@ -15,7 +15,22 @@
         border-bottom: 1px solid #333;
     }
     .track-info { flex-grow: 1; }
-    .track-title { font-size: 16px; color: #ADFF2F; }
+
+    /* Стили для ссылки трека - эти стили можно удалить, но оставляю на случай, если они используются где-то еще, кроме ссылки */
+    .track-title {
+        font-size: 16px;
+        color: #ADFF2F;
+    }
+    .track-link {
+        color: #ADFF2F;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .track-link:hover {
+        color: #fff;
+        text-decoration: underline;
+    }
+
     .track-duration { font-size: 14px; color: #999; }
 
     .track-rating {
@@ -31,8 +46,6 @@
         min-width: 55px;
         text-align: left;
     }
-
-
 </style>
 
 <script>
@@ -51,13 +64,19 @@
             tracks.forEach(track => {
                 const trackRating = userRatings[track.id] || 0;
 
+                // Удаляем переменную trackUrl и ее использование
+                // const trackUrl = track.slug ? `/track/${track.slug}` : '#';
+
                 const trackItem = document.createElement('li');
                 trackItem.className = 'track-rating-item';
                 trackItem.dataset.trackId = track.id;
 
                 trackItem.innerHTML = `
                     <div class="track-info">
-                        <div class="track-title">${track.track_number}. ${track.title}</div>
+                        <div class="track-title">
+                            ${track.track_number}.
+                            <span>${track.title}</span>
+                        </div>
                         <div class="track-duration">${track.duration || ''}</div>
                     </div>
                     <div class="track-rating">

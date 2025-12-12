@@ -49,9 +49,12 @@
             // Artist
             const artistContainer = document.getElementById('album-artist');
             if (artistContainer && albumData.artists && albumData.artists.length > 0) {
-                artistContainer.innerHTML = albumData.artists.map(a => `<a href="/artist.html?slug=${a.slug}">${a.name}</a>`).join(', ');
-            } else { setText('album-artist', 'Unknown'); }
-
+                artistContainer.innerHTML = albumData.artists.map(a =>
+                    `<a href="/artist/${a.slug}">${a.name}</a>`
+                ).join(', ');
+            } else {
+                setText('album-artist', 'Unknown');
+            }
             // Format & Attributes (Links)
             createLinks('album-format', albumData.format_name, 'format', 'Unknown');
             const hasAttrs = createLinks('album-attributes', albumData.attributes, 'attributes', '');

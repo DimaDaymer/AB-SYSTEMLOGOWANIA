@@ -1,0 +1,80 @@
+<div class="album-info" id="track-header-info">
+    <h1 class="album-title" id="track-title">Loading...</h1>
+    <div class="album-meta">
+        <span id="track-album-info" style="display: block; margin-bottom: 10px; font-size: 0.9em; color: #888;">
+            Track #<span id="track-number"></span> from album
+            <a href="#" id="album-link" style="color: #00ffcc; text-decoration: none;">Loading...</a>
+        </span>
+
+        <span><strong>Artist:</strong> <span id="track-artist"></span></span>
+
+        <span><strong>Duration:</strong> <span id="track-duration"></span></span>
+
+        <span><strong>Release Date:</strong> <span id="track-date"></span></span>
+
+        <span><strong>Genres:</strong> <span id="track-genres"></span></span>
+    </div>
+</div>
+
+<script>
+    window.components = window.components || {};
+
+    window.components.trackInfo = {
+        update: (data) => {
+            if (!data) return;
+
+            // 1. Title
+            document.getElementById('track-title').textContent = data.title || 'Unknown Track';
+            document.getElementById('track-number').textContent = data.track_number || '?';
+
+            // 2. Album Link
+            const albumLink = document.getElementById('album-link');
+            // Используем data.album для ссылки на альбом, если он доступен
+            const albumTitle = data.album_title || (data.album ? data.album.title : null);
+            const albumSlug = data.album_slug || (data.album ? data.album.slug : null);
+
+            if (albumLink) {
+                albumLink.textContent = albumTitle || 'Unknown Album';
+                // Важно: путь к альбому
+                albumLink.href = albumSlug ? `/album/${albumSlug}` : '#';
+            }
+
+            // 3. Artists (Массив объектов)
+            const artistContainer = document.getElementById('track-artist');
+            if (data.artists && Array.isArray(data.artists)) {
+                // Убедимся, что это массив объектов с name и slug
+                if (data.artists.length > 0 && typeof data.artists[0] === 'object') {
+                    artistContainer.innerHTML = data.artists.map(a =>
+                        `<a href="/artist/${a.slug}" style="color:white; text-decoration:none;">${a.name}</a>`
+                    ).join(', ');
+                } else if (data.artists.length > 0 && typeof data.artists[0] === 'string') {
+                    // Если это просто массив строк
+                    artistContainer.textContent = data.artists.join(', ');
+                } else {
+                    artistContainer.textContent = 'Unknown Artist';
+                }
+            } else {
+                artistContainer.textContent = data.artist_name || 'Unknown Artist';
+            }
+
+            // 4. Meta Info
+            document.getElementById('track-duration').textContent = data.duration || 'N/A';
+
+            // Дата релиза (обрезаем время T00:00:00)
+            document.getElementById('track-date').textContent = data.release_date ? data.release_date.split('T')[0] : 'N/A';
+
+            // Жанры
+            const genreSpan = document.getElementById('track-genres');
+            if (data.genres && data.genres.length > 0) {
+                genreSpan.innerHTML = data.genres.join(', ');
+            } else {
+                genreSpan.textContent = 'N/A';
+            }
+        },
+
+        showError: (msg) => {
+            document.getElementById('track-title').textContent = "Error: " + msg;
+            document.getElementById('track-header-info').style.backgroundColor = '#441a1a';
+        }
+    };
+</script>

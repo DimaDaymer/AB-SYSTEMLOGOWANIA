@@ -1,4 +1,4 @@
-<div className="tracklist">
+<div class="tracklist">
     <h3>Track List</h3>
     <div id="tracks-container"></div>
     <p id="total-length"></p>
@@ -7,6 +7,11 @@
 <script>
     window.components = window.components || {};
     window.components.tracklist = {
+        /**
+         * Обновляет трек-лист.
+         * Ожидается, что объекты треков содержат поля average_rating и rating_count.
+         * @param {Array<Object>} tracks - Список треков.
+         */
         update: function (tracks) {
             const tracksContainer = document.getElementById('tracks-container');
             const totalLengthEl = document.getElementById('total-length');
@@ -20,10 +25,35 @@
                 tracks.forEach(track => {
                     const trackEl = document.createElement('div');
                     trackEl.className = 'track';
+
+                    // --- ИСПРАВЛЕННАЯ ЛОГИКА ОЦЕНКИ ---
+                    let avgScoreHtml = '';
+
+                    // Используем поля, переданные из albums1.js (track.average_rating и track.rating_count)
+                    const ratingCount = parseInt(track.rating_count || 0);
+                    const avgRating = parseFloat(track.average_rating || 0);
+
+                    // Отображаем среднюю оценку, только если есть хотя бы 1 рейтинг
+                    if (ratingCount > 0) {
+                        const score = avgRating.toFixed(2);
+                        avgScoreHtml = `
+                            <div class="track-rating-row">
+                                <span class="track-avg-score">${score} ★</span>
+                                <span class="track-rating-count">(${ratingCount})</span>
+                            </div>
+                        `;
+                    }
+                    // ------------------------------------
+
                     trackEl.innerHTML = `
-                    <span>${track.track_number}. ${track.title}</span>
-                    <span>${track.duration || ''}</span>
-                `;
+                        <div class="track-info">
+                            <div class="track-title-row">
+                                <span class="track-title-num">${track.track_number}. ${track.title}</span>
+                            </div>
+                            ${avgScoreHtml}
+                        </div>
+                        <span class="track-duration">${track.duration || ''}</span>
+                    `;
                     tracksContainer.appendChild(trackEl);
 
                     if (track.duration) {

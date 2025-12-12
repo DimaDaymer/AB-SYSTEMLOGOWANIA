@@ -1,4 +1,4 @@
-// frontend/js/handleAlbumAction.js
+// frontend/js/charts/handleAlbumAction.js
 
 /**
  * Показывает временное сообщение об успехе или ошибке.
@@ -39,6 +39,13 @@ export async function handleAlbumAction(e) {
     const albumId = button.dataset.albumId;
     const actionType = button.dataset.action;
 
+    // ВАЖНОЕ ИСПРАВЛЕНИЕ: Проверка на пустой ID или строковое 'undefined'
+    if (!albumId || albumId === 'undefined') {
+        console.error("Action failed: Album ID is missing or invalid.");
+        showMessage('Error: Album ID missing. Cannot perform action.', true);
+        return;
+    }
+
     button.disabled = true;
 
     try {
@@ -73,7 +80,8 @@ export async function handleAlbumAction(e) {
             button.classList.toggle('active');
         }
 
-        // 2. ОБНОВЛЕНИЕ СЧЕТЧИКА В ИНТЕРФЕЙСЕ
+        // 2. ОБНОВЛЕНИЕ СЧЕТЧИКА В ИНТЕРФЕЙСЕ (если применимо)
+        // Логика обновления счетчиков, как в чартах, сохранена для унификации
         const card = button.closest('.album-card');
         if (card) {
             let titleAttr = '';
@@ -94,11 +102,9 @@ export async function handleAlbumAction(e) {
                     if (data.active) {
                         count++;
                     } else {
-                        // Убедиться, что счетчик не уходит в минус
                         count = Math.max(0, count - 1);
                     }
 
-                    // Форматирование числа с локалью
                     countSpan.textContent = `${iconChar} ${count.toLocaleString()} ${titleAttr}`;
                 }
             }
@@ -113,6 +119,3 @@ export async function handleAlbumAction(e) {
         button.disabled = false;
     }
 }
-
-// Экспорт для использования в renderAlbums.js
-// export { handleAlbumAction };

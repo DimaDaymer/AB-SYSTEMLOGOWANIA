@@ -152,11 +152,40 @@ body {
     justify-content: space-between;
     margin-bottom: 8px;
     line-height: 1.4;
+    align-items: center; /* Центрируем элементы по вертикали */
 }
 
-.track span:first-child {
-    color: #eee;
+.track-info {
+    flex-grow: 1; /* Позволяет блоку занимать всё доступное место */
 }
+
+/* Новые стили для разделения заголовка и рейтинга */
+.track-title-row {
+    line-height: 1.2; /* Уменьшаем расстояние между заголовком и рейтингом */
+}
+.track-title-num {
+    color: #eee;
+    font-weight: 500;
+}
+
+.track-rating-row {
+    display: flex;
+    align-items: center;
+    margin-top: 2px; /* Небольшой отступ от названия трека */
+}
+
+.track-avg-score {
+    color: #00ffcc; /* Бирюзовый цвет для оценки и звезды */
+    font-weight: 600;
+    font-size: 1.1em; /* Увеличиваем размер оценки */
+    margin-right: 5px;
+}
+
+.track-rating-count {
+    color: #bbb; /* Серый цвет для количества голосов */
+    font-size: 0.9em;
+}
+/* Конец новых стилей */
 
 .track span:last-child {
     color: #bbb;
@@ -341,73 +370,6 @@ body {
     line-height: 12px;
     font-weight: 600;
 }
-
-/* Рейтинги треков */
-#track-ratings-container {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.track-rating-item {
-    padding: 10px; /* Добавлен padding, чтобы соответствовал дизайну */
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05); /* Добавлен background */
-    transition: background 0.3s ease; /* Добавлен transition для эффекта hover */
-    margin: 15px 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 15px;
-}
-
-.track-rating-item:first-of-type { /* ИЗМЕНЕНИЕ: Убираем верхний отступ у первого элемента */
-    margin-top: 0;
-}
-
-.track-info {
-    flex: 1;
-    min-width: 200px;
-}
-
-.track-title {
-    font-weight: 600;
-    color: #eee;
-    margin-bottom: 3px;
-}
-
-.track-duration {
-    font-size: 0.85rem;
-    color: #aaa;
-}
-
-.track-rating {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-
-.track-rating-value {
-    min-width: 40px;
-    text-align: right;
-    font-size: 0.9rem;
-    color: #bbb;
-}
-
-@media (max-width: 600px) {
-    .track-rating-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .track-rating {
-        width: 100%;
-        justify-content: space-between;
-    }
-}
-
 
 /* Добавленные стили для списков альбомов из HTML-фрагмента */
 

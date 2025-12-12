@@ -118,8 +118,9 @@ router.put('/profile/update', authenticate, async (req, res) => {
 });
 
 // РОУТ: Оцененные альбомы (Свои)
+// РОУТ: Оцененные альбомы (Свои)
 router.get('/rated-albums', authenticate, async (req, res) => {
-    return fetchRatedAlbums(req.user.id, res);
+    return fetchRatedAlbums(req.user.id, res, req);
 });
 
 // РОУТ: Оценки треков (Свои)
@@ -312,10 +313,11 @@ router.get('/:username/friends', async (req, res) => {
 
 
 // Остальные роуты (rated-albums и т.д.)
+// Остальные роуты (rated-albums и т.д.)
 router.get('/:username/rated-albums', async (req, res) => {
     const userId = await getUserIdByUsername(req.params.username);
     if (!userId) return res.status(404).json({ error: 'User not found' });
-    return fetchRatedAlbums(userId, res);
+    return fetchRatedAlbums(userId, res, req);
 });
 
 router.get('/:username/track-ratings', async (req, res) => {
@@ -475,11 +477,91 @@ async function fetchUserReviews(userId, req, res) {
     }
 }
 // ---------------------------------------------
+// === НОВЫЙ ВСПОМОГАТЕЛЬНЫЙ БЛОК: Статистика оценок ===
 
-
-async function fetchRatedAlbums(userId, res) {
+// Вспомогательная функция для получения статистики оценок
+async function getUserRatingStats(userId, res) {
     try {
+        // Считаем количество альбомов для каждой оценки (от 0.5 до 5.0)
         const [rows] = await pool.execute(`
+            SELECT score, COUNT(*) as count
+            FROM ratings
+            WHERE user_id = ?
+            GROUP BY score
+            ORDER BY score DESC
+        `, [userId]);
+
+        // Преобразуем в удобный объект, заполняя пропуски нулями
+        const stats = {};
+        for (let i = 5.0; i >= 0.5; i -= 0.5) {
+            stats[i.toFixed(1)] = 0;
+        }
+
+        let totalRatings = 0;
+        rows.forEach(row => {
+            const scoreKey = parseFloat(row.score).toFixed(1);
+            stats[scoreKey] = row.count;
+            totalRatings += row.count;
+        });
+
+        res.json({ stats, totalRatings });
+    } catch (err) {
+        console.error('Error fetching rating stats:', err);
+        res.status(500).json({ error: 'Db error' });
+    }
+}
+
+// === РОУТ 1: Статистика ДЛЯ СЕБЯ (Обрабатывает /api/users/me/stats/ratings) ===
+// ВАЖНО: Этот роут должен быть ОБЪЯВЛЕН РАНЬШЕ, чем /:username/stats/ratings
+router.get('/me/stats/ratings', authenticate, async (req, res) => {
+    // req.user.id берется из токена
+    await getUserRatingStats(req.user.id, res);
+});
+
+// === РОУТ 2: Статистика ДЛЯ ЛЮБОГО ПОЛЬЗОВАТЕЛЯ (Обрабатывает /api/users/:username/stats/ratings) ===
+router.get('/:username/stats/ratings', async (req, res) => {
+    // Дополнительная проверка, чтобы /me не проскочил сюда без токена
+    if (req.params.username === 'me') {
+        return res.status(401).json({ error: 'Please log in' });
+    }
+
+    const userId = await getUserIdByUsername(req.params.username);
+    if (!userId) return res.status(404).json({ error: 'User not found' });
+
+    await getUserRatingStats(userId, res);
+});
+// -----------------------------------------------------------------------------------
+
+// === РОУТ 1: Статистика ДЛЯ СЕБЯ (Токен обязателен) ===
+// ВАЖНО: Этот роут должен быть ОБЪЯВЛЕН РАНЬШЕ, чем /:username/stats/ratings
+router.get('/me/stats/ratings', authenticate, async (req, res) => {
+    // req.user.id берется из токена middleware authenticate
+    await getUserRatingStats(req.user.id, res);
+});
+
+// === РОУТ 2: Статистика ДЛЯ ЛЮБОГО ПОЛЬЗОВАТЕЛЯ (Публичный) ===
+router.get('/:username/stats/ratings', async (req, res) => {
+    // Если по какой-то причине запрос 'me' проскочил сюда без токена
+    if (req.params.username === 'me') {
+        return res.status(401).json({ error: 'Please log in' });
+    }
+
+    const userId = await getUserIdByUsername(req.params.username);
+    if (!userId) return res.status(404).json({ error: 'User not found' });
+
+    await getUserRatingStats(userId, res);
+});
+// === ОБНОВЛЕНИЕ СУЩЕСТВУЮЩЕЙ ФУНКЦИИ ===
+// Замените старую функцию fetchRatedAlbums на эту обновленную версию
+async function fetchRatedAlbums(userId, res, req) { // <-- Обратите внимание: добавлен req
+    try {
+        // Получаем параметры из query (если вызывается через API)
+        const page = req ? (parseInt(req.query.page) || 1) : 1;
+        const limit = req ? (parseInt(req.query.limit) || 10) : 10;
+        const offset = (page - 1) * limit;
+        const filterScore = req ? req.query.score : null; // Фильтр по оценке
+
+        let query = `
             SELECT
                 a.id,
                 a.title,
@@ -493,14 +575,48 @@ async function fetchRatedAlbums(userId, res) {
                      LEFT JOIN album_artists aa ON a.id = aa.album_id
                      LEFT JOIN artists art ON aa.artist_id = art.id
             WHERE r.user_id = ?
+        `;
+
+        const params = [userId];
+
+        // Если передан score, добавляем фильтрацию
+        if (filterScore) {
+            query += ` AND r.score = ?`;
+            params.push(filterScore);
+        }
+
+        query += `
             GROUP BY a.id, a.title, a.cover_url, a.slug, r.score, r.created_at
             ORDER BY r.created_at DESC
-        `, [userId]);
+            LIMIT ${limit} OFFSET ${offset}
+        `;
 
-        res.json(rows);
+        const [rows] = await pool.execute(query, params);
+
+        // Получаем общее количество для пагинации
+        let countQuery = 'SELECT COUNT(*) as total FROM ratings WHERE user_id = ?';
+        const countParams = [userId];
+        if (filterScore) {
+            countQuery += ' AND score = ?';
+            countParams.push(filterScore);
+        }
+        const [countRows] = await pool.execute(countQuery, countParams);
+
+        // Если это вызов из роута, возвращаем JSON с пагинацией
+        // (Проверка на то, является ли res объектом Express response)
+        if (res.json) {
+            res.json({
+                items: rows,
+                total_count: countRows[0].total,
+                page,
+                limit
+            });
+        } else {
+            return rows; // Для внутреннего использования, если нужно
+        }
     } catch (err) {
         console.error('Error fetching rated albums:', err);
-        res.status(500).json({ error: 'Database error' });
+        if (res.status) res.status(500).json({ error: 'Database error' });
     }
 }
 

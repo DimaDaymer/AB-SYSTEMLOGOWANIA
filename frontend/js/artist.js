@@ -1,167 +1,285 @@
-// frontend/js/artist.js
+// public/js/artist.js
 
-// Вспомогательная функция для рендеринга карточки альбома
-function createAlbumCard(album) {
-    const rating = parseFloat(album.average_rating);
+import { handleAlbumAction } from './charts/handleAlbumAction.js';
 
-    // Форматирование рейтинга с цветом
-    const ratingHtml = !isNaN(rating) && rating > 0 ?
-        `<span class="album-rating">${rating.toFixed(2)}</span>` :
-        `<span class="album-no-rating">N/A</span>`;
+let currentArtistId = null;
+let artistDiscography = {};
 
-    const year = album.release_date ? new Date(album.release_date).getFullYear() : 'N/A';
-
-    // Обновленная структура HTML для соответствия дизайну (Картинка + Подпись снизу)
-    return `
-        <div class="album-card-wrapper">
-            <a href="album.html?slug=${album.slug}" class="album-link">
-                <img src="${album.cover_url || '/public/placeholder.png'}" alt="${album.title} cover" class="album-cover">
-                <div class="album-info-block">
-                    <p class="album-title" title="${album.title}">${album.title}</p>
-                    <div class="album-meta-row">
-                        <span class="album-year">${year}</span>
-                        ${ratingHtml}
-                    </div>
-                </div>
-            </a>
-        </div>
-    `;
-}
-
-// Функция рендеринга дискографии
-function renderDiscography(discography) {
-    const listContainer = document.getElementById('discography-list');
-    listContainer.innerHTML = '';
-
-    // Порядок отображения типов альбомов
-    const typeOrder = ['Studio Album', 'EP', 'Single', 'Live Album', 'Compilation', 'Other'];
-
-    // Получаем и сортируем ключи, используя typeOrder
-    const sortedTypes = Object.keys(discography).sort((a, b) => {
-        const indexA = typeOrder.indexOf(a);
-        const indexB = typeOrder.indexOf(b);
-        // Если тип не найден, помещаем его в конец
-        if (indexA === -1 && indexB === -1) return a.localeCompare(b);
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-    });
-
-    sortedTypes.forEach(type => {
-        const albums = discography[type];
-        if (albums && albums.length > 0) {
-            const section = document.createElement('section');
-            section.className = 'discography-section';
-
-            // Сортируем альбомы по году выпуска в обратном порядке
-            albums.sort((a, b) => (b.release_date || '0').localeCompare(a.release_date || '0'));
-
-            section.innerHTML = `
-                <h3 class="discography-type-title">${type} (${albums.length})</h3>
-                <div class="album-grid-container">
-                    ${albums.map(createAlbumCard).join('')}
-                </div>
-            `;
-            listContainer.appendChild(section);
-        }
-    });
-
-    if (listContainer.innerHTML === '') {
-        listContainer.innerHTML = '<p style="color: #888;">Дискография не найдена.</p>';
+document.addEventListener('DOMContentLoaded', async () => {
+    let slug = window.location.pathname.split('/').pop();
+    if (slug === 'artist.html' || !slug || slug.includes('.html')) {
+        const urlParams = new URLSearchParams(window.location.search);
+        slug = urlParams.get('slug');
     }
-}
 
-// Главная функция загрузки данных исполнителя
-async function loadArtistData() {
-    const params = new URLSearchParams(window.location.search);
-    const slug = params.get('slug');
+    if (!slug) return console.error('No artist slug found');
 
-    if (!slug) {
-        // Предполагается, что window.showMessage определена в common.js
-        if(window.showMessage) window.showMessage('Error: Artist slug not provided in URL.', true);
-        document.getElementById('artist-name').textContent = 'Artist Not Found';
-        return;
-    }
+    const token = localStorage.getItem('token');
 
     try {
-        const response = await fetch(`/api/artists/${slug}`);
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-        }
+        const response = await fetch(`/api/artist/${slug}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': token ? `Bearer ${token}` : ''
+            }
+        });
+
+        if (!response.ok) throw new Error('API Error');
 
         const data = await response.json();
-        const artist = data.artist;
+        currentArtistId = data.artist.id;
+        window.currentArtistSlug = slug;
 
-        // 1. Рендеринг основной информации
-        document.getElementById('artist-name').textContent = artist.name;
-        document.getElementById('artist-picture').src = artist.picture_url || '/public/placeholder_artist.png';
+        artistDiscography = data.discography;
 
-        // Формируем строку Страна | Год основания
-        const countryText = artist.origin_country || 'Unknown origin';
-        const formedText = artist.formed_year ? `Formed: ${artist.formed_year}` : '';
-        document.getElementById('artist-country').textContent = countryText;
-        document.getElementById('artist-formed-year').textContent = artist.formed_year ? ` • ${formedText}` : '';
-
-
-        document.getElementById('artist-albums-count').textContent = `${artist.albums_count || 0} Albums`;
-        document.getElementById('artist-followers-count').textContent = `${artist.followers_count || 0} Followers`;
-
-        document.getElementById('artist-description').textContent = artist.description || 'Описание пока отсутствует.';
-
-        // Рендеринг жанров
-        const genresContainer = document.getElementById('artist-genres');
-        genresContainer.innerHTML = (artist.genres_main || '')
-            .split(',')
-            .map(g => g.trim())
-            .filter(g => g)
-            .map(g => `<span class="artist-genre-tag">${g}</span>`)
-            .join('');
-
-        // Рендеринг баннера
-        const bannerOverlay = document.getElementById('artist-banner-overlay');
-        if (artist.banner_url) {
-            bannerOverlay.style.backgroundImage = `url('${artist.banner_url}')`;
-        } else if (artist.picture_url) {
-            // Используем основное фото, если нет баннера
-            bannerOverlay.style.backgroundImage = `url('${artist.picture_url}')`;
-        }
-
-        // 2. Рендеринг дискографии
-        renderDiscography(data.discography);
-
-        // 3. Настройка переключения вкладок
-        setupTabSwitching();
+        await renderArtistPage(data);
+        setupFollowButton(data.artist.id, data.artist.isFollowing);
+        checkAdminRightsAndSetupEditButton(slug);
+        setupTabs();
+        setupDiscographySort();
 
     } catch (error) {
-        if(window.showMessage) window.showMessage(`Failed to load artist: ${error.message}`, true);
-        document.getElementById('artist-name').textContent = 'Artist Not Found';
-        console.error('Artist loading error:', error);
+        console.error('Error:', error);
+        document.getElementById('artist-name').textContent = 'Error loading artist';
+    }
+});
+
+function setupDiscographySort() {
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            const sortBy = sortSelect.value;
+            renderDiscography(artistDiscography, sortBy);
+            setupAlbumActionButtons();
+        });
     }
 }
 
-function setupTabSwitching() {
-    const tabButtons = document.querySelectorAll('.tab-button');
-    const tabContents = document.querySelectorAll('.tab-content');
+async function checkAdminRightsAndSetupEditButton(slug) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+        const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
+        const user = await res.json();
+        const btn = document.getElementById('edit-bio-btn');
+        if (btn && user.role === 'admin') {
+            btn.style.display = 'block';
+            btn.onclick = () => window.location.href = `/edit_artist.html?slug=${slug}`;
+        }
+    } catch(e) {
+        console.error('Admin check failed for edit button', e);
+    }
+}
 
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const targetTab = button.dataset.tab;
+async function loadMembersModule(containerId) {
+    try {
+        const res = await fetch('/components/artist/artist-members.html');
+        if (res.ok) {
+            document.getElementById(containerId).innerHTML = await res.text();
+            return true;
+        } else {
+            console.warn(`Failed to fetch /components/artist/artist-members.html.`);
+            document.getElementById(containerId).innerHTML = '<div style="color:red;">Failed to load members module.</div>';
+        }
+    } catch (e) {
+        console.error('Error loading members module:', e);
+    }
+    return false;
+}
 
-            // Сброс активного состояния кнопок
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+async function renderArtistPage(data) {
+    const { artist, discography } = data;
 
-            // Переключение контента
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-                if (content.id === targetTab) {
-                    content.classList.add('active');
-                }
+    document.title = `${artist.name} | Melody Rater`;
+    document.getElementById('artist-name').textContent = artist.name;
+
+    const artistImg = artist.picture_url || '/images/default-artist.png';
+    document.getElementById('artist-picture').src = artistImg;
+    const bg = document.getElementById('dynamic-background');
+    if(bg) bg.style.backgroundImage = `url('${artistImg}')`;
+
+    document.getElementById('artist-country').textContent = artist.origin_country || 'Unknown';
+    document.getElementById('artist-formed-year').textContent = artist.formed_year || 'N/A';
+    document.getElementById('artist-followers-count').textContent = artist.followers_count || 0;
+    document.getElementById('artist-global-score').textContent = artist.globalScore || 'N/A';
+
+    const genresContainer = document.getElementById('artist-genres');
+    genresContainer.innerHTML = '';
+    if (artist.genres && artist.genres.length > 0) {
+        artist.genres.forEach(g => {
+            const link = document.createElement('a');
+            link.href = `/chart-page.html?genre=${encodeURIComponent(g)}`;
+            link.className = 'genre-tag';
+            link.textContent = g;
+            genresContainer.appendChild(link);
+        });
+    }
+
+    const bioText = artist.bio || 'No biography available.';
+    document.getElementById('artist-description').innerHTML = bioText.replace(/\n/g, '<br>');
+
+    // 1. Рендеринг дискографии
+    renderDiscography(discography, document.getElementById('sort-select').value);
+
+    // 2. Привязка обработчиков после рендеринга
+    setupAlbumActionButtons();
+
+    const moduleLoaded = await loadMembersModule('members-module-container');
+    if (moduleLoaded && window.initMembersModule) {
+        console.log("Initializing Members Module for:", artist.name, "Type:", artist.artist_type);
+        window.initMembersModule(artist.id, artist.artist_type || 'solo');
+    }
+}
+
+function renderDiscography(discography, sortBy = 'release_date_desc') {
+    const discoContainer = document.getElementById('discography-list');
+    discoContainer.innerHTML = '';
+    const order = ['Album', 'EP', 'Mixtape', 'Single', 'Compilation', 'Live'];
+    const types = Object.keys(discography).sort((a, b) => {
+        let idxA = order.indexOf(a); let idxB = order.indexOf(b);
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+
+    const sortAlbums = (albums) => {
+        return albums.slice().sort((a, b) => {
+            switch (sortBy) {
+                case 'average_rating_desc':
+                    const ratingA = a.average_rating || 0;
+                    const ratingB = b.average_rating || 0;
+                    if (ratingB === ratingA) return 0;
+                    if (ratingA === 0) return 1;
+                    if (ratingB === 0) return -1;
+                    return ratingB - ratingA;
+                case 'ratings_count_desc': return (b.ratings_count || 0) - (a.ratings_count || 0);
+                case 'release_date_asc': return (a.release_year || 0) - (b.release_year || 0);
+                case 'release_date_desc': return (b.release_year || 0) - (a.release_year || 0);
+                case 'title_asc': return a.title.localeCompare(b.title);
+                default: return (b.release_year || 0) - (a.release_year || 0);
+            }
+        });
+    };
+
+    types.forEach(type => {
+        let albums = discography[type];
+        if (!albums.length) return;
+        albums = sortAlbums(albums);
+
+        const section = document.createElement('div');
+        section.className = 'disco-section';
+        section.innerHTML = `<h3 class="section-title">${type}s</h3>`;
+        const grid = document.createElement('div');
+        grid.className = 'albums-grid';
+        albums.forEach(album => {
+            const albumId = album.id;
+
+            const card = document.createElement('div');
+            card.className = 'album-card';
+
+            // Получение активных состояний: эти флаги приходят с сервера
+            const activeListen = album.is_listened ? 'active' : '';
+            const activeLike = album.is_liked ? 'active' : '';
+            const activeWish = album.is_wishlisted ? 'active' : '';
+
+            const rating = album.average_rating > 0 ? Number(album.average_rating).toFixed(1) : '-';
+            card.innerHTML = `
+                <a href="/release/album/${album.slug}" class="album-link">
+                    <div class="cover-wrapper">
+                        <img src="${album.cover_url || '/images/default_cover.png'}" alt="${album.title}" loading="lazy">
+                        <div class="rating-badge">${rating}</div>
+                    </div>
+                    <div class="album-title">${album.title}</div>
+                    <div class="album-year">${album.release_year}</div>
+                </a>
+                
+                ${albumId ? `
+                <div class="album-actions">
+                    <button class="action-button ${activeListen}" data-album-id="${albumId}" data-action="listen" title="Listen">
+                        <i class="fas fa-headphones"></i>
+                    </button>
+                    <button class="action-button ${activeLike}" data-album-id="${albumId}" data-action="like" title="Like">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button class="action-button ${activeWish}" data-album-id="${albumId}" data-action="wishlist" title="Wishlist">
+                        <i class="fas fa-star"></i>
+                    </button>
+                </div>
+                ` : `
+                <div class="album-actions" style="opacity:0.5; font-size: 0.9em; padding-top: 10px; border-top: 1px solid #2a2a2a; color: #777; justify-content: center;" title="The server did not provide the database ID for this album. Actions are disabled.">
+                    Album ID Unavailable (Check server response)
+                </div>
+                `}
+                `;
+            grid.appendChild(card);
+        });
+        section.appendChild(grid);
+        discoContainer.appendChild(section);
+    });
+}
+
+function setupAlbumActionButtons() {
+    document.querySelectorAll('.album-actions .action-button').forEach(button => {
+        button.removeEventListener('click', handleAlbumAction);
+        button.addEventListener('click', handleAlbumAction);
+    });
+}
+
+function setupFollowButton(artistId, isFollowing) {
+    const btn = document.getElementById('follow-button');
+    if(!btn) return;
+
+    const updateBtn = (active) => {
+        if (active) {
+            btn.innerHTML = '<i class="fas fa-check"></i> Following';
+            btn.classList.add('following');
+            btn.classList.remove('btn-outline');
+        } else {
+            btn.innerHTML = '<i class="fas fa-plus"></i> Follow';
+            btn.classList.remove('following');
+            btn.classList.add('btn-outline');
+        }
+    };
+    updateBtn(isFollowing);
+
+    btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для подписки необходима авторизация.');
+                window.location.href = '/login.html';
+                return;
+            }
+            const res = await fetch(`/api/artist/${artistId}/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({})
             });
+            if (res.status === 401) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('artist-followers-count').textContent = data.followers_count;
+                updateBtn(data.status === 'followed');
+            }
+        } catch (e) { console.error(e); } finally { btn.disabled = false; }
+    };
+}
+
+function setupTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.tab).classList.add('active');
+
+            if (tab.dataset.tab === 'discography') {
+                setupAlbumActionButtons();
+            }
         });
     });
 }
-
-// Запуск при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadArtistData);

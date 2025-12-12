@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         await loadUserData(currentAlbumId);
+        // ДОБАВЛЕНО: Загрузка средних оценок треков после загрузки альбома
+        await loadTrackScores(currentAlbumId);
+
         checkAdminRights(slug);
 
     } catch (error) {
@@ -152,7 +155,10 @@ function updateComponents(data) {
     if (bg && data.cover_url) bg.style.backgroundImage = `url('${data.cover_url}')`;
 
     if (window.components.albumCover) window.components.albumCover.update(data);
+
+    // Изначальное обновление tracklist. Средние оценки будут добавлены в loadTrackScores.
     if (window.components.tracklist) window.components.tracklist.update(data.tracks || []);
+
     if (window.components.albumInfo) window.components.albumInfo.update(data);
     if (window.components.histogram) window.components.histogram.update(data.id);
 
@@ -168,10 +174,6 @@ function updateComponents(data) {
     if (window.components.trackRatingsTab && data.tracks) {
         window.components.trackRatingsTab.update(data.tracks, {});
     }
-
-    // Старый инициализатор удален, так как новый comments-box сам себя инициализирует
-    // через внутренний скрипт и CommentsCore
-    // if (window.CommentSystem && data.id) { window.CommentSystem.init(data.id); }
 
     if (window.initCreditsModule && data.id) {
         window.initCreditsModule(data.id);
@@ -195,6 +197,40 @@ function updateScoresDisplay(stats) {
     if (userScoreEl) userScoreEl.innerHTML = `${displayScore} <span style="font-size:1.5rem;color:#ADFF2F;">★</span>`;
     if (userRatingsCountEl) userRatingsCountEl.textContent = `based on ${userTotalRatings.toLocaleString()} ratings`;
 }
+
+// === НОВАЯ ФУНКЦИЯ: Загрузка средних оценок треков ===
+async function loadTrackScores(albumId) {
+    if (!window.components.tracklist || !albumDataCache.tracks) return;
+
+    try {
+        const res = await fetch(`/api/track-ratings/album/${albumId}/stats`);
+        if (!res.ok) throw new Error('Failed to fetch track scores');
+
+        const trackScores = await res.json();
+
+        // Обновление кэша данных альбома с оценками треков
+        const updatedTracks = albumDataCache.tracks.map(track => {
+            const scoreData = trackScores[track.id];
+            return {
+                ...track,
+                // Маппинг полей из бэкенда (avg_score, ratings_count) в поля,
+                // которые ожидает компонент tracklist (average_rating, rating_count)
+                average_rating: scoreData ? parseFloat(scoreData.avg_score) : null,
+                rating_count: scoreData ? parseInt(scoreData.ratings_count) : 0
+            };
+        });
+
+        // Обновление кэша с новыми данными
+        albumDataCache.tracks = updatedTracks;
+
+        // Обновление компонента трек-листа
+        window.components.tracklist.update(updatedTracks);
+
+    } catch(e) {
+        console.error('[Albums] Failed to load track scores:', e);
+    }
+}
+// ======================================================
 
 async function loadUserData(albumId) {
     const token = localStorage.getItem('token');
@@ -227,6 +263,7 @@ async function loadUserData(albumId) {
     }
 }
 
+
 window.rateAlbum = async (rating) => {
     try {
         const token = localStorage.getItem('token');
@@ -244,7 +281,11 @@ window.rateAlbum = async (rating) => {
         window.currentAlbumRating = rating;
         if (window.components.albumRatingStars) window.components.albumRatingStars.updateRating(rating);
 
-        setTimeout(() => { refreshStats(); }, 500);
+        setTimeout(() => {
+            refreshStats();
+            // ДОБАВЛЕНО: Обновление оценок треков после рейтинга альбома
+            loadTrackScores(currentAlbumId);
+        }, 500);
 
     } catch(e) { showMessage('Error saving rating', true); }
 };
@@ -266,7 +307,11 @@ window.clearAlbumRating = async () => {
         if (window.components.albumRatingStars){
             window.components.albumRatingStars.updateRating(0);
         }
-        setTimeout(() => { refreshStats(); }, 500);
+        setTimeout(() => {
+            refreshStats();
+            // ДОБАВЛЕНО: Обновление оценок треков после сброса рейтинга
+            loadTrackScores(currentAlbumId);
+        }, 500);
 
     } catch(e) { showMessage('Error clearing rating', true); }
 };

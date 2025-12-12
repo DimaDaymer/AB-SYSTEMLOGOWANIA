@@ -39,6 +39,9 @@ const tagsRouter = require('./routes/tags');
 const uploadRoute = require('./routes/upload');
 const reviewsRoutes = require('./routes/reviews');
 const creditsRoutes = require('./routes/credits');
+const membersRouter = require('./routes/members')(pool);
+const trackRouter = require('./routes/tracks')(pool);
+
 
 // --- ИСПОЛЬЗОВАНИЕ РОУТОВ ---
 app.use('/api/albums', albumsRoute);
@@ -54,6 +57,8 @@ app.use('/api/tags', tagsRouter);
 app.use('/api/users/upload', uploadRoute);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/credits', creditsRoutes(pool));
+app.use('/api/members', membersRouter);
+app.use('/api/tracks', trackRouter);
 
 app.get('/add_album.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/add_album.html'));
@@ -100,8 +105,12 @@ app.get('/list/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/components/lists/list.html'));
 });
 
-app.get('/artist:slug', (req, res) => {
+app.get('/artist/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/artist.html'));
+});
+
+app.get('/track/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/track.html'));
 });
 
 app.get('/credits-tab.html', (req, res) => {

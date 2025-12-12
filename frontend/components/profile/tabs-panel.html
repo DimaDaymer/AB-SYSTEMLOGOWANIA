@@ -8,17 +8,36 @@
 </div>
 
 <div class="tabs-body">
-    <div id="recent" class="tab-content active"></div>
+    <div id="recent" class="tab-content active">
+        <div id="histogram-wrapper">
+        </div>
+
+        <div id="rated-albums-list" style="display: none;">
+            <button id="back-to-histogram" class="back-to-stats-btn">← Back to Statistics</button>
+            <h3 id="current-filter-title" style="color: #fff; margin-bottom: 15px;"></h3>
+            <div id="rated-albums-container"></div>
+        </div>
+    </div>
 
     <div id="trackratings" class="tab-content">
         <div id="track-ratings-container"></div>
     </div>
 
-    <div id="reviews" class="tab-content"></div>
+    <div id="reviews" class="tab-content">
+        <div id="reviews-container"></div>
+    </div>
 
-    <div id="liked" class="tab-content"></div>
-    <div id="wishlist" class="tab-content"></div>
-    <div id="albums" class="tab-content"></div>
+    <div id="liked" class="tab-content">
+        <div id="liked-container"></div>
+    </div>
+
+    <div id="wishlist" class="tab-content">
+        <div id="wishlist-container"></div>
+    </div>
+
+    <div id="albums" class="tab-content">
+        <div id="albums-container"></div>
+    </div>
 
     <div id="tags" class="tab-content">
         <div id="user-tags-container"></div>
@@ -35,10 +54,10 @@
     .tab-content.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* === ALBUM LIST STYLES (Album Entry) === */
+    /* === ALBUM LIST STYLES === */
     .album-entry {
         display: flex;
-        flex-direction: column; /* Изменено на column для поддержки текста комментария */
+        flex-direction: column;
         margin-bottom: 15px;
         background: #1a1a1a;
         padding: 10px;
@@ -56,51 +75,56 @@
     .artist-year { color: #aaa; font-size: 0.9em; }
 
     /* Review Text Styles */
-    .review-block {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #333;
-        color: #ddd;
-        font-size: 0.95em;
-        line-height: 1.4;
-    }
-    .review-title {
-        font-weight: bold;
-        color: #fff;
-        margin-bottom: 5px;
-        display: block;
-    }
-    .review-date {
-        font-size: 0.8em;
-        color: #666;
-        margin-top: 5px;
-        display: block;
-    }
+    .review-block { margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; color: #ddd; font-size: 0.95em; line-height: 1.4; }
+    .review-title { font-weight: bold; color: #fff; margin-bottom: 5px; display: block; }
+    .review-date { font-size: 0.8em; color: #666; margin-top: 5px; display: block; }
 
-    /* Album rating styles on the right */
     .rating-stars { color: #ffd700; letter-spacing: 2px; margin-left: auto; white-space: nowrap; }
-    .pagination-controls {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        padding: 10px 0;
-    }
-    .pagination-button {
-        padding: 5px 10px;
-        background: #00ffcc;
-        color: #1a1a1a;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: opacity 0.2s;
-    }
-    .pagination-button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
 
-    /* === TAG STYLES (Accordion) === */
+    .pagination-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 10px 0; }
+    .pagination-button { padding: 5px 10px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+    .pagination-button:hover:not(:disabled), .pagination-button.active { background: #00ffcc; color: #1a1a1a; }
+    .pagination-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* === HISTOGRAM STYLES (Интегрированы сюда) === */
+    .histogram-container {
+        background-color: #111;
+        padding: 20px;
+        border-radius: 8px;
+        color: #fff;
+        font-family: sans-serif;
+        margin-bottom: 20px;
+        border: 1px solid #2a2a2a;
+    }
+    .histogram-header {
+        display: flex; justify-content: space-between; margin-bottom: 15px;
+        padding-bottom: 10px; border-bottom: 1px solid #333;
+        font-size: 0.9em; color: #aaa;
+    }
+    .hist-row {
+        display: flex; align-items: center; padding: 8px 0;
+        border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background-color 0.2s;
+    }
+    .hist-row:hover { background-color: #1a1a1a; }
+    .hist-score { width: 40px; font-weight: bold; font-size: 1.1em; color: #fff; }
+    .hist-count { width: 60px; color: #888; font-size: 0.9em; text-align: right; margin-right: 15px; }
+    .hist-bar-area {
+        flex-grow: 1; margin-right: 20px; background-color: #1a1a1a;
+        height: 24px; border-radius: 2px; position: relative;
+    }
+    .hist-bar-fill {
+        background-color: #3b4d61; height: 100%; border-radius: 2px;
+        width: 0; transition: width 0.5s ease-out;
+    }
+    .hist-stars { width: 100px; text-align: right; color: #ccc; font-size: 1.2em; letter-spacing: 2px; }
+    .back-to-stats-btn {
+        background: none; border: 1px solid #00ffcc; color: #00ffcc;
+        padding: 5px 15px; cursor: pointer; margin-bottom: 15px;
+        border-radius: 4px; display: flex; align-items: center; gap: 5px;
+    }
+    .back-to-stats-btn:hover { background: rgba(0, 255, 204, 0.1); }
+
+    /* === TRACK & TAG STYLES === */
     .tag-group { margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; }
     .tag-group-title {
         color: #00ffcc; cursor: pointer; padding: 10px 5px; margin: 0;
@@ -108,16 +132,10 @@
         transition: background-color 0.2s ease;
     }
     .tag-group-title:hover { background-color: #2a2a2a; }
-    .tag-group-title::after {
-        content: '▼'; font-size: 0.8em; color: #888; transition: transform 0.3s ease-out;
-    }
+    .tag-group-title::after { content: '▼'; font-size: 0.8em; color: #888; transition: transform 0.3s ease-out; }
     .tag-group.expanded .tag-group-title::after { transform: rotate(180deg); }
-    .tag-albums-list {
-        overflow: hidden; transition: max-height 0.3s ease-out;
-        display: flex; flex-direction: column; gap: 10px; padding: 0; /* Hidden by default */
-    }
+    .tag-albums-list { overflow: hidden; transition: max-height 0.3s ease-out; display: flex; flex-direction: column; gap: 10px; padding: 0; }
 
-    /* === TRACK STYLES (Accordion) === */
     .album-with-tracks { margin-bottom: 15px; background: #1e1e1e; border-radius: 5px; overflow: hidden; }
     .album-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer; background: #252525; }
     .album-header-content { display: flex; align-items: center; gap: 10px; }
@@ -131,9 +149,95 @@
 
 <script>
     (function() {
+        // === КЛАСС ГИСТОГРАММЫ (RatingsHistogram) ===
+        class RatingsHistogram {
+            constructor(containerId, username, apiBaseUrl, onRowClick) {
+                this.container = document.getElementById(containerId);
+                this.username = username;
+                this.apiBaseUrl = apiBaseUrl;
+                this.onRowClick = onRowClick;
+                this.stats = null;
+            }
+
+            async loadStats() {
+                try {
+                    const url = `/api/users/${this.username}/stats/ratings`;
+                    const headers = {};
+                    if (window.profileContext && window.profileContext.token) {
+                        headers['Authorization'] = `Bearer ${window.profileContext.token}`;
+                    }
+
+                    const response = await fetch(url, { headers });
+                    if(!response.ok) throw new Error("Stats load failed");
+
+                    const data = await response.json();
+                    this.stats = data.stats;
+                    this.total = data.totalRatings;
+                    this.render();
+                } catch (error) {
+                    console.error("Failed to load stats", error);
+                    this.container.innerHTML = "<p style='padding:20px; color:#aaa'>No ratings statistics available.</p>";
+                }
+            }
+
+            render() {
+                this.container.innerHTML = `
+                <div class="histogram-container">
+                    <div class="histogram-header">
+                        <span>Rating</span>
+                        <span style="margin-left: auto; margin-right: 140px;">Histogram statistics</span>
+                        <span>Stars</span>
+                    </div>
+                    <div id="histogram-rows"></div>
+                </div>`;
+
+                const rowsContainer = this.container.querySelector('#histogram-rows');
+                const scores = Object.keys(this.stats).sort((a, b) => parseFloat(b) - parseFloat(a));
+                const maxCount = Math.max(...Object.values(this.stats)) || 1;
+
+                scores.forEach(score => {
+                    const count = this.stats[score];
+                    const percentage = (count / maxCount) * 100;
+                    const starsHtml = this.generateStars(parseFloat(score));
+
+                    const row = document.createElement('div');
+                    row.className = 'hist-row';
+                    row.innerHTML = `
+                        <div class="hist-score">${score}</div>
+                        <div class="hist-count">${count > 0 ? count : '-'}</div>
+                        <div class="hist-bar-area">
+                            <div class="hist-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="hist-stars">${starsHtml}</div>
+                    `;
+
+                    row.addEventListener('click', () => {
+                        if (this.onRowClick && count > 0) {
+                            this.onRowClick(score);
+                        }
+                    });
+
+                    rowsContainer.appendChild(row);
+                });
+            }
+
+            generateStars(score) {
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (score >= i) stars += '★';
+                    else if (score >= i - 0.5) stars += '½';
+                    else stars += '☆';
+                }
+                return stars;
+            }
+        }
+        // =================================================================
+
         const ctx = window.profileContext;
         const ALBUM_LIMIT = 10;
         let currentPage = {};
+        let currentScoreFilter = null;
+        let histogramInstance = null;
 
         function scoreToStars(score) {
             if (score === null || typeof score === 'undefined') return '';
@@ -144,33 +248,50 @@
             return '★'.repeat(Math.max(0, fullStars)) + halfStar + '☆'.repeat(Math.max(0, emptyStars));
         }
 
+        /**
+         * Обновленная функция рендеринга пагинации с номерами страниц.
+         */
         function renderPagination(container, tabName, totalCount) {
             const totalPages = Math.ceil(totalCount / ALBUM_LIMIT);
             const currentPageNum = currentPage[tabName] || 1;
 
+            // Удаляем старую пагинацию
             container.querySelectorAll('.pagination-controls').forEach(el => el.remove());
 
             if (totalPages <= 1) return;
 
             const paginationDiv = document.createElement('div');
             paginationDiv.className = 'pagination-controls';
-            paginationDiv.innerHTML = `
-                <button class="pagination-button" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>← Previous</button>
-                <span>Page ${currentPageNum} of ${totalPages}</span>
-                <button class="pagination-button" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>Next →</button>
-            `;
 
+            // Кнопка "Предыдущая"
+            paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button" data-page="${currentPageNum - 1}" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>«</button>`);
+
+            // Отображение номеров страниц (логика для показа только ближайших страниц)
+            const maxVisiblePages = 7; // Максимальное количество видимых кнопок
+            let startPage = Math.max(1, currentPageNum - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            // Добавляем кнопки с номерами страниц
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPageNum ? 'active' : '';
+                paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button ${isActive}" data-page="${i}">${i}</button>`);
+            }
+
+            // Кнопка "Следующая"
+            paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button" data-page="${currentPageNum + 1}" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>»</button>`);
+
+            // Добавляем обработчик клика для всех кнопок пагинации
             paginationDiv.querySelectorAll('.pagination-button').forEach(button => {
                 button.addEventListener('click', () => {
-                    const action = button.dataset.action;
-                    let newPage = currentPageNum;
-                    if (action === 'prev') {
-                        newPage = Math.max(1, currentPageNum - 1);
-                    } else if (action === 'next') {
-                        newPage = Math.min(totalPages, currentPageNum + 1);
-                    }
-                    if (newPage !== currentPageNum) {
+                    const newPage = parseInt(button.dataset.page);
+
+                    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPageNum) {
                         currentPage[tabName] = newPage;
+                        // Вызываем triggerLoad, который знает о фильтре
                         triggerLoad(tabName, newPage);
                     }
                 });
@@ -179,15 +300,16 @@
             container.appendChild(paginationDiv);
         }
 
-        // --- НОВАЯ ФУНКЦИЯ: Load User Reviews ---
+        // --- Load User Reviews ---
         async function loadUserReviews(page = 1) {
             const container = document.getElementById('reviews');
+            if (!container) return;
+
             const tabName = 'reviews';
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
             container.innerHTML = '<div class="loading">Loading reviews...</div>';
             try {
-                // Использует getApiUrl('reviews'), который теперь разрешается в /api/users/:username/reviews или /api/users/reviews
                 const url = `${ctx.getApiUrl('reviews')}?page=${page}&limit=${ALBUM_LIMIT}`;
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
@@ -206,7 +328,7 @@
                 container.innerHTML = '';
                 reviews.forEach(review => {
                     const reviewEl = document.createElement('div');
-                    reviewEl.className = 'album-entry'; // Переиспользуем стиль обертки
+                    reviewEl.className = 'album-entry';
                     reviewEl.innerHTML = `
                     <div class="album-entry-header">
                         <div class="list-image">
@@ -230,68 +352,116 @@
                 });
 
                 renderPagination(container, tabName, totalCount);
-
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<p>Failed to load reviews.</p>';
             }
         }
-        // ---------------------------------------------
 
+        // --- Logic for Rated Albums & Histogram ---
+        async function loadRatedAlbums(page = 1, scoreFilter = null) {
+            const listContainer = document.getElementById('rated-albums-container');
+            const listWrapper = document.getElementById('rated-albums-list');
+            const histogramWrapper = document.getElementById('histogram-wrapper');
+            const titleEl = document.getElementById('current-filter-title');
 
-        async function loadRatedAlbums(page = 1) {
-            const container = document.getElementById('recent');
-            const tabName = 'recent';
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
-            container.innerHTML = '<div class="loading">Loading...</div>';
+            if (scoreFilter) {
+                // Фильтр активен: показываем список, скрываем гистограмму
+                histogramWrapper.style.display = 'none';
+                listWrapper.style.display = 'block';
+                titleEl.textContent = `Albums rated ${scoreFilter}`;
+                currentScoreFilter = scoreFilter;
+            }
+
+            listContainer.innerHTML = '<div class="loading">Loading albums...</div>';
+
             try {
-                const url = `${ctx.getApiUrl('rated-albums')}?page=${page}&limit=${ALBUM_LIMIT}`;
+                let url = `${ctx.getApiUrl('rated-albums')}?page=${page}&limit=${ALBUM_LIMIT}`;
+                if (scoreFilter) url += `&score=${scoreFilter}`;
+
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
                 const res = await fetch(url, { headers });
-                if (!res.ok) throw new Error(`Status: ${res.status}`);
-
                 const data = await res.json();
-                const albums = data.items || data;
-                const totalCount = data.total_count || albums.length;
+                const albums = data.items || [];
 
-                if (!albums || albums.length === 0) {
-                    container.innerHTML = '<p>No ratings yet</p>';
+                if (albums.length === 0) {
+                    listContainer.innerHTML = '<p>No albums found for this rating.</p>';
                     return;
                 }
 
-                container.innerHTML = '';
+                listContainer.innerHTML = '';
                 albums.forEach(album => {
                     const albumEl = document.createElement('div');
                     albumEl.className = 'album-entry';
                     albumEl.innerHTML = `
-                    <div class="album-entry-header">
-                        <div class="list-image">
-                            <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
-                        </div>
-                        <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                            <div class="album-details">
-                                <span class="title">${album.title}</span>
-                                <span class="artist-year">${album.artist}</span>
+                        <div class="album-entry-header">
+                            <div class="list-image">
+                                <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
                             </div>
-                            <span class="rating-stars">${scoreToStars(album.score)}</span>
-                        </a>
-                    </div>
-                `;
-                    container.appendChild(albumEl);
+                            <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
+                                <div class="album-details">
+                                    <span class="title">${album.title}</span>
+                                    <span class="artist-year">${album.artist}</span>
+                                </div>
+                                <span class="rating-stars">${scoreToStars(album.score)}</span>
+                            </a>
+                        </div>
+                    `;
+                    listContainer.appendChild(albumEl);
                 });
 
-                renderPagination(container, tabName, totalCount);
+                renderPagination(listContainer, 'recent', data.total_count);
 
             } catch (err) {
                 console.error(err);
-                container.innerHTML = '<p>Failed to load ratings.</p>';
+                listContainer.innerHTML = '<p>Failed to load.</p>';
             }
         }
 
+        // --- Init Histogram ---
+        function initHistogram() {
+            const container = document.getElementById('histogram-wrapper');
+            container.style.display = 'block';
+            document.getElementById('rated-albums-list').style.display = 'none';
+
+            // Если гистограмма уже инициализирована, просто перезагружаем статистику
+            if (histogramInstance) {
+                histogramInstance.loadStats();
+                return;
+            }
+
+            const username = ctx.username || (ctx.user ? ctx.user.username : 'me');
+
+            histogramInstance = new RatingsHistogram(
+                'histogram-wrapper',
+                username,
+                '/api',
+                (score) => {
+                    // При клике на бар загружаем список с фильтром
+                    loadRatedAlbums(1, score);
+                }
+            );
+            histogramInstance.loadStats();
+        }
+
+        // Back Button
+        const backBtn = document.getElementById('back-to-histogram');
+        if(backBtn) {
+            backBtn.addEventListener('click', () => {
+                document.getElementById('rated-albums-list').style.display = 'none';
+                document.getElementById('histogram-wrapper').style.display = 'block';
+                currentScoreFilter = null;
+                // При возврате, убедитесь, что контейнер списка очищен от старой пагинации
+                document.getElementById('rated-albums-container').innerHTML = '';
+            });
+        }
+
         async function loadUserActions(type, containerId, page = 1) {
-            const container = document.getElementById(containerId);
+            const container = document.getElementById(containerId + '-container') || document.getElementById(containerId);
+            if (!container) return;
+
             const tabName = containerId;
             if (!ctx || (!ctx.isPublic && !ctx.token)) return;
 
@@ -331,9 +501,7 @@
                 `;
                     container.appendChild(actionEl);
                 });
-
                 renderPagination(container, tabName, totalCount);
-
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<p>Failed to load list.</p>';
@@ -361,7 +529,6 @@
                 container.innerHTML = '';
                 albumsWithRatings.forEach(album => {
                     const displayArtist = album.artist ? album.artist.split(',')[0].trim() : 'Unknown Artist';
-
                     const albumElement = document.createElement('div');
                     albumElement.className = 'album-with-tracks';
                     albumElement.innerHTML = `
@@ -397,7 +564,6 @@
                                 tracksContainer.appendChild(tDiv);
                             });
                         }
-
                         if (tracksContainer.style.maxHeight) {
                             tracksContainer.style.maxHeight = null;
                             header.querySelector('.toggle-icon').textContent = '▼';
@@ -422,7 +588,6 @@
                 const url = ctx.isPublic
                     ? `/api/users/${ctx.username}/tags`
                     : `/api/tags/my-tags`;
-
                 const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
 
                 const res = await fetch(url, { headers });
@@ -496,12 +661,21 @@
 
         function triggerLoad(tabName, page = 1) {
             currentPage[tabName] = page;
+
             switch (tabName) {
-                case 'recent': loadRatedAlbums(page); break;
+                case 'recent':
+                    // Если есть фильтр, грузим список, иначе гистограмму
+                    if (currentScoreFilter) {
+                        loadRatedAlbums(page, currentScoreFilter);
+                    } else {
+                        initHistogram();
+                    }
+                    break;
+
                 case 'albums': loadUserActions('listen', 'albums', page); break;
                 case 'liked': loadUserActions('like', 'liked', page); break;
                 case 'wishlist': loadUserActions('wishlist', 'wishlist', page); break;
-                case 'reviews': loadUserReviews(page); break; // ДОБАВЛЕН ТРИГГЕР
+                case 'reviews': loadUserReviews(page); break;
                 case 'trackratings': loadAlbumsWithTrackRatings(); break;
                 case 'tags': loadUserTags(); break;
             }
@@ -523,6 +697,7 @@
             });
         });
 
+        // Инициализация при загрузке (если активный таб recent)
         const activeTab = document.querySelector('.tab.active');
         if (activeTab && activeTab.dataset.tab === 'recent') {
             triggerLoad('recent', 1);

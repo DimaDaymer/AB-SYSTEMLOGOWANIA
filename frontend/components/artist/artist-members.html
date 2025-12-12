@@ -1,0 +1,101 @@
+<div class="members-module">
+    <div class="members-header">
+        <h3 id="members-module-title">Members</h3>
+        <button id="btn-edit-members" class="icon-btn" style="display: none;" title="Edit Relations">✎</button>
+    </div>
+
+    <div id="members-list" class="members-list">
+        <div class="loading-placeholder">Loading...</div>
+    </div>
+
+    <div id="members-editor" class="members-editor" style="display: none;">
+        <div class="editor-row">
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="member-artist-input" placeholder="Name..." autocomplete="off" style="width: 100%;">
+                <div id="artist-suggestions" class="suggestions-box"></div>
+            </div>
+
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="member-role-input" placeholder="Role (e.g. Vocalist)..." autocomplete="off" style="width: 100%;">
+                <div id="role-suggestions" class="suggestions-box"></div>
+            </div>
+        </div>
+
+        <div class="editor-row year-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input type="number" id="member-start-year-input" placeholder="Start Year" min="1900" max="2100" style="flex: 1;">
+            <input type="number" id="member-end-year-input" placeholder="End Year" min="1900" max="2100" style="flex: 1;">
+            <button id="btn-add-member" class="button-small">Add</button>
+        </div>
+        <button id="btn-close-editor" class="text-btn">Done Editing</button>
+    </div>
+</div>
+
+<style>
+    /* CSS остается прежним, но с небольшими правками для input */
+    .members-module {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .members-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 5px;
+    }
+    .members-header h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+
+    .members-list { display: flex; flex-direction: column; gap: 8px; }
+    .member-item { display: flex; align-items: center; font-size: 0.9rem; }
+    .member-role { color: #aaa; width: 120px; text-align: right; margin-right: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .member-artist a { color: #ADFF2F; text-decoration: none; font-weight: 600; }
+    .member-artist a:hover { text-decoration: underline; }
+    /* Отображение периода членства */
+    .member-period { color: #888; font-size: 0.85em; margin-left: 5px; }
+
+    .delete-member-btn {
+        background: none; border: none; color: #ff5555; cursor: pointer;
+        margin-left: auto; font-size: 1.2rem; line-height: 1; padding: 0 5px;
+    }
+    .delete-member-btn:hover { color: #ff0000; }
+
+    .members-editor { margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; }
+    .editor-row { position: relative; margin-bottom: 10px; }
+    .editor-row:not(.year-row) { display: flex; gap: 10px; }
+    /* Правка input: убираем flex: 1, используем 100% внутри обертки */
+    .editor-row input { padding: 5px 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff; width: 100%; box-sizing: border-box; }
+    .year-row { display: flex; gap: 10px; }
+    .year-row input { flex: 1; }
+
+    /* Стили дляSuggestions Box */
+    .suggestions-box {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #333;
+        border: 1px solid #555;
+        z-index: 10;
+        max-height: 150px;
+        overflow-y: auto;
+        display: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        border-top: none;
+        color: #fff;
+    }
+    .suggestions-box .suggestion-item {
+        padding: 5px 8px;
+        cursor: pointer;
+    }
+    .suggestions-box .suggestion-item:hover {
+        background: #444;
+    }
+
+    .icon-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.2rem; }
+    .button-small { background: #ADFF2F; border: none; color: #000; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .text-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 0.8rem; text-decoration: underline; }
+</style>

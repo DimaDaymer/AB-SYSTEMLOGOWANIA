@@ -1,259 +1,451 @@
-/* frontend/css/artist.css */
+/* public/css/artist.css */
 
-:root {
-    --bg-dark: #121212;
-    --card-bg: #1e1e1e; /* Цвет фона карточек как на скриншоте */
-    --text-main: #ffffff;
-    --text-secondary: #b3b3b3;
-    --accent-green: #76ff03; /* Ярко-зеленый для рейтинга */
-    --accent-cyan: #4dd0e1; /* Бирюзовый для жанров и мета-данных */
-    --hover-bg: #333333;
-    --border-color: #333;
-}
-
-body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* --- Layout & Container --- */
-.artist-page-container {
+/* Layout specific to Artist Page matching albums.css layout */
+.container {
+    display: flex;
     max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+    gap: 30px;
+    margin: 40px auto;
+    padding: 0 20px;
     position: relative;
+    z-index: 1;
 }
 
-/* --- Banner & Header --- */
-#artist-banner-overlay {
-    position: fixed; /* Или absolute, если хотите, чтобы скроллился */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 400px;
+/* Background Blur Logic */
+#dynamic-background {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 60vh;
     background-size: cover;
     background-position: center;
+    filter: blur(40px) brightness(0.4);
     z-index: -1;
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, var(--bg-dark) 100%);
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, var(--bg-dark) 100%);
-    opacity: 0.4;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
-#artist-header {
-    display: flex;
-    align-items: flex-end;
-    gap: 30px;
-    margin-top: 150px; /* Отступ, чтобы контент был поверх баннера */
-    margin-bottom: 40px;
-    background: rgba(30, 30, 30, 0.6); /* Полупрозрачная подложка */
-    backdrop-filter: blur(10px);
-    padding: 30px;
+/* LEFT SIDEBAR */
+.left-panel {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.artist-card-sticky {
+    position: sticky;
+    top: 80px; /* Assuming navbar is approx 60px */
+    background: #1a1a1a;
     border-radius: 12px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    padding: 25px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    text-align: center;
+    border: 1px solid #333;
 }
 
-#artist-info {
-    display: flex;
-    gap: 30px;
-    flex: 1;
-}
-
-.artist-picture {
+.artist-image-wrapper img {
     width: 200px;
     height: 200px;
     object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border-radius: 50%;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+    border: 4px solid #2a2a2a;
 }
 
-.artist-details h1 {
-    font-size: 3rem;
+#artist-name {
     margin: 0 0 10px 0;
+    font-size: 1.8rem;
     font-weight: 700;
-    letter-spacing: -1px;
+    color: #eee;
 }
 
-#artist-meta {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    margin-bottom: 15px;
-}
-
-/* Стилизация жанров под "теги" из скриншота */
-.artist-genres {
+.genre-badges {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-.artist-genre-tag {
-    color: var(--accent-cyan); /* Бирюзовый цвет текста */
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-.artist-genre-tag:not(:last-child)::after {
-    content: ",";
-    color: var(--text-secondary);
-}
-
-.artist-stats {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-/* --- Buttons --- */
-#artist-actions .follow-button {
-    background-color: #2a2a2a;
-    color: white;
-    border: 1px solid var(--border-color);
-    padding: 10px 24px;
-    border-radius: 4px;
-    cursor: pointer;
+.genre-tag {
+    background: #2a2a2a;
+    color: #00ffcc;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
     font-weight: 600;
-    transition: background 0.2s;
-    text-transform: uppercase;
-    font-size: 0.85rem;
+    border: 1px solid #333;
 }
 
-#artist-actions .follow-button:hover {
-    background-color: var(--accent-cyan);
-    color: #000;
-    border-color: var(--accent-cyan);
+.artist-meta-block {
+    color: #bbb;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
 }
 
-/* --- Tabs --- */
-.tabs-container {
+.meta-row {
+    margin-bottom: 8px;
     display: flex;
-    gap: 2px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Score Block (Similar to Album ratings) */
+.score-block {
+    background: #252525;
+    padding: 15px;
+    border-radius: 8px;
     margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
 }
 
-.tab-button {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 12px 24px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    position: relative;
-    transition: color 0.2s;
-}
-
-.tab-button:hover {
-    color: white;
-}
-
-.tab-button.active {
-    color: var(--accent-cyan);
-    border-bottom: 2px solid var(--accent-cyan);
-}
-
-/* --- Content Area --- */
-.tab-content {
-    display: none;
-    animation: fadeIn 0.3s ease;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.section-title {
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    color: var(--text-main);
-}
-
-/* --- Discography Grid --- */
-.discography-section {
-    margin-bottom: 40px;
-}
-
-.discography-type-title {
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-    margin-bottom: 15px;
+.score-label {
+    font-size: 0.8rem;
     text-transform: uppercase;
+    color: #888;
     letter-spacing: 1px;
 }
 
-.album-grid-container {
+.score-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: greenyellow; /* Matches albums.css accent */
+}
+
+/* Actions */
+.followers-stat {
+    margin-top: 15px;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+.btn-secondary {
+    background: #333;
+    color: #ccc;
+    border: none;
+}
+.btn-secondary:hover {
+    background: #444;
+    color: #fff;
+}
+
+/* Follow Button States */
+#follow-button.following {
+    background-color: transparent;
+    border-color: #555;
+    color: #888;
+}
+
+#follow-button.following:hover {
+    border-color: #ff5555;
+    color: #ff5555;
+    content: "Unfollow";
+}
+
+
+/* CENTER PANEL & DISCOGRAPHY */
+.center-panel {
+    flex: 1;
+}
+
+/* Tabs from albums.css/profile.css */
+.tabs {
+    background: #1a1a1a;
+    border-radius: 8px;
+    display: flex;
+    margin-bottom: 25px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.tab {
+    padding: 15px 25px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #888;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+    color: #fff;
+    background: #252525;
+}
+
+.tab.active {
+    color: #00ffcc;
+    border-bottom-color: #00ffcc;
+    background: #222;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Discography Sections */
+.disco-section {
+    margin-bottom: 40px;
+}
+
+.section-title {
+    font-size: 1.4rem;
+    color: #eee;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Grid similar to style.css New Releases but compact */
+.albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 20px;
 }
 
-/* Карточка альбома - дизайн как в New Releases */
-.album-card-wrapper {
-    background-color: var(--card-bg);
+.album-card {
+    background: #1a1a1a;
     border-radius: 8px;
-    overflow: hidden;
+    padding: 15px;
     transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid transparent;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
 }
 
-.album-card-wrapper:hover {
+.album-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.5);
-    border-color: #333;
+    box-shadow: 0 8px 15px rgba(0,255,204, 0.15); /* Teal glow */
 }
 
 .album-link {
     text-decoration: none;
     color: inherit;
-    display: block;
+    /* Убедимся, что ссылка занимает доступное место, чтобы действия были под ней */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
-.album-cover {
+.cover-wrapper {
+    position: relative;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.cover-wrapper img {
     width: 100%;
-    aspect-ratio: 1/1;
+    height: 100%;
     object-fit: cover;
-    display: block;
 }
 
-.album-info-block {
-    padding: 12px;
+.rating-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.8);
+    color: #f5c518;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    backdrop-filter: blur(4px);
 }
 
 .album-title {
-    margin: 0 0 5px 0;
-    font-size: 0.95rem;
     font-weight: 600;
+    color: #eee;
+    margin-bottom: 4px;
+    font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: white;
-}
-
-.album-meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.85rem;
 }
 
 .album-year {
-    color: var(--text-secondary);
+    font-size: 0.85rem;
+    color: #888;
 }
 
-.album-rating {
-    color: var(--accent-green); /* Зеленый рейтинг */
-    font-weight: 700;
+/* СТИЛИ ДЛЯ КНОПОК ДЕЙСТВИЙ АЛЬБОМА */
+.album-actions {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #2a2a2a;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    color: #555; /* Неактивный цвет */
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    transition: color 0.2s, transform 0.1s;
+}
+
+.action-button:hover {
+    color: #00ffcc; /* Hover цвет */
+}
+
+.action-button.active {
+    color: #00ffcc; /* Активный цвет (зеленоватый акцент) */
+}
+/* Специфические цвета для активных */
+.action-button[data-action="like"].active { color: #ff5555; } /* Красный */
+.action-button[data-action="listen"].active { color: #f5c518; } /* Желтый/Оранжевый */
+.action-button[data-action="wishlist"].active { color: #8a2be2; } /* Фиолетовый */
+
+.action-button:active {
+    transform: scale(0.95);
+}
+
+
+/* Info Box */
+.info-box {
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.info-box h3 {
+    margin-top: 0;
+    color: #00ffcc;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+.bio-text {
+    line-height: 1.7;
+    color: #ccc;
     font-size: 1rem;
 }
 
-.album-no-rating {
-    color: #555;
-    font-size: 0.8rem;
+/* Modal Overlay (z-index fix) */
+.modal-overlay {
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
 }
+
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+    }
+    .left-panel {
+        width: 100%;
+    }
+    .artist-card-sticky {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+a.genre-tag {
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    /* Остальные стили те же, что были у span */
+    display: inline-block;
+}
+
+a.genre-tag:hover {
+    background: #00ffcc; /* Цвет акцента */
+    color: #000;
+}
+
+/* Styles for Members Editor (copied from credits.html) */
+.members-module {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.credits-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 5px;
+}
+.credits-header h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+
+.members-list-container { display: flex; flex-direction: column; gap: 8px; }
+.member-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    padding: 3px 0;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.05);
+}
+.member-name { color: #fff; font-weight: 600; }
+
+.delete-member-btn {
+    background: none; border: none; color: #ff5555; cursor: pointer;
+    margin-left: auto; font-size: 1.2rem; line-height: 1; padding: 0 5px;
+}
+.delete-member-btn:hover { color: #ff0000; }
+
+/* Editor Styles */
+.credits-editor {
+    margin-top: 15px;
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    border-radius: 5px;
+    /* Добавляем flex-direction: column, так как в artist.js мы его задали */
+    flex-direction: column;
+}
+.editor-row {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    margin-bottom: 10px;
+}
+.editor-row input {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+    box-shadow: none;
+    outline: none;
+}
+.icon-btn {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 5px;
+}
+.icon-btn:hover { color: #fff; }
+
+.button-small {
+    background: #ADFF2F;
+    border: none;
+    color: #000;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.button-small:hover { background: #9acd32; }
+
+.text-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    align-self: flex-start; /* Чтобы кнопка была слева */
+    padding: 5px 0;
+}
+.text-btn:hover { color: #aaa; }

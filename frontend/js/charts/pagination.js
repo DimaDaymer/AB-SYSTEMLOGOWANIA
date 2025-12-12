@@ -8,82 +8,83 @@ export let itemsPerPage = parseInt(localStorage.getItem('chartItemsPerPage')) ||
 const paginationFooter = document.getElementById('pagination-footer');
 
 /**
- * Устанавливает новую страницу и вызывает загрузку альбомов.
+ * Устанавливает новую страницу и вызывает загрузку элементов.
  * @param {number} page - Номер страницы для перехода.
- * @param {function} loadAlbumsFn - Функция загрузки альбомов из главного модуля.
+ * @param {function} loadFn - Функция загрузки (loadAlbumsFn или loadTracksFn).
  */
-export function goToPage(page, loadAlbumsFn) {
+export function goToPage(page, loadFn) {
     currentPage = page;
-    loadAlbumsFn();
-    // Скролл наверх списка
-    document.getElementById('album-list-container').scrollIntoView({ behavior: 'smooth' });
+    loadFn();
+
+    // 🟢 ИСПРАВЛЕНИЕ: Ищем либо контейнер альбомов, либо контейнер треков для скролла
+    const scrollTarget = document.getElementById('album-list-container') || document.getElementById('track-list-container');
+    if (scrollTarget) {
+        // Скролл наверх списка
+        scrollTarget.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 /**
  * Обрабатывает изменение лимита отображаемых элементов.
  * @param {string} val - Новое значение лимита (строка).
- * @param {function} loadAlbumsFn - Функция загрузки альбомов из главного модуля.
+ * @param {function} loadFn - Функция загрузки (loadAlbumsFn или loadTracksFn).
  */
-export function handleLimitChange(val, loadAlbumsFn) {
+export function handleLimitChange(val, loadFn) {
     itemsPerPage = parseInt(val);
     // Сохранение выбора в память
     localStorage.setItem('chartItemsPerPage', itemsPerPage);
 
     currentPage = 1; // Сброс на первую страницу
-    loadAlbumsFn();
+    loadFn();
 }
 
 /**
  * Отрисовывает элементы управления пагинацией.
- * @param {object} meta - Объект метаданных пагинации.
- * @param {function} loadAlbumsFn - Функция загрузки альбомов из главного модуля.
+ * @param {object} meta - Объект метаданных с total, page, limit, total_pages.
+ * @param {function} loadFn - Функция загрузки (loadAlbumsFn или loadTracksFn).
  */
-export function renderPagination(meta, loadAlbumsFn) {
-    paginationFooter.innerHTML = '';
-    if (!meta || meta.total_pages <= 1) return;
+export function renderPagination(meta, loadFn) {
+    if (!paginationFooter) return;
+    paginationFooter.innerHTML = ''; // Очистка
 
-    const { page, total_pages, total } = meta;
-    const maxButtons = 7; // Максимальное число видимых кнопок
+    const { total, page, total_pages } = meta;
+    if (total_pages <= 1) return;
+
+    // Хелпер для создания кнопок
+    const createButton = (text, targetPage, isDisabled = false) => {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn';
+        btn.textContent = text;
+        btn.disabled = isDisabled;
+        if (!isDisabled) {
+            btn.onclick = () => goToPage(targetPage, loadFn);
+        }
+        return btn;
+    };
 
     // Кнопка Prev
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'page-btn';
-    prevBtn.innerHTML = '&laquo;';
-    prevBtn.disabled = page === 1;
-    prevBtn.onclick = () => goToPage(page - 1, loadAlbumsFn);
-    paginationFooter.appendChild(prevBtn);
+    paginationFooter.appendChild(createButton('«', page - 1, page === 1));
 
-    // Логика отображения номеров (1 ... 4 5 6 ... 10)
-    let startPage = Math.max(1, page - Math.floor(maxButtons / 2));
-    let endPage = Math.min(total_pages, startPage + maxButtons - 1);
+    // Центральные кнопки
+    let startPage = Math.max(1, page - 2);
+    let endPage = Math.min(total_pages, page + 2);
 
-    if (endPage - startPage + 1 < maxButtons) {
-        startPage = Math.max(1, endPage - maxButtons + 1);
-    }
+    if (page <= 3) endPage = Math.min(total_pages, 5);
+    if (page >= total_pages - 2) startPage = Math.max(1, total_pages - 4);
 
     if (startPage > 1) {
-        const firstBtn = document.createElement('button');
-        firstBtn.className = 'page-btn';
-        firstBtn.textContent = '1';
-        firstBtn.onclick = () => goToPage(1, loadAlbumsFn);
-        paginationFooter.appendChild(firstBtn);
-
+        paginationFooter.appendChild(createButton('1', 1));
         if (startPage > 2) {
             const dots = document.createElement('span');
             dots.textContent = '...';
-            dots.style.color = '#777';
-            dots.style.padding = '0 5px';
+            dots.className = 'page-btn disabled';
             paginationFooter.appendChild(dots);
         }
     }
 
     for (let i = startPage; i <= endPage; i++) {
-        const btn = document.createElement('button');
-        btn.className = `page-btn ${i === page ? 'active' : ''}`;
-        btn.textContent = i;
-        if (i !== page) {
-            btn.onclick = () => goToPage(i, loadAlbumsFn);
-        }
+        const btn = createButton(i.toString(), i);
+        if (i === page) btn.classList.add('active');
         paginationFooter.appendChild(btn);
     }
 
@@ -91,51 +92,42 @@ export function renderPagination(meta, loadAlbumsFn) {
         if (endPage < total_pages - 1) {
             const dots = document.createElement('span');
             dots.textContent = '...';
-            dots.style.color = '#777';
-            dots.style.padding = '0 5px';
+            dots.className = 'page-btn disabled';
             paginationFooter.appendChild(dots);
         }
-        const lastBtn = document.createElement('button');
-        lastBtn.className = 'page-btn';
-        lastBtn.textContent = total_pages;
-        lastBtn.onclick = () => goToPage(total_pages, loadAlbumsFn);
-        paginationFooter.appendChild(lastBtn);
+        paginationFooter.appendChild(createButton(total_pages.toString(), total_pages));
     }
 
     // Кнопка Next
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'page-btn';
-    nextBtn.innerHTML = '&raquo;';
-    nextBtn.disabled = page === total_pages;
-    nextBtn.onclick = () => goToPage(page + 1, loadAlbumsFn);
-    paginationFooter.appendChild(nextBtn);
+    paginationFooter.appendChild(createButton('»', page + 1, page === total_pages));
 
     // Инфо текст
     const info = document.createElement('div');
     info.className = 'pagination-info';
-    info.textContent = `Showing page ${page} of ${total_pages} (${total} albums total)`;
+    info.textContent = `Showing page ${page} of ${total_pages} (${total} tracks total)`;
     paginationFooter.appendChild(info);
 }
 
 /**
  * Устанавливает начальное значение в селекте "itemsPerPage".
  * @param {number} initialLimit - Значение из `itemsPerPage`.
- * @param {function} loadAlbumsFn - Функция загрузки альбомов из главного модуля.
+ * @param {function} loadFn - Функция загрузки (loadAlbumsFn или loadTracksFn).
  */
-export function initPaginationControls(initialLimit, loadAlbumsFn) {
+export function initPaginationControls(initialLimit, loadFn) {
     const select = document.getElementById('itemsPerPage');
     if (select) {
         select.value = initialLimit;
-        // Привязываем обработчик, используя функцию-обертку, чтобы передать loadAlbumsFn
-        select.onchange = (e) => handleLimitChange(e.target.value, loadAlbumsFn);
+        // Привязываем обработчик, используя функцию-обертку
+        select.onchange = (e) => handleLimitChange(e.target.value, loadFn);
     }
 }
 
 /**
- * Сброс страницы на 1 при применении фильтров.
- * @param {function} loadAlbumsFn - Функция загрузки альбомов из главного модуля.
+ * Сброс страницы на 1 и запуск загрузки данных.
+ * Используется при изменении фильтров.
+ * @param {function} loadFn - Функция загрузки (loadAlbumsFn или loadTracksFn).
  */
-export function applyFilters(loadAlbumsFn) {
+export function applyFilters(loadFn) {
     currentPage = 1;
-    loadAlbumsFn();
+    loadFn();
 }

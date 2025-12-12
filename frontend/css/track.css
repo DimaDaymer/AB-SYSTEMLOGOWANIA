@@ -1,0 +1,195 @@
+/* css/track.css - Основан на albums.css */
+
+/* === ОСНОВНЫЕ СТИЛИ СТРАНИЦЫ === */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #1f1f1f;
+    color: white;
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Динамический фон (размытая обложка) */
+#dynamic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 600px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(20px) brightness(0.5);
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+}
+
+/* Сетка страницы (3 колонки) */
+.container {
+    display: flex;
+    max-width: 1200px;
+    gap: 30px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.left-panel {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Адаптивность */
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+        align-items: center;
+    }
+    .left-panel, .center-panel, .right-panel {
+        width: 90%;
+        max-width: 600px;
+    }
+    /* Порядок блоков на мобильных: Инфо -> Обложка -> Рейтинг */
+    .center-panel { order: 1; }
+    .left-panel { order: 2; margin-bottom: 20px; }
+    .right-panel { order: 3; }
+}
+
+/* === ОБЛОЖКА АЛЬБОМА (Слева) === */
+.album-cover img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease;
+}
+
+.album-cover img:hover {
+    transform: scale(1.02);
+}
+
+/* === ИНФОРМАЦИЯ О ТРЕКЕ (Центр) === */
+/* Используем тот же класс .album-info для совместимости с JS компонентом,
+   но стилизуем под трек */
+.album-info {
+    background-color: #1a1a1a;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
+}
+
+.album-info .album-title { /* Название трека */
+    margin-top: 0;
+    font-size: 2.2rem; /* Чуть меньше, чем у альбома, если название длинное */
+    margin-bottom: 15px;
+    font-weight: 700;
+    color: #eee;
+    line-height: 1.2;
+}
+
+.album-meta span {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    color: #bbb;
+}
+
+.album-meta span:first-child {
+    margin-top: 0;
+}
+
+.album-meta strong {
+    color: #ddd;
+    margin-right: 5px;
+}
+
+/* Ссылки внутри мета-информации (Имя артиста, Альбом) */
+.album-meta a {
+    color: #00e0b5;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.album-meta a:hover {
+    color: #00ffcc;
+    text-decoration: underline;
+}
+
+/* Специфично для страницы трека: ссылка на альбом */
+#album-link {
+    font-size: 1.05em; /* Чуть крупнее для важности */
+}
+
+/* === БЛОК РЕЙТИНГА (Справа) === */
+.score-block {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.score-value {
+    font-size: 3rem; /* Крупная цифра */
+    font-weight: 700;
+    color: greenyellow;
+    margin-bottom: 10px;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Звезда рядом с цифрой рейтинга */
+.score-value::after {
+    content: '★';
+    font-size: 2rem;
+    color: greenyellow;
+}
+
+.score-ratings {
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 10px;
+}
+
+/* Контейнер для интерактивных звезд */
+#track-star-rating-host {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+/* === ТАБЫ И ДОП. КОНТЕНТ (Если понадобятся) === */
+.tabs {
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    margin-top: 20px;
+}
+
+.tab-content {
+    padding: 20px;
+    color: #ccc;
+    line-height: 1.5;
+}
+
+/* === ВСПОМОГАТЕЛЬНЫЕ ЭЛЕМЕНТЫ === */
+.global-message {
+    font-family: 'Inter', sans-serif;
+}

@@ -84,15 +84,30 @@ CREATE TABLE IF NOT EXISTS artists (
                                        description TEXT,
                                        albums_count INT DEFAULT 0,
                                        followers_count INT DEFAULT 0,
+                                       artist_type ENUM('solo', 'group') NOT NULL DEFAULT 'solo',
                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS artist_genres (
-                                             artist_id INT NOT NULL,
-                                             genre_id INT NOT NULL,
-                                             PRIMARY KEY (artist_id, genre_id),
-                                             FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
-                                             FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS artist_members (
+                                              id INT AUTO_INCREMENT PRIMARY KEY,
+    -- ID группы (Artist, например, 'The Beatles')
+                                              group_artist_id INT NOT NULL,
+    -- ID члена группы (Artist, например, 'Paul McCartney')
+                                              member_artist_id INT NOT NULL,
+    -- ID роли (Role from credit_roles table, например, 'Vocalist', 'Guitarist')
+                                              role_id INT DEFAULT NULL,
+    -- Год начала участия (опционально)
+                                              start_year INT,
+    -- Год окончания участия (опционально)
+                                              end_year INT,
+
+    -- ИЗМЕНЕНИЕ: УДАЛЕН UNIQUE KEY unique_member_role_pair,
+    -- чтобы позволить иметь несколько записей для одного участника (например,
+    -- для разных периодов участия или разных ролей).
+
+                                              FOREIGN KEY (group_artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+                                              FOREIGN KEY (member_artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+                                              FOREIGN KEY (role_id) REFERENCES credit_roles(id) ON DELETE SET NULL
 );
 
 -- ==========================================
@@ -189,9 +204,22 @@ CREATE TABLE IF NOT EXISTS tracks (
                                       album_id INT NOT NULL,
                                       track_number INT NOT NULL,
                                       title VARCHAR(255) NOT NULL,
-                                      duration VARCHAR(50),
+                                      duration VARCHAR(10) NULL, -- '3:45'
+                                      slug VARCHAR(255) UNIQUE NOT NULL, -- <--- НОВОЕ ПОЛЕ
+
                                       FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
-                                      UNIQUE KEY unique_track_in_album (album_id, track_number)
+                                      UNIQUE KEY (album_id, track_number)
+);
+
+-- ==========================================
+-- 7.5. СТАТИСТИКА ТРЕКОВ (НОВАЯ ТАБЛИЦА)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS track_stats (
+                                           track_id INT PRIMARY KEY,
+                                           avg_score DECIMAL(3, 2) DEFAULT 0.00,
+                                           ratings_count INT DEFAULT 0,
+                                           last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                           FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS album_credits (
@@ -281,15 +309,26 @@ CREATE TABLE IF NOT EXISTS user_album_tags (
                                                UNIQUE KEY unique_user_tag (user_id, album_id, tag_name)
 );
 
+-- ==========================================
+-- 10. ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЕЙ (TAGS, ACTIONS)
+-- ==========================================
+
+-- ... (user_album_tags без изменений)
+
 CREATE TABLE IF NOT EXISTS user_album_actions (
                                                   id INT AUTO_INCREMENT PRIMARY KEY,
                                                   user_id INT NOT NULL,
-                                                  album_id INT NOT NULL,
-                                                  action_type ENUM('listen', 'wishlist', 'like', 'add-to-list', 'tags') NOT NULL,
+                                                  album_id INT DEFAULT NULL,    -- Может быть NULL, если это действие с артистом
+                                                  artist_id INT DEFAULT NULL,   -- НОВОЕ ПОЛЕ. Может быть NULL, если это действие с альбомом
+                                                  action_type ENUM('listen', 'wishlist', 'like', 'add-to-list', 'tags', 'follow') NOT NULL, -- Добавил 'follow' в ENUM
                                                   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Уникальный ключ: пользователь + (альбом или артист) + тип действия
                                                   UNIQUE KEY unique_user_album_action (user_id, album_id, action_type),
+                                                  UNIQUE KEY unique_user_artist_action (user_id, artist_id, action_type),
+
                                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                                                  FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
+                                                  FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+                                                  FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
 );
 
 -- ==========================================
