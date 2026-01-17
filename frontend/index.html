@@ -1,272 +1,148 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MelodyRater</title>
-    <script src="/js/StarRating.js"></script>
-    <script src="/js/albums1.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #1a1a1a; /* Dark background */
-            color: #f0f0f0; /* Light text */
-        }
-        #navbar-container {
-            /* Placeholder for navbar styling if needed */
-        }
-        .main-content-wrapper {
-            display: flex;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
-            gap: 30px; /* Space between album list and filter sidebar */
-            align-items: flex-start; /* Align items to the top */
-        }
-        #album-list-container {
-            flex-grow: 1; /* Allow album list to take up available space */
-            min-width: 0; /* Important for flex items to shrink */
-        }
-        #filter-sidebar-container {
-            width: 300px; /* Fixed width for the filter sidebar */
-            flex-shrink: 0; /* Prevent sidebar from shrinking */
-            background-color: #2a2a2a; /* Darker background for sidebar */
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
+    <title>MelodyRater - Wszechświat</title>
 
-        /* Styles from chart-page.html will be loaded dynamically, but these are for main layout */
-        h1 {
-            color: #f0f0f0;
-            margin-bottom: 20px;
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 
-        /* Filter sidebar specific styles */
-        .filter-header {
-            font-size: 1.5em;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #f0f0f0;
-        }
-        .filter-dropdowns {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .filter-dropdown {
-            background-color: #444;
-            color: #f0f0f0;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 0.9em;
-            cursor: pointer;
-            -webkit-appearance: none; /* Remove default select arrow */
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23f0f0f0%22%20d%3D%22M208.5%2089.5L128%20169L47.5%2089.5L59%2078L128%20147L197%2078L208.5%2089.5z%22%2F%3E%3C%2Fsvg%3E');
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 12px;
-            padding-right: 25px; /* Make space for the arrow */
-        }
-        .filter-search-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .filter-search-input {
-            width: calc(100% - 40px); /* Adjust for padding and icon */
-            padding: 10px 15px;
-            padding-right: 40px; /* Space for search icon */
-            border: 1px solid #555;
-            border-radius: 5px;
-            background-color: #333;
-            color: #f0f0f0;
-            font-size: 0.9em;
-        }
-        .filter-search-input::placeholder {
-            color: #bbb;
-        }
-        .filter-search-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #bbb;
-            cursor: pointer;
-        }
-
-        .filter-section {
-            margin-bottom: 20px;
-            background-color: #333;
-            border-radius: 8px;
-            padding: 15px;
-        }
-        .filter-section h3 {
-            font-size: 1.1em;
-            color: #e0e0e0;
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        .filter-options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .filter-option-button {
-            background-color: #444;
-            color: #f0f0f0;
-            border: 1px solid #555;
-            border-radius: 5px;
-            padding: 8px 10px;
-            font-size: 0.85em;
-            cursor: pointer;
-            text-align: center;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        .filter-option-button:hover {
-            background-color: #555;
-            border-color: #777;
-        }
-        .filter-option-button.active {
-            background-color: #00ffcc; /* Active color from album details page */
-            color: #1a1a1a;
-            border-color: #00ffcc;
-            font-weight: 600;
-        }
-        .filter-link-button {
-            background-color: #444;
-            color: #00ffcc; /* Greenish color for links */
-            border: 1px solid #00ffcc;
-            border-radius: 5px;
-            padding: 8px 12px;
-            font-size: 0.85em;
-            cursor: pointer;
-            text-align: center;
-            margin-top: 10px;
-            display: block; /* Make it a block element to take full width */
-            text-decoration: none;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .filter-link-button:hover {
-            background-color: #00ffcc;
-            color: #1a1a1a;
-        }
-
-        .year-filter-options {
-            padding: 10px 0;
-        }
-        .year-filter-options label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-            color: #e0e0e0;
-            cursor: pointer;
-        }
-        .year-filter-options input[type="radio"] {
-            margin-right: 8px;
-        }
-        .year-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5 columns as in the image */
-            gap: 5px;
-            margin-top: 10px;
-            text-align: center;
-        }
-        .year-grid div {
-            background-color: #444;
-            padding: 5px 0;
-            border-radius: 4px;
-            font-size: 0.8em;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .year-grid div:hover {
-            background-color: #555;
-        }
-        .year-grid div.active {
-            background-color: #00ffcc;
-            color: #1a1a1a;
-            font-weight: 600;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 900px) {
-            .main-content-wrapper {
-                flex-direction: column;
-                align-items: center;
-            }
-            #filter-sidebar-container {
-                width: 90%;
-                max-width: 600px; /* Limit width on smaller screens */
-                order: -1; /* Move filter to top on small screens */
-                margin-bottom: 20px;
-            }
-            #album-list-container {
-                width: 100%;
-            }
-        }
-    </style>
 </head>
 <body>
-<div id="navbar-container"></div>
-<div class="main-content-wrapper">
-    <div id="album-list-container">
-    </div>
-    <div id="filter-sidebar-container">
-    </div>
+
+<div id="navbar-placeholder"></div>
+<script src="/js/loadnavbar.js"></script>
+
+<div class="container">
+    <header class="hero-section">
+        <h1 class="hero-title">Melody rater</h1>
+        <p class="hero-subtitle">Twoja idealna ścieżka dźwiękowa do życia zaczyna się tutaj.</p>
+    </header>
+
+    <section>
+        <h2>Polecani artyści</h2>
+        <div id="artists-grid" class="results-grid"></div>
+        <div id="artists-pagination" class="pagination-container"></div>
+    </section>
+
+    <section>
+        <h2>Najlepsze albumy</h2>
+        <div id="albums-grid" class="results-grid"></div>
+        <div id="albums-pagination" class="pagination-container"></div>
+    </section>
+
+    <section>
+        <h2>Popularne utwory</h2>
+        <div id="tracks-list" class="tracks-list"></div>
+        <div id="tracks-pagination" class="pagination-container"></div>
+    </section>
+
+    <section>
+        <h2>Listy społeczności</h2>
+        <div id="lists-grid" class="results-grid"></div>
+        <div id="lists-pagination" class="pagination-container"></div>
+    </section>
 </div>
 
 <script>
-    // Load Navbar
-    fetch('/navbar.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('navbar-container').innerHTML = html;
-            const navbarScripts = document.getElementById('navbar-container').querySelectorAll('script');
-            navbarScripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript);
-            });
-            if (typeof initNavbar === 'function') {
-                initNavbar();
+    const CONFIG = {
+        artist: { endpoint: '/api/similar/artists/top', container: 'artists-grid', pag: 'artists-pagination', limit: 5 },
+        album: { endpoint: '/api/similar/albums/top', container: 'albums-grid', pag: 'albums-pagination', limit: 5 },
+        track: { endpoint: '/api/similar/tracks/top', container: 'tracks-list', pag: 'tracks-pagination', limit: 10 },
+        list: { endpoint: '/api/similar/lists/top', container: 'lists-grid', pag: 'lists-pagination', limit: 5 }
+    };
+
+    async function loadData(type, page = 1) {
+        const conf = CONFIG[type];
+        const container = document.getElementById(conf.container);
+        const pagContainer = document.getElementById(conf.pag);
+
+        container.innerHTML = '<div class="loading-placeholder">Synchronizacja...</div>';
+
+        try {
+            const response = await fetch(`${conf.endpoint}?limit=${conf.limit}&page=${page}`);
+            const data = await response.json();
+
+            if (!data.items || data.items.length === 0) {
+                container.innerHTML = '<p style="color:#444">Tutaj jest jeszcze pusto.</p>';
+                pagContainer.innerHTML = '';
+                return;
             }
-        })
-        .catch(err => console.error('Failed to load navbar:', err));
 
-    // Load New Releases (album list)
-    fetch('/chart-page.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('album-list-container').innerHTML = html;
-            // Execute scripts within chart-page.html if any, for example the DOMContentLoaded listener
-            const scripts = document.getElementById('album-list-container').querySelectorAll('script');
-            scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript);
-            });
-        })
-        .catch(err => console.error('Failed to load new releases:', err));
+            container.innerHTML = data.items.map(item => renderItem(type, item)).join('');
 
-    // Load Filter Sidebar
-    fetch('/filter_sidebar.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('filter-sidebar-container').innerHTML = html;
-            // Execute scripts within filter_sidebar.html
-            const scripts = document.getElementById('filter-sidebar-container').querySelectorAll('script');
-            scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript);
-            });
-        })
-        .catch(err => console.error('Failed to load filter sidebar:', err));
+            // Użycie centralnego modułu paginacji
+            await renderPagination(type, data.meta);
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<p style="color:#ef4444">Błąd ładowania danych.</p>';
+        }
+    }
+
+    function renderItem(type, item) {
+        if (type === 'artist') return `
+            <a href="/artist.html?slug=${item.slug}" class="result-card round-img">
+                <img src="${item.picture_url || '/img/default-artist.png'}">
+                <span class="title">${item.name}</span>
+                <small class="subtitle">Wykonawca</small>
+            </a>`;
+
+        if (type === 'album') return `
+            <a href="/release/album/${item.slug}" class="result-card">
+                <img src="${item.cover_url || '/img/default-artist.png'}">
+                <span class="title">${item.title}</span>
+                <small class="subtitle">${item.artist_name || 'Różni wykonawcy'}</small>
+            </a>`;
+
+        if (type === 'track') return `
+            <a href="/track/${item.slug}" class="track-item">
+                <div class="track-left">
+                    <img src="${item.cover_url || '/img/default-artist.png'}" class="track-img">
+                    <div class="track-info">
+                        <span class="track-title">${item.title}</span>
+                        <span class="track-artist">${item.artist_name || 'Nieznany'}</span>
+                    </div>
+                </div>
+                <div style="color:#3b82f6; font-weight:bold; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">Słuchaj</div>
+            </a>`;
+
+        if (type === 'list') return `
+            <a href="/list.html?slug=${item.slug}" class="result-card">
+                <img src="${item.cover_url || '/img/default-artist.png'}">
+                <span class="title">${item.name}</span>
+                <small class="subtitle">od ${item.username}</small>
+            </a>`;
+    }
+
+    async function renderPagination(type, meta) {
+        const pagContainer = document.getElementById(CONFIG[type].pag);
+        const listContainer = document.getElementById(CONFIG[type].container);
+
+        // Znajdź nagłówek sekcji (element h2 bezpośrednio przed kontenerem listy)
+        const sectionHeader = listContainer.previousElementSibling;
+
+        try {
+            const { renderPagination } = await import('/js/pagination.js');
+            renderPagination(
+                pagContainer,
+                meta,
+                (newPage) => loadData(type, newPage),
+                {
+                    scrollToTop: false,
+                    scrollTarget: sectionHeader // Przewiń do nagłówka sekcji
+                }
+            );
+        } catch (e) {
+            console.error("Nie udało się załadować modułu paginacji", e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        Object.keys(CONFIG).forEach(type => loadData(type));
+    });
 </script>
+
 </body>
 </html>

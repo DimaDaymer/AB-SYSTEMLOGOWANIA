@@ -1,437 +1,430 @@
 // frontend/js/list-app-lists.js
 
-(function(App) {
+import { renderPagination, initPaginationControls, getLimit, getCurrentPage } from './pagination.js';
+// Importujemy funkcje renderujące
+import { renderAlbums } from './charts/renderAlbums.js';
+import { renderTracks } from './charts/renderTracks.js';
+import { renderArtists } from './charts/renderArtists.js';
 
-    // === CATALOGS (All Lists / My Lists) ===
-    App.catalog = {
-        async init(containerId, isGlobal) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
+const App = window.ListApp;
 
-            try {
-                const endpoint = isGlobal ? '/api/user-lists/global' : '/api/user-lists/my-lists';
-                const data = await App.utils.fetchAPI(endpoint);
-                const lists = isGlobal ? data.lists || data : data;
+App.catalog = {
+    async init(containerId, isGlobal) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-                container.innerHTML = '';
-                if (!lists || lists.length === 0) {
-                    container.innerHTML = '<p class="empty-msg">No lists yet.</p>';
-                    return;
-                }
+        if (isGlobal) {
+            const typeFilter = document.getElementById('listTypeFilter');
+            const sortFilter = document.getElementById('listSortOrder');
 
-                lists.forEach(list => {
-                    const card = document.createElement('a');
-                    card.className = 'list-card';
-                    card.href = `/list.html?slug=${list.slug}`;
-
-                    const usernameHtml = isGlobal ? `<p class="list-username">by ${list.username}</p>` : '';
-                    const coverUrl = list.cover_url || '/img/no_cover.jpg';
-                    const coverHtml = `<div class="list-cover-placeholder"><img src="${coverUrl}" alt="${list.name} Cover"></div>`;
-
-                    card.innerHTML = `
-                        ${coverHtml}
-                        <div class="list-content">
-                            <h2 class="list-name">${list.name}</h2>
-                            ${usernameHtml}
-                            <p class="list-meta">${list.albums_count} albums • ${new Date(list.created_at).toLocaleDateString()}</p>
-                        </div>
-                    `;
-
-                    container.appendChild(card);
-                });
-
-            } catch (e) {
-                container.innerHTML = `<p class="error">${e.message}</p>`;
-            }
+            // Słuchacze dla filtrów
+            [typeFilter, sortFilter].forEach(el => {
+                if (el) el.addEventListener('change', () => this.load(containerId, isGlobal, 1));
+            });
         }
-    };
 
-    // === LIST PAGE (list.html) ===
-    App.details = {
-        async init() {
-            const container = document.querySelector('.album-list-container');
-            if (!container) return;
+        initPaginationControls('itemsPerPage', (newPage) => this.load(containerId, isGlobal, newPage));
+        await this.load(containerId, isGlobal, 1);
+    },
 
-            const params = new URLSearchParams(window.location.search);
-            const slug = params.get('slug');
+    async load(containerId, isGlobal, page = 1) {
+        const container = document.getElementById(containerId);
+        const limit = getLimit();
 
-            if (!slug) {
-                container.innerHTML = '<p class="error">Error: Invalid list link (no slug).</p>';
+        const type = document.getElementById('listTypeFilter')?.value || 'all';
+        const sort = document.getElementById('listSortOrder')?.value || 'created_at_desc';
+
+        try {
+            const endpoint = isGlobal ? '/api/user-lists/global' : '/api/user-lists/my-lists';
+            let url = `${endpoint}?page=${page}&limit=${limit}`;
+
+            if (isGlobal) {
+                url += `&type=${type}&sortBy=${sort}`;
+            }
+
+            const data = await App.utils.fetchAPI(url);
+            const lists = isGlobal ? data.lists : data;
+            const meta = isGlobal ? data.meta : null;
+
+            container.innerHTML = '';
+            if (!lists || lists.length === 0) {
+                container.innerHTML = '<p class="empty-msg">Nie znaleziono żadnych list.</p>';
+                if (isGlobal) {
+                    const footer = document.getElementById('pagination-footer');
+                    if(footer) footer.innerHTML = '';
+                }
                 return;
             }
 
-            App.state.currentListSlug = slug;
-            const sortSelect = document.getElementById('sort-by');
-            const saveBtn = document.getElementById('save-sort-btn');
-            const editBtn = document.getElementById('edit-list-btn');
+            lists.forEach(list => {
+                const card = document.createElement('a');
+                card.className = 'list-card';
+                card.href = `/list.html?slug=${list.slug}`;
+                const usernameHtml = isGlobal ? `<p class="list-username">autor: ${list.username}</p>` : '';
 
-            await this.load(slug);
-
-            if (sortSelect) {
-                sortSelect.onchange = async (e) => {
-                    App.state.currentSortMethod = e.target.value;
-                    await this.load(slug, e.target.value);
-                    this.toggleSaveButton();
-                };
-            }
-
-            if (saveBtn) {
-                saveBtn.onclick = () => this.saveSortSettings();
-            }
-
-            if (editBtn) {
-                editBtn.onclick = () => this.openEditModal(slug);
-            }
-        },
-
-        async load(slug, sortBy = null) {
-            try {
-                let url = `/api/user-lists/${slug}`;
-                if (sortBy) {
-                    url += `?sortBy=${sortBy}`;
-                }
-
-                const data = await App.utils.fetchAPI(url);
-
-                App.state.listId = data.id;
-                App.state.currentUser = App.utils.getCurrentUser();
-                App.state.isOwner = App.state.currentUser && (App.state.currentUser.id === data.user_id);
-                App.state.currentSortMethod = sortBy || data.applied_sort_by || data.saved_sort_by;
-
-                this.renderHeader(data, App.state.isOwner, App.state.currentSortMethod);
-
-                const editBtn = document.getElementById('edit-list-btn');
-                if (editBtn) {
-                    editBtn.style.display = App.state.isOwner ? 'inline-block' : 'none';
-                }
-
-                this.renderAlbums(data.albums, App.state.isOwner, App.state.currentSortMethod, data.id);
-
-                App.state.isOrderModified = false;
-                this.toggleSaveButton();
-
-            } catch (e) {
-                console.error(e);
-                const msg = e.message.includes('404') ? 'List not found or was deleted.' : e.message;
-                document.querySelector('.album-list-container').innerHTML = `<p class="error">${msg}</p>`;
-                document.querySelector('.list-header h1').textContent = 'Error';
-            }
-        },
-
-        toggleSaveButton() {
-            const saveBtn = document.getElementById('save-sort-btn');
-            if (!saveBtn) return;
-            const isManualSort = App.state.currentSortMethod === 'sort_order_asc';
-            if (App.state.isOwner) {
-                saveBtn.style.display = 'inline-block';
-                saveBtn.disabled = isManualSort ? !App.state.isOrderModified : false;
-                saveBtn.textContent = isManualSort ? 'Save order' : 'Save sort settings';
-            } else {
-                saveBtn.style.display = 'none';
-            }
-        },
-
-        async saveSortSettings() {
-            const sortMethod = App.state.currentSortMethod;
-            const listId = App.state.listId;
-            try {
-                if (sortMethod === 'sort_order_asc' && App.state.isOrderModified) {
-                    const container = document.querySelector('.album-list');
-                    await this.saveOrder(container, listId);
-                }
-                await App.utils.fetchAPI(`/api/user-lists/${listId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ saved_sort_by: sortMethod })
-                });
-                App.utils.toast('Sort settings saved!');
-                App.state.isOrderModified = false;
-                this.toggleSaveButton();
-            } catch (e) {
-                App.utils.toast(e.message, 'error');
-            }
-        },
-
-        renderHeader(data, isOwner, currentSortMethod) {
-            document.querySelector('.list-header h1').textContent = data.name;
-            document.querySelector('.list-header p').innerHTML =
-                `Author: <a href="/profile.html?user=${data.creator}" class="author-link">${data.creator}</a> • ${new Date(data.created_at).toLocaleDateString()}`;
-
-            const desc = document.querySelector('.list-description');
-            if(desc) desc.textContent = data.description || '';
-
-            const sortSelect = document.getElementById('sort-by');
-            sortSelect.innerHTML = `
-                <option value="added_desc">Newest first</option>
-                <option value="added_asc">Oldest first</option>
-                <option value="rating_desc">By rating</option>
-                <option value="title_asc">Alphabetical (A-Z)</option>
-                <option value="sort_order_asc">Manual (Drag & Drop)</option>
-            `;
-            let manualOpt = sortSelect.querySelector('option[value="sort_order_asc"]');
-            if (!isOwner) manualOpt.disabled = true;
-            else manualOpt.disabled = false;
-
-            if (sortSelect) sortSelect.value = currentSortMethod;
-        },
-
-        // --- MAIN RENDER FUNCTION (EXACTLY AS IN NEW RELEASES) ---
-        renderAlbums(albums, isOwner, currentSort, listId) {
-            const container = document.querySelector('.album-list-container');
-            const isManual = isOwner && (currentSort === 'sort_order_asc');
-
-            const existingList = container.querySelector('.album-list');
-            if (existingList && existingList.sortable) {
-                existingList.sortable.destroy();
-            }
-
-            container.innerHTML = `<div class="album-list ${isManual ? 'sortable-list' : ''}"></div>`;
-            const listDiv = container.querySelector('.album-list');
-
-            if (!albums.length) {
-                listDiv.innerHTML = '<p class="empty-msg">List is empty.</p>';
-                return;
-            }
-
-            albums.forEach((album) => {
-                const item = document.createElement('div');
-                item.className = 'album-card';
-                if (album.slug) item.id = album.slug;
-                item.dataset.albumId = album.id;
-
-                // === DATA LOGIC AS IN NEW RELEASES ===
-                const albumUrl = `/release/album/${album.slug}`;
-                const releaseYear = album.release_date ? new Date(album.release_date).getFullYear() : (album.release_year || 'N/A');
-
-                const ratingValue = parseFloat(album.avg_score);
-                const rating = (ratingValue && !isNaN(ratingValue) && ratingValue > 0) ? `${ratingValue.toFixed(2)} / 5.0` : "N/A";
-
-                let descriptors = album.description;
-                if (descriptors && typeof descriptors === 'string' && descriptors.toLowerCase() === 'null') descriptors = 'N/A';
-                if (descriptors === null) descriptors = 'N/A';
-                if (Array.isArray(descriptors)) descriptors = descriptors.join(', ');
-
-                const listensCount = parseInt(album.listens_count || 0).toLocaleString();
-                const likesCount = parseInt(album.likes_count || 0).toLocaleString();
-                const wishlistCount = parseInt(album.wishlist_count || 0).toLocaleString();
-                const inListsCount = parseInt(album.in_lists_count || 0).toLocaleString();
-                const reviewsCount = parseInt(album.reviews_count || 0).toLocaleString();
-
-                const activeListen = album.is_listened ? 'active' : '';
-                const activeLike = album.is_liked ? 'active' : '';
-                const activeWish = album.is_wishlisted ? 'active' : '';
-
-                // === ADDITIONAL ELEMENTS FOR LISTS (Drag & Delete) ===
-                const dragHandleHtml = isManual
-                    ? '<div class="drag-handle" style="cursor:grab; font-size:1.5em; padding:15px 10px; color:#555; display:flex; align-items:center;">☰</div>'
+                const coverHtml = list.cover_url
+                    ? `<div class="list-cover-placeholder"><img src="${list.cover_url}" alt="Okładka ${list.name}"></div>`
                     : '';
 
-                const deleteBtnHtml = isOwner
-                    ? `<button class="delete-btn" onclick="ListApp.details.remove(${listId}, ${album.id})" style="background:none; border:none; color:#777; font-size:1.5em; cursor:pointer; padding:0 15px; align-self:center;">✕</button>`
-                    : '';
+                const typeBadge = `<span class="list-type-badge">${this.translateType(list.type)}</span>`;
 
-                // === HTML ASSEMBLY (Identical to New Releases + List Specifics) ===
-                item.innerHTML = `
-                    ${dragHandleHtml}
+                const itemsText = `${list.items_count || 0} elementów`;
+                const reviewsText = isGlobal ? ` • ${list.reviews_count || 0} recenzji` : '';
+                const dateText = ` • ${new Date(list.created_at).toLocaleDateString('pl-PL')}`;
 
-                    <a href="${albumUrl}" class="album-cover-link">
-                         ${album.cover_url ?
-                    `<img src="${album.cover_url}" alt="${album.title} cover">` :
-                    '<img src="https://via.placeholder.com/120" alt="Placeholder cover">'}
-                    </a>
+                const rawDescription = list.description || '';
+                const shortDescription = rawDescription.length > 150 ? rawDescription.substring(0, 147) + '...' : rawDescription;
+                const descriptionHtml = shortDescription ? `<p class="list-card-description">${shortDescription}</p>` : '';
 
-                    <div class="album-details-wrapper">
-                        <a href="${albumUrl}" class="album-text-link">
-                            <h2>${album.title}</h2>
-                            <p><strong>Artist:</strong> ${album.artist_name || 'N/A'}</p>
-                            <p><strong>Year:</strong> ${releaseYear}</p>
-                            <p><strong>Genres:</strong> ${album.genres || 'N/A'}</p>
-                            <p><strong>Descriptors:</strong> ${descriptors}</p>
-                        </a>
-
-                        <div class="rating-info">
-                            <span class="score">${rating}</span>
-                            <span title="Listens">🎧 ${listensCount} Listens</span>
-                            <span title="Likes">❤️ ${likesCount} Likes</span>
-                            <span title="Wishlist">⭐ ${wishlistCount} Wishlist</span>
-                            <span title="Lists">📜 ${inListsCount} Lists</span>
-                            <span title="Reviews">💬 ${reviewsCount} Reviews</span>
-                        </div>
-
-                        <div class="album-actions">
-                            <button class="action-button ${activeListen}" data-album-id="${album.id}" data-action="listen">
-                                🎧 Listen
-                            </button>
-                            <button class="action-button ${activeLike}" data-album-id="${album.id}" data-action="like">
-                                ❤️ Like
-                            </button>
-                            <button class="action-button ${activeWish}" data-album-id="${album.id}" data-action="wishlist">
-                                ⭐ Wishlist
-                            </button>
-                        </div>
+                card.innerHTML = `
+                    ${coverHtml}
+                    <div class="list-content">
+                        <h2 class="list-name">${list.name}</h2>
+                        ${usernameHtml}
+                        ${descriptionHtml}
+                        <p class="list-meta">${typeBadge} ${itemsText}${reviewsText}${dateText}</p>
                     </div>
-
-                    ${deleteBtnHtml}
                 `;
-
-                // Навешиваем обработчики через ListApp context
-                item.querySelectorAll('.action-button').forEach(btn => {
-                    btn.addEventListener('click', (e) => this.handleAction(e));
-                });
-
-                listDiv.appendChild(item);
+                container.appendChild(card);
             });
 
-            if (isManual && window.Sortable) {
-                const sortableInstance = new Sortable(listDiv, {
-                    handle: '.drag-handle',
-                    animation: 150,
-                    ghostClass: 'sortable-ghost',
-                    onEnd: () => {
-                        App.state.isOrderModified = true;
-                        this.toggleSaveButton();
-                    }
-                });
-                listDiv.sortable = sortableInstance;
+            if (isGlobal && meta) {
+                renderPagination(
+                    'pagination-footer',
+                    meta,
+                    (pageNum) => this.load(containerId, isGlobal, pageNum),
+                    { scrollTarget: 'globalListCardsContainer' }
+                );
             }
-        },
-
-        // --- BUTTON LOGIC (Identical to New Releases) ---
-        async handleAction(e) {
-            e.stopPropagation();
-            const button = e.target.closest('.action-button');
-            if (!button) return;
-
-            const albumId = button.dataset.albumId;
-            const actionType = button.dataset.action;
-            button.disabled = true;
-
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    App.utils.toast('Please log in first', 'error');
-                    button.disabled = false;
-                    return;
-                }
-
-                const res = await fetch('/api/actions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ albumId, actionType })
-                });
-
-                if (!res.ok) throw new Error('Action failed');
-                const data = await res.json();
-
-                // 1. BUTTON SYNCHRONIZATION (Active State)
-                if (data.active !== undefined) {
-                    if (data.active) button.classList.add('active');
-                    else button.classList.remove('active');
-                } else {
-                    button.classList.toggle('active');
-                }
-
-                // 2. COUNTER UPDATE IN INTERFACE (Exactly as in new releases)
-                const card = button.closest('.album-card');
-                if (card) {
-                    let titleAttr = '';
-                    let iconChar = '';
-                    if(actionType === 'like') { titleAttr = 'Likes'; iconChar = '❤️'; }
-                    else if(actionType === 'wishlist') { titleAttr = 'Wishlist'; iconChar = '⭐'; }
-                    else if(actionType === 'listen') { titleAttr = 'Listens'; iconChar = '🎧'; }
-
-                    if (titleAttr) {
-                        const countSpan = card.querySelector(`.rating-info span[title="${titleAttr}"]`);
-                        if(countSpan) {
-                            const currentText = countSpan.textContent;
-                            const match = currentText.match(/(\d+)/);
-                            let count = match ? parseInt(match[0].replace(/,/g, '')) : 0;
-
-                            if (data.active) {
-                                count++;
-                            } else {
-                                count = Math.max(0, count - 1);
-                            }
-
-                            countSpan.textContent = `${iconChar} ${count.toLocaleString()} ${titleAttr}`;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error(error);
-                App.utils.toast(error.message, 'error');
-            } finally {
-                button.disabled = false;
-            }
-        },
-
-        async saveOrder(container, listId) {
-            const newOrder = Array.from(container.children).map((el, idx) => ({
-                albumId: el.dataset.albumId,
-                sortOrder: idx + 1
-            }));
-
-            await App.utils.fetchAPI(`/api/user-lists/${listId}/reorder`, {
-                method: 'POST',
-                body: JSON.stringify({ newOrder })
-            });
-        },
-
-        async remove(listId, albumId) {
-            if(!confirm('Remove from list?')) return;
-            try {
-                await App.utils.fetchAPI(`/api/user-lists/${listId}/items/${albumId}`, { method: 'DELETE' });
-                App.utils.toast('Removed');
-                this.load(App.state.currentListSlug, App.state.currentSortMethod, false);
-            } catch (e) {
-                App.utils.toast(e.message, 'error');
-            }
-        },
-
-        async openEditModal(slug) {
-            if (!App.state.isOwner) return App.utils.toast('No rights to edit', 'error');
-            const listData = await App.utils.fetchAPI(`/api/user-lists/${slug}`);
-            if (window.showListEditModal) {
-                window.showListEditModal(listData);
-            } else {
-                App.utils.toast('Error: Edit module not loaded.', 'error');
-            }
-        },
-
-        async updateList(listId, data) {
-            try {
-                await App.utils.fetchAPI(`/api/user-lists/${listId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(data)
-                });
-                App.utils.toast('List updated!');
-                setTimeout(() => { window.location.reload(); }, 500);
-            } catch (e) {
-                App.utils.toast(e.message, 'error');
-                throw e;
-            }
-        },
-
-        async deleteList() {
-            if (!App.state.isOwner || !App.state.listId) return;
-            if (!confirm(`Are you sure you want to delete the list?`)) return;
-
-            try {
-                await App.utils.fetchAPI(`/api/user-lists/${App.state.listId}`, { method: 'DELETE' });
-                App.utils.toast('List successfully deleted. Redirecting...');
-                setTimeout(() => { window.location.href = '/lists_page.html'; }, 1000);
-            } catch (e) {
-                App.utils.toast(e.message, 'error');
-            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<p class="error">Błąd podczas ładowania list: ${e.message}</p>`;
         }
-    };
+    },
 
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('globalListCardsContainer')) App.catalog.init('globalListCardsContainer', true);
-        if (document.getElementById('listCardsContainer')) App.catalog.init('listCardsContainer', false);
-        if (document.querySelector('.album-list-container')) App.details.init();
-    });
+    translateType(type) {
+        const types = {
+            'album': 'Albumy',
+            'track': 'Utwory',
+            'artist': 'Artyści',
+            'user': 'Użytkownicy'
+        };
+        return types[type] || type;
+    }
+};
 
-})(window.ListApp);
+App.details = {
+    async init() {
+        const container = document.querySelector('.album-list-container');
+        if (!container) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('slug');
+        if (!slug) {
+            container.innerHTML = '<p class="error">Błąd: Nieprawidłowy link do listy (brak slug).</p>';
+            return;
+        }
+
+        App.state.currentListSlug = slug;
+        const sortSelect = document.getElementById('sort-by');
+        const saveBtn = document.getElementById('save-sort-btn');
+        const editBtn = document.getElementById('edit-list-btn');
+
+        initPaginationControls('itemsPerPage', (newPage) => {
+            this.load(slug, newPage, App.state.currentSortMethod, false);
+        });
+
+        await this.load(slug, 1);
+
+        if (sortSelect) {
+            sortSelect.onchange = async (e) => {
+                App.state.currentSortMethod = e.target.value;
+                await this.load(slug, 1, e.target.value, false);
+                this.toggleSaveButton();
+            };
+        }
+        if (saveBtn) saveBtn.onclick = () => this.saveSortSettings();
+        if (editBtn) editBtn.onclick = () => this.openEditModal();
+    },
+
+    async load(slug, page = 1, sortBy = null, shouldInitComments = true) {
+        try {
+            const limit = getLimit();
+            let url = `/api/user-lists/${slug}?page=${page}&limit=${limit}`;
+            if (sortBy) url += `&sortBy=${sortBy}`;
+
+            const data = await App.utils.fetchAPI(url);
+
+            App.state.currentListData = data;
+            App.state.listId = data.id;
+            App.state.listType = data.type;
+            App.state.currentUser = App.utils.getCurrentUser();
+            App.state.isOwner = App.state.currentUser && (App.state.currentUser.id === data.user_id);
+            App.state.currentSortMethod = sortBy || data.applied_sort_by;
+
+            this.renderHeader(data, App.state.isOwner, App.state.currentSortMethod);
+
+            const editBtn = document.getElementById('edit-list-btn');
+            if (editBtn) editBtn.style.display = App.state.isOwner ? 'inline-block' : 'none';
+
+            this.renderItems(data.items, data.type, App.state.isOwner, App.state.currentSortMethod, data.id, data.meta);
+
+            if (data.meta) {
+                renderPagination(
+                    document.getElementById('pagination-footer'),
+                    data.meta,
+                    (newPage) => this.load(slug, newPage, App.state.currentSortMethod, false),
+                    { scrollTarget: '.album-list-container' }
+                );
+            }
+
+            App.state.isOrderModified = false;
+            this.toggleSaveButton();
+
+            if (window.SimilarLoader && slug) window.SimilarLoader.init('list', slug, 'similar-lists-container');
+
+            // Inicjalizacja komentarzy - szukamy 'comments-system-root' z comment-box.html
+            if (shouldInitComments && window.CommentsCore) {
+                await new Promise(resolve => {
+                    let attempts = 0;
+                    const checkExist = setInterval(() => {
+                        attempts++;
+                        if (document.getElementById('comments-system-root')) {
+                            clearInterval(checkExist);
+                            resolve();
+                        } else if (attempts > 50) {
+                            clearInterval(checkExist);
+                            resolve();
+                        }
+                    }, 100);
+                });
+                if(document.getElementById('comments-system-root')) {
+                    new window.CommentsCore({
+                        mode: 'LIST',
+                        entityId: App.state.listId,
+                        containerId: 'comments-system-root'
+                    }).init();
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            const container = document.querySelector('.album-list-container');
+            if (container) container.innerHTML = `<p class="error">${e.message}</p>`;
+        }
+    },
+
+    renderHeader(data, isOwner, currentSortMethod) {
+        const titleEl = document.getElementById('list-main-title');
+        const metaEl = document.getElementById('list-meta-info');
+        const descEl = document.querySelector('.list-description');
+        const coverEl = document.getElementById('list-main-cover');
+        const dynamicBg = document.getElementById('dynamic-background');
+
+        if (titleEl) titleEl.textContent = data.name;
+        if (metaEl) {
+            const typeDisplay = App.catalog.translateType(data.type).toUpperCase();
+            metaEl.innerHTML = `Typ listy: <strong>${typeDisplay}</strong> • Autor: <a href="/user/${data.creator}" class="author-link" style="color:#00ffcc; text-decoration:none; font-weight:bold;">${data.creator}</a>`;
+        }
+        if (descEl) descEl.textContent = data.description || 'Brak opisu.';
+
+        const coverUrl = data.cover_url;
+        if (coverEl) {
+            coverEl.innerHTML = coverUrl
+                ? `<img src="${coverUrl}" alt="Okładka ${data.name}" style="width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid #333;">`
+                : '';
+        }
+        if (dynamicBg && coverUrl) {
+            dynamicBg.style.backgroundImage = `url('${coverUrl}')`;
+        } else if (dynamicBg) {
+            dynamicBg.style.backgroundImage = 'none';
+        }
+
+        const sortSelect = document.getElementById('sort-by');
+        if (sortSelect) {
+            const manualText = isOwner ? "Ręcznie (Przeciągnij i upuść)" : "Kolejność ręczna";
+            let options = `
+                <option value="sort_order_asc">${manualText}</option>
+                <option value="added_desc">Ostatnio dodane</option>
+                <option value="added_asc">Najpierw najstarsze</option>
+                <option value="title_asc">Nazwa (A-Z)</option>
+            `;
+            if (['album', 'track', 'artist'].includes(data.type)) {
+                options += `<option value="rating_desc">Według oceny</option>`;
+            }
+            sortSelect.innerHTML = options;
+            sortSelect.value = currentSortMethod;
+        }
+    },
+
+    openEditModal() {
+        if (!App.state.currentListData) return App.utils.toast('Dane listy nie zostały jeszcze załadowane', 'error');
+        if (App.editModal) App.editModal.open(App.state.currentListData);
+    },
+
+    async updateList(listId, data) {
+        try {
+            await App.utils.fetchAPI(`/api/user-lists/${listId}`, { method: 'PUT', body: JSON.stringify(data) });
+            App.utils.toast('Lista została zaktualizowana');
+            window.location.reload();
+        } catch (e) { App.utils.toast(e.message, 'error'); }
+    },
+
+    async deleteList() {
+        if (!confirm('Czy na pewno chcesz usunąć tę listę?')) return;
+        try {
+            await App.utils.fetchAPI(`/api/user-lists/${App.state.listId}`, { method: 'DELETE' });
+            window.location.href = '/profile.html';
+        } catch (e) { App.utils.toast(e.message, 'error'); }
+    },
+
+    toggleSaveButton() {
+        const saveBtn = document.getElementById('save-sort-btn');
+        if (!saveBtn) return;
+        const isManualSort = App.state.currentSortMethod === 'sort_order_asc';
+        if (App.state.isOwner && isManualSort) {
+            saveBtn.style.display = 'inline-block';
+            saveBtn.disabled = !App.state.isOrderModified;
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    },
+
+    async saveSortSettings() {
+        const sortMethod = App.state.currentSortMethod;
+        const listId = App.state.listId;
+        try {
+            if (sortMethod === 'sort_order_asc' && App.state.isOrderModified) {
+                const container = document.querySelector('.album-list');
+                await this.saveOrder(container, listId);
+                App.utils.toast('Kolejność zapisana!');
+            }
+            App.state.isOrderModified = false;
+            this.toggleSaveButton();
+        } catch (e) { App.utils.toast(e.message, 'error'); }
+    },
+
+    renderItems(items, type, isOwner, currentSort, listId, meta) {
+        const container = document.querySelector('.album-list-container');
+        const isManualView = (currentSort === 'sort_order_asc');
+        const canEditOrder = isOwner && isManualView;
+
+        let listDiv = container.querySelector('.album-list');
+        if (!listDiv) {
+            container.innerHTML = `<div class="album-list ${canEditOrder ? 'sortable-list' : ''}"></div>`;
+            listDiv = container.querySelector('.album-list');
+        } else {
+            listDiv.className = `album-list ${canEditOrder ? 'sortable-list' : ''}`;
+            if (listDiv.sortable) {
+                listDiv.sortable.destroy();
+                delete listDiv.sortable;
+            }
+            listDiv.innerHTML = '';
+        }
+
+        if (!items || !items.length) {
+            listDiv.innerHTML = '<p class="empty-msg">Lista jest pusta.</p>';
+            return;
+        }
+
+        const offset = meta ? (meta.page - 1) * meta.limit : 0;
+
+        items.forEach((itemData, index) => {
+            itemData.global_rank = offset + index + 1;
+            const tempDiv = document.createElement('div');
+
+            if (type === 'album') renderAlbums([itemData], tempDiv);
+            else if (type === 'track') renderTracks([itemData], tempDiv);
+            else if (type === 'artist') renderArtists([itemData], tempDiv);
+            else if (type === 'user') tempDiv.innerHTML = this.getUserHtml(itemData, itemData.global_rank);
+
+            const itemEl = tempDiv.firstElementChild;
+            if (!itemEl) return;
+
+            itemEl.dataset.entityId = itemData.id;
+
+            if (canEditOrder) {
+                const dragHandle = document.createElement('div');
+                dragHandle.className = 'drag-handle';
+                dragHandle.title = 'Przeciągnij, aby zmienić kolejność';
+                dragHandle.innerHTML = '☰';
+                itemEl.prepend(dragHandle);
+            }
+
+            if (isOwner) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-list-item-btn';
+                delBtn.title = 'Usuń z listy';
+                delBtn.innerHTML = '✕';
+                delBtn.onclick = (e) => { e.stopPropagation(); this.remove(listId, itemData.id); };
+                itemEl.prepend(delBtn);
+            }
+
+            listDiv.appendChild(itemEl);
+        });
+
+        if (canEditOrder && window.Sortable) {
+            listDiv.sortable = new Sortable(listDiv, {
+                handle: '.drag-handle', animation: 150, ghostClass: 'sortable-ghost',
+                onEnd: () => { App.state.isOrderModified = true; this.toggleSaveButton(); }
+            });
+        }
+        this.injectListControlStyles();
+    },
+
+    injectListControlStyles() {
+        if (document.getElementById('list-control-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'list-control-styles';
+        style.textContent = `
+                .album-card { position: relative; }
+                .drag-handle { position: absolute; left: 5px; top: 5px; cursor: grab; font-size: 1.2em; color: #555; z-index: 10; padding: 5px; background: rgba(0,0,0,0.5); border-radius: 4px; }
+                .delete-list-item-btn { position: absolute; right: 5px; top: 5px; background: rgba(50,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; z-index: 10; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+                .delete-list-item-btn:hover { background: red; }
+            `;
+        document.head.appendChild(style);
+    },
+
+    getUserHtml(user, rank) {
+        const profileUrl = `/user/${user.username}`;
+        const userPic = user.profile_pic ? `<img src="${user.profile_pic}" style="border-radius:50%" alt="${user.username}">` : '<div style="width:100%; height:100%; border-radius:50%; background:#222;"></div>';
+        return `
+                <div class="album-card">
+                    <div class="chart-rank">#${rank}</div>
+                    <a href="${profileUrl}" class="album-cover-link">
+                         ${userPic}
+                    </a>
+                    <div class="album-details-wrapper">
+                        <a href="${profileUrl}" class="album-text-link">
+                            <h2>${user.username}</h2>
+                            <p>${user.first_name || ''} ${user.last_name || ''}</p>
+                        </a>
+                    </div>
+                </div>
+            `;
+    },
+
+    async saveOrder(container, listId) {
+        const currentPage = getCurrentPage();
+        const itemsPerPage = getLimit();
+        const offset = (currentPage - 1) * itemsPerPage;
+        const newOrder = Array.from(container.children).map((el, idx) => ({
+            entityId: el.dataset.entityId,
+            sortOrder: offset + idx + 1
+        }));
+        await App.utils.fetchAPI(`/api/user-lists/${listId}/reorder`, { method: 'POST', body: JSON.stringify({ newOrder }) });
+    },
+
+    async remove(listId, entityId) {
+        if (!confirm('Usunąć z listy?')) return;
+        try {
+            await App.utils.fetchAPI(`/api/user-lists/${listId}/items/${entityId}`, { method: 'DELETE' });
+            this.load(App.state.currentListSlug, getCurrentPage(), App.state.currentSortMethod, false);
+        } catch (e) { App.utils.toast(e.message, 'error'); }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('globalListCardsContainer')) App.catalog.init('globalListCardsContainer', true);
+    if (document.getElementById('listCardsContainer')) App.catalog.init('listCardsContainer', false);
+    if (document.querySelector('.album-list-container')) App.details.init();
+});

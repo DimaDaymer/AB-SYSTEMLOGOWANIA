@@ -1,82 +1,66 @@
+// backend/routes/upload.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { pool } = require('../db');
 const authenticate = require('../authMiddleware');
 
-const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads', 'avatars');
+// Ścieżka do folderu z awatarami w frontendzie
+const UPLOADS_DIR = path.join(__dirname, '../../frontend/img/avatars');
 
-// === 1. НАСТРОЙКА ХРАНИЛИЩА (MULTER) ===
+// Tworzenie folderu, jeśli nie istnieje
+if (!fs.existsSync(UPLOADS_DIR)){
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Используем полный путь для надежности
         cb(null, UPLOADS_DIR);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        cb(null, 'avatar-' + req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
     }
 });
-
-const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-        return cb(null, true);
-    } else {
-        cb(new Error('Only image files (jpg, png, gif, webp) are allowed!'), false);
-    }
-};
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Лимит 5MB
-    fileFilter: fileFilter
+    limits: { fileSize: 5 * 1024 * 1024 }, // Limit rozmiaru pliku: 5MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Dozwolone są tylko obrazy'), false);
+        }
+    }
 });
 
-// === 2. РОУТ ЗАГРУЗКИ АВАТАРА ===
-router.post('/avatar', authenticate, (req, res, next) => {
-    // Используем функцию-обертку, чтобы поймать ошибки Multer
-    upload.single('avatar')(req, res, async (err) => {
-        try {
-            if (err instanceof multer.MulterError || (err && err.message.includes('Only image files'))) {
-                console.error('Multer Error:', err.message);
-                return res.status(400).json({ error: err.message });
-            }
-            if (err) {
-                throw err;
-            }
-
-            if (!req.user || !req.user.id) {
-                return res.status(401).json({ error: 'Authentication failed' });
-            }
-
-            if (!req.file) {
-                return res.status(400).json({ error: 'No file uploaded' });
-            }
-
-            const userId = req.user.id;
-            const fileUrl = `/uploads/${req.file.filename}`;
-
-            // === SQL-ЗАПРОС ===
-            const sql = `
-                INSERT INTO user_profiles (user_id, profile_pic)
-                VALUES (?, ?)
-                ON DUPLICATE KEY UPDATE profile_pic = VALUES(profile_pic)
-            `;
-
-            await pool.execute(sql, [userId, fileUrl]);
-
-            res.json({ success: true, url: fileUrl });
-
-        } catch (err) {
-            console.error('Upload error (Database/General):', err);
-            res.status(500).json({ error: 'Internal server error during upload' });
+// Ścieżka: POST /api/upload/avatar
+router.post('/avatar', authenticate, upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nie przesłano żadnego pliku' });
         }
-    });
+
+        const userId = req.user.id;
+        // Ścieżka do zapisu w bazie danych (względem katalogu głównego witryny)
+        const fileUrl = `/img/avatars/${req.file.filename}`;
+
+        // Aktualizacja profilu użytkownika
+        const sql = `
+            INSERT INTO user_profiles (user_id, profile_pic)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE profile_pic = VALUES(profile_pic)
+        `;
+        await pool.execute(sql, [userId, fileUrl]);
+
+        res.json({ success: true, url: fileUrl });
+    } catch (err) {
+        console.error('Błąd przesyłania:', err);
+        res.status(500).json({ error: 'Błąd bazy danych' });
+    }
 });
 
 module.exports = router;

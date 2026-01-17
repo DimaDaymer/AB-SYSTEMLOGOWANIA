@@ -1,101 +1,95 @@
-// js/edit-profile.js
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // === 0. ЗАГРУЗКА НАВБАРА ===
-    const navContainer = document.getElementById('navbar-container');
-    if (navContainer) {
-        try {
-            const res = await fetch('/navbar.html');
-            if (res.ok) {
-                navContainer.innerHTML = await res.text();
-                // Активируем скрипты навбара (например, поиск)
-                navContainer.querySelectorAll('script').forEach(script => {
-                    const newScript = document.createElement('script');
-                    if (script.src) newScript.src = script.src;
-                    else newScript.textContent = script.textContent;
-                    document.body.appendChild(newScript);
-                });
-            }
-        } catch (e) {
-            console.error('Error loading navbar:', e);
-        }
-    }
-    // ===========================
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login.html'; return; }
 
     const form = document.getElementById('editProfileForm');
-    const messageEl = document.getElementById('updateMessage');
-    const token = localStorage.getItem('token');
+    const msg = document.getElementById('updateMessage');
+    const socialContainer = document.getElementById('social-inputs-container');
+    const addSocialBtn = document.getElementById('add-social-btn');
 
-    // 1. Проверка авторизации
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
+    // Переменная для хранения ссылки на текущий аватар
+    let currentProfilePic = null;
+
+    // --- ФУНКЦИИ ДЛЯ РАБОТЫ С ПОЛЯМИ СОЦСЕТЕЙ ---
+    function createSocialRow(platform = '', link = '') {
+        const row = document.createElement('div');
+        row.className = 'social-row';
+        row.innerHTML = `
+        <input type="text" placeholder="Platforma" class="form-control social-platform" value="${platform}">
+        <input type="text" placeholder="Link (url)" class="form-control social-link" value="${link}">
+        <button type="button" class="remove-social-btn" title="Usuń">
+            <i class="fas fa-trash-alt"></i> 
+        </button>
+    `;
+        row.querySelector('.remove-social-btn').onclick = () => row.remove();
+        return row;
     }
 
-    // 2. Функция загрузки текущих данных
-    async function loadCurrentProfile() {
-        try {
-            const res = await fetch('/api/users/me', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    addSocialBtn.onclick = () => socialContainer.appendChild(createSocialRow());
 
-            if (!res.ok) throw new Error('Failed to load profile');
+    function getSocialDataAsObject() {
+        const rows = socialContainer.querySelectorAll('.social-row');
+        const socialObj = {};
+        rows.forEach(row => {
+            const platform = row.querySelector('.social-platform').value.trim();
+            const link = row.querySelector('.social-link').value.trim();
+            if (platform && link) socialObj[platform] = link;
+        });
+        return socialObj;
+    }
 
-            const data = await res.json();
+    // --- 1. ЗАГРУЗКА ДАННЫХ ---
+    try {
+        const res = await fetch('/api/users/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const user = await res.json();
 
-            document.getElementById('firstName').value = data.first_name || '';
-            document.getElementById('lastName').value = data.last_name || '';
-            document.getElementById('location').value = data.location || '';
-            document.getElementById('country').value = data.country || '';
-            document.getElementById('contactEmail').value = data.contact_email || '';
-            document.getElementById('description').value = data.description || '';
-            document.getElementById('music').value = data.music || '';
-            document.getElementById('movies').value = data.movies || '';
-            document.getElementById('gender').value = data.gender || '';
+        if (res.ok) {
+            // Сохраняем фото профиля, чтобы отправить его обратно при сохранении
+            currentProfilePic = user.profile_pic || null;
 
-            if (data.social) {
-                if (typeof data.social === 'object') {
-                    document.getElementById('social').value = JSON.stringify(data.social);
-                } else {
-                    document.getElementById('social').value = data.social;
-                }
+            document.getElementById('firstName').value = user.first_name || '';
+            document.getElementById('lastName').value = user.last_name || '';
+            if (user.birth_date) {
+                document.getElementById('birthDate').value = user.birth_date.split('T')[0];
             }
+            document.getElementById('gender').value = user.gender || '';
+            document.getElementById('location').value = user.location || '';
+            document.getElementById('country').value = user.country || '';
+            document.getElementById('contactEmail').value = user.contact_email || '';
+            document.getElementById('description').value = user.description || '';
+            document.getElementById('music').value = user.music || '';
+            document.getElementById('movies').value = user.movies || '';
 
-            if (data.birth_date) {
-                const dateObj = new Date(data.birth_date);
-                if (!isNaN(dateObj.getTime())) {
-                    const isoDate = dateObj.toISOString().split('T')[0];
-                    document.getElementById('birthDate').value = isoDate;
+            if (user.social) {
+                let socialData = user.social;
+                if (typeof socialData === 'string') {
+                    try { socialData = JSON.parse(socialData); } catch(e) { socialData = {}; }
                 }
+                Object.entries(socialData).forEach(([p, l]) => socialContainer.appendChild(createSocialRow(p, l)));
             }
-
-        } catch (err) {
-            console.error(err);
-            messageEl.textContent = 'Ошибка загрузки данных профиля.';
-            messageEl.style.color = 'red';
+            if (socialContainer.children.length === 0) socialContainer.appendChild(createSocialRow());
         }
-    }
+    } catch (e) { console.error("Błąd ładowania danych", e); }
 
-    // 3. Обработка отправки формы
-    form.addEventListener('submit', async (e) => {
+    // --- 2. СОХРАНЕНИЕ ---
+    form.onsubmit = async (e) => {
         e.preventDefault();
-        messageEl.textContent = 'Сохранение...';
-        messageEl.style.color = '#fff';
 
-        const payload = {
+        const formData = {
             firstName: document.getElementById('firstName').value,
             lastName: document.getElementById('lastName').value,
-            birthDate: document.getElementById('birthDate').value,
+            birthDate: document.getElementById('birthDate').value || null,
             gender: document.getElementById('gender').value,
             location: document.getElementById('location').value,
             country: document.getElementById('country').value,
-            social: document.getElementById('social').value,
+            social: getSocialDataAsObject(),
             contactEmail: document.getElementById('contactEmail').value,
             description: document.getElementById('description').value,
             music: document.getElementById('music').value,
-            movies: document.getElementById('movies').value
+            movies: document.getElementById('movies').value,
+            profilePic: currentProfilePic // Теперь поле отправляется и бэкенд не выдаст 500
         };
 
         try {
@@ -105,25 +99,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(formData)
             });
 
             if (res.ok) {
-                messageEl.textContent = 'Профиль успешно обновлен!';
-                messageEl.style.color = 'lightgreen';
-                setTimeout(() => {
-                    window.location.href = '/profile.html';
-                }, 1500);
+                msg.textContent = "Profil został zaktualizowany!";
+                msg.style.color = "green";
+                setTimeout(() => window.location.href = 'profile.html', 1000);
             } else {
                 const errData = await res.json();
-                throw new Error(errData.error || 'Ошибка обновления');
+                msg.textContent = "Błąd: " + (errData.error || "Nie udało się zaktualizować");
+                msg.style.color = "red";
             }
         } catch (err) {
-            console.error(err);
-            messageEl.textContent = `Ошибка: ${err.message}`;
-            messageEl.style.color = 'red';
+            msg.textContent = "Błąd serwera";
+            msg.style.color = "red";
         }
-    });
-
-    loadCurrentProfile();
+    };
 });

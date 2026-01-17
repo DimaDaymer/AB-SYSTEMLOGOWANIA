@@ -1,57 +1,21 @@
-<div class="score-block">
-    <div class="score-value" id="track-global-score">N/A</div>
-    <div id="track-star-rating-component-host"></div>
-    <div class="score-ratings" id="track-global-ratings-count">0 ratings</div>
-</div>
+<div id="track-rating-component-host"></div>
 
-<style>
-    /* Стили из track.css */
-    .score-block {
-        background-color: #1a1a1a;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        text-align: center;
-    }
-    .score-value {
-        font-size: 3rem;
-        font-weight: 700;
-        color: greenyellow;
-        margin-bottom: 10px;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .score-value::after {
-        content: '★';
-        font-size: 2rem;
-        color: greenyellow;
-    }
-    .score-ratings {
-        font-size: 0.9rem;
-        color: #888;
-        margin-top: 10px;
-    }
-    #track-star-rating-component-host {
-        display: flex;
-        justify-content: center;
-        margin: 15px 0;
-    }
-</style>
 
 <script>
     (function() {
+        // Проверка: StarRating должен быть загружен глобально
         if (typeof StarRating === 'undefined') return;
 
-        const host = document.getElementById('track-star-rating-component-host');
-        if (!host) return;
+        const container = document.getElementById('track-rating-component-host');
+        if (!container) return;
 
-        const ratingInstance = new StarRating(host, {
+        // Создаем экземпляр StarRating
+        const ratingInstance = new StarRating(container, {
             showValue: true,
             clearableText: '×'
         });
 
+        // Слушаем изменения от UI (когда юзер кликает)
         ratingInstance.container.addEventListener('ratingChanged', (e) => {
             const newRating = e.detail.rating;
             if (newRating === 0) {
@@ -61,22 +25,17 @@
             }
         });
 
+        // Регистрируем компонент, чтобы track.html мог его обновлять
         window.components = window.components || {};
         window.components.trackRatingStars = {
-            update: (avgScore, ratingsCount, userRating) => {
-                const scoreEl = document.getElementById('track-global-score');
-                const countEl = document.getElementById('track-global-ratings-count');
-
-                if (scoreEl) {
-                    scoreEl.textContent = avgScore ? parseFloat(avgScore).toFixed(2) : 'N/A';
-                }
-                if (countEl) {
-                    countEl.textContent = `${ratingsCount || 0} rating${ratingsCount === 1 ? '' : 's'}`;
-                }
-
-                // Устанавливаем рейтинг пользователя для звезд
-                ratingInstance.setValue(userRating || 0);
+            updateRating: (rating) => {
+                ratingInstance.setValue(rating || 0);
             }
         };
+
+        // Ставим начальное значение, если оно уже было загружено
+        if (typeof window.currentTrackRating === 'number') {
+            ratingInstance.setValue(window.currentTrackRating);
+        }
     })();
 </script>

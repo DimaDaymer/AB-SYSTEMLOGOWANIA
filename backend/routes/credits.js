@@ -1,193 +1,216 @@
 const express = require('express');
 const router = express.Router();
-const authenticate = require('../authMiddleware'); // Предполагаем, что этот файл есть по этому пути
+const authenticate = require('../authMiddleware'); // Upewnij się, że ścieżka jest poprawna
 const slugify = require('slugify');
 
-// Helper: Проверка прав админа
+// Pomocnik do sprawdzania uprawnień administratora
 const isAdmin = (req) => req.user && req.user.role === 'admin';
 
 module.exports = (pool) => {
 
-    // === ПОЛУЧИТЬ КРЕДИТЫ АЛЬБОМА ===
-    router.get('/album/:albumId', async (req, res) => {
-        let connection = null;
+    // 1. Autouzupełnianie dla artystów
+    router.get('/search-artists', async (req, res) => {
+        const { q } = req.query;
+        if (!q || q.length < 1) return res.json([]);
         try {
-            connection = await pool.getConnection();
-            const [rows] = await connection.execute(`
-                SELECT
-                    ac.id,
-                    ac.artist_id,
-                    art.name as artist_name,
-                    art.slug as artist_slug,
-                    ac.role_id,
-                    cr.name as role_name
-                FROM album_credits ac
-                         JOIN artists art ON ac.artist_id = art.id
-                         LEFT JOIN credit_roles cr ON ac.role_id = cr.id
-                WHERE ac.album_id = ?
+            const [rows] = await pool.execute(
+                `SELECT id, name FROM artists WHERE name LIKE ? LIMIT 10`,
+                [`%${q}%`]
+            );
+            res.json(rows);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Błąd bazy danych' });
+        }
+    });
+
+    // 2. Autouzupełnianie dla ról
+    router.get('/search-roles', async (req, res) => {
+        const { q } = req.query;
+        if (!q || q.length < 1) return res.json([]);
+        try {
+            const [rows] = await pool.execute(
+                `SELECT id, name FROM credit_roles WHERE name LIKE ? LIMIT 10`,
+                [`%${q}%`]
+            );
+            res.json(rows);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Błąd bazy danych' });
+        }
+    });
+
+    // 3. Pobieranie informacji o twórcach albumu (credits)
+    router.get('/album/:albumId', async (req, res) => {
+        try {
+            const [rows] = await pool.execute(`
+                SELECT c.id,
+                       c.artist_id,
+                       art.name as artist_name,
+                       art.slug as artist_slug,
+                       c.role_id,
+                       cr.name as role_name
+                FROM credits c
+                         JOIN artists art ON c.artist_id = art.id
+                         LEFT JOIN credit_roles cr ON c.role_id = cr.id
+                WHERE c.album_id = ?
                 ORDER BY cr.name, art.name
             `, [req.params.albumId]);
             res.json(rows);
         } catch (err) {
             console.error(err);
-            res.status(500).json({ error: 'DB Error' });
-        } finally {
-            if (connection) connection.release();
+            res.status(500).json({ error: 'Błąd bazy danych' });
         }
     });
 
-    // === ПОИСК АРТИСТОВ (Для автокомплита) ===
-    router.get('/search-artists', async (req, res) => {
-        let connection = null;
-        try {
-            const { q } = req.query;
-            if (!q) return res.json([]);
-            connection = await pool.getConnection();
-            const [rows] = await connection.execute(
-                'SELECT id, name FROM artists WHERE name LIKE ? LIMIT 10',
-                [`%${q}%`]
-            );
-            res.json(rows);
-        } catch (err) {
-            res.status(500).json({ error: 'DB Error' });
-        } finally {
-            if (connection) connection.release();
-        }
-    });
+    // 4. Pobieranie powiązań artysty (Członkowie lub Grupy)
+    router.get('/related/:artistId', async (req, res) => {
+        const { artistId } = req.params;
+        const mode = req.query.mode || 'members'; // 'members' (członkowie) lub 'groups' (grupy)
 
-    // === ПОИСК РОЛЕЙ (Для автокомплита) ===
-    router.get('/search-roles', async (req, res) => {
-        let connection = null;
         try {
-            const { q } = req.query;
-            connection = await pool.getConnection();
-            let sql = 'SELECT id, name FROM credit_roles';
-            let params = [];
-            if (q) {
-                sql += ' WHERE name LIKE ?';
-                params.push(`%${q}%`);
+            let query;
+            if (mode === 'groups') {
+                // W jakich grupach był artysta (artistId to członek)
+                query = `
+                    SELECT c.id,
+                           c.group_id as target_id,
+                           c.start_year,
+                           c.end_year,
+                           cr.name as role_name,
+                           art.name as target_name,
+                           art.slug as target_slug,
+                           'group' as relation_type
+                    FROM credits c
+                             JOIN artists art ON c.group_id = art.id
+                             LEFT JOIN credit_roles cr ON c.role_id = cr.id
+                    WHERE c.artist_id = ? AND c.group_id IS NOT NULL
+                    ORDER BY c.start_year ASC, art.name`;
+            } else {
+                // Kto należy do grupy (artistId to grupa)
+                query = `
+                    SELECT c.id,
+                           c.artist_id as target_id,
+                           c.start_year,
+                           c.end_year,
+                           cr.name as role_name,
+                           art.name as target_name,
+                           art.slug as target_slug,
+                           'member' as relation_type
+                    FROM credits c
+                             JOIN artists art ON c.artist_id = art.id
+                             LEFT JOIN credit_roles cr ON c.role_id = cr.id
+                    WHERE c.group_id = ? AND c.album_id IS NULL
+                    ORDER BY c.start_year ASC, art.name`;
             }
-            sql += ' LIMIT 20';
-            const [rows] = await connection.execute(sql, params);
-            res.json(rows);
-        } catch (err) {
-            res.status(500).json({ error: 'DB Error' });
-        } finally {
-            if (connection) connection.release();
-        }
-    });
-
-    // === ПОЛУЧИТЬ УЧАСТНИКОВ АРТИСТА/ГРУППЫ ===
-    router.get('/artist-members/:artistId', async (req, res) => {
-        let connection = null;
-        try {
-            connection = await pool.getConnection();
-            // Выбираем данные из artist_members, объединяя их с таблицей artists
-            // чтобы получить имя и slug участника
-            const [rows] = await connection.execute(`
-                SELECT
-                    am.id, 
-                    am.member_artist_id,
-                    am.group_artist_id,
-                    am.role,
-                    art.name as member_name,
-                    art.slug as member_slug
-                FROM artist_members am
-                JOIN artists art ON am.member_artist_id = art.id
-                WHERE am.group_artist_id = ?
-                ORDER BY art.name
-            `, [req.params.artistId]);
+            const [rows] = await pool.execute(query, [artistId]);
             res.json(rows);
         } catch (err) {
             console.error(err);
-            res.status(500).json({ error: 'DB Error fetching artist members' });
-        } finally {
-            if (connection) connection.release();
+            res.status(500).json({ error: 'Błąd bazy danych' });
         }
     });
 
-    // === ДОБАВИТЬ КРЕДИТ (Admin Only) ===
+    // 5. Dodawanie wpisu (Kredyt albumu lub powiązanie członka)
     router.post('/', authenticate, async (req, res) => {
-        if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
+        if (!isAdmin(req)) return res.status(403).json({ error: 'Brak uprawnień administratora' });
 
-        // Убираем лишние пробелы сразу
-        const artistName = req.body.artistName ? req.body.artistName.trim() : null;
-        const { albumId, roleName } = req.body;
+        // hostType jest używany do określenia ról podczas dodawania członka
+        const {
+            albumId,
+            hostArtistId, hostType, // Dla powiązań (Artysta/Grupa)
+            artistName, targetName, // Nazwa dodawanego obiektu
+            roleName,
+            startYear, endYear
+        } = req.body;
 
-        if (!albumId || !artistName || !roleName) return res.status(400).json({ error: 'Missing fields' });
+        // Określamy nazwę dodawanej encji (dla albumu to artistName, dla grupy targetName)
+        const nameToFind = (artistName || targetName || '').trim();
+        const roleToFind = (roleName || '').trim();
 
-        let connection = null;
+        if (!nameToFind || !roleToFind) return res.status(400).json({ error: 'Nazwa i rola są wymagane' });
+
+        let conn;
         try {
-            connection = await pool.getConnection();
-            await connection.beginTransaction();
+            conn = await pool.getConnection();
+            await conn.beginTransaction();
 
-            // 1. Найти или создать артиста
-            let artistId;
-            let [artists] = await connection.execute('SELECT id FROM artists WHERE name = ?', [artistName]);
+            // 1. Znajdź lub utwórz artystę/grupę
+            let [arts] = await conn.execute('SELECT id FROM artists WHERE name = ?', [nameToFind]);
+            let targetId;
 
-            if (artists.length > 0) {
-                // Артист существует
-                artistId = artists[0].id;
+            if (arts.length > 0) {
+                targetId = arts[0].id;
             } else {
-                // Артиста НЕТ -> Создаем его автоматически (как в albums.js)
-                const baseSlug = slugify(artistName, { lower: true, strict: true, locale: 'ru' });
-                let slug = baseSlug;
-                let counter = 1;
-
-                // Проверка на уникальность слага
-                while (true) {
-                    const [slugRows] = await connection.execute('SELECT id FROM artists WHERE slug = ?', [slug]);
-                    if (slugRows.length === 0) break;
-                    slug = `${baseSlug}-${counter++}`;
-                }
-
-                // Вставляем нового "пустого" артиста (био и фото можно добавить потом)
-                const [newArtResult] = await connection.execute(
-                    'INSERT INTO artists (name, slug) VALUES (?, ?)',
-                    [artistName, slug]
+                // Jeśli nie istnieje, utwórz. Domyślny typ to 'solo', administrator może go zmienić później
+                const slug = slugify(nameToFind, { lower: true, strict: true });
+                const [ins] = await conn.execute(
+                    'INSERT INTO artists (name, slug, artist_type) VALUES (?, ?, ?)',
+                    [nameToFind, slug, 'solo']
                 );
-                artistId = newArtResult.insertId;
+                targetId = ins.insertId;
             }
 
-            // 2. Найти или создать роль
+            // 2. Znajdź lub utwórz rolę
+            let [roles] = await conn.execute('SELECT id FROM credit_roles WHERE name = ?', [roleToFind]);
             let roleId;
-            let [roles] = await connection.execute('SELECT id FROM credit_roles WHERE name = ?', [roleName]);
+
             if (roles.length > 0) {
                 roleId = roles[0].id;
             } else {
-                const [newRole] = await connection.execute('INSERT INTO credit_roles (name) VALUES (?)', [roleName]);
-                roleId = newRole.insertId;
+                const [insR] = await conn.execute('INSERT INTO credit_roles (name) VALUES (?)', [roleToFind]);
+                roleId = insR.insertId;
             }
 
-            // 3. Создать связь (используем INSERT IGNORE, чтобы избежать дублей, если админ кликнул дважды)
-            await connection.execute(
-                'INSERT IGNORE INTO album_credits (album_id, artist_id, role_id) VALUES (?, ?, ?)',
-                [albumId, artistId, roleId]
-            );
+            // 3. Wstaw zapis do tabeli credits
+            if (albumId) {
+                // To jest kredyt albumu
+                await conn.execute(
+                    'INSERT INTO credits (album_id, artist_id, role_id) VALUES (?, ?, ?)',
+                    [albumId, targetId, roleId]
+                );
+            } else if (hostArtistId) {
+                // To jest powiązanie (członek <-> grupa)
+                // Jeśli jesteśmy na stronie grupy (hostType='group'), dodajemy członka (targetId)
+                // Jeśli jesteśmy na stronie artysty (hostType='solo'), dodajemy grupę (targetId)
 
-            await connection.commit();
-            res.json({ success: true, artistId, created: artists.length === 0 });
-        } catch (err) {
-            if (connection) await connection.rollback();
-            console.error(err);
-            res.status(500).json({ error: 'Save failed', details: err.message });
+                let groupId, memberId;
+
+                if (hostType === 'group') {
+                    groupId = hostArtistId;
+                    memberId = targetId;
+                } else {
+                    groupId = targetId;
+                    memberId = hostArtistId;
+                }
+
+                await conn.execute(
+                    `INSERT INTO credits (group_id, artist_id, role_id, start_year, end_year)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [groupId, memberId, roleId, startYear || null, endYear || null]
+                );
+            }
+
+            await conn.commit();
+            res.json({ success: true });
+
+        } catch (e) {
+            if (conn) await conn.rollback();
+            console.error(e);
+            res.status(500).json({ error: e.message });
         } finally {
-            if (connection) connection.release();
+            if (conn) conn.release();
         }
     });
 
-    // === УДАЛИТЬ КРЕДИТ (Admin Only) ===
+    // 6. Usuwanie wpisu
     router.delete('/:id', authenticate, async (req, res) => {
-        if (!isAdmin(req)) return res.status(403).json({ error: 'Admin only' });
-        let connection = null;
+        if (!isAdmin(req)) return res.status(403).json({ error: 'Brak uprawnień administratora' });
         try {
-            connection = await pool.getConnection();
-            await connection.execute('DELETE FROM album_credits WHERE id = ?', [req.params.id]);
+            await pool.execute('DELETE FROM credits WHERE id = ?', [req.params.id]);
             res.json({ success: true });
         } catch (err) {
-            res.status(500).json({ error: 'Delete failed' });
-        } finally {
-            if (connection) connection.release();
+            res.status(500).json({ error: 'Błąd bazy danych' });
         }
     });
 

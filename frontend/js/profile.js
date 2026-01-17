@@ -1,93 +1,135 @@
+// frontend/js/profile.js
 document.addEventListener('DOMContentLoaded', async () => {
-    // === 1. ОПРЕДЕЛЕНИЕ КОНТЕКСТА ===
     const path = window.location.pathname;
     const isPublicProfile = path.startsWith('/user/');
-    const publicUsername = isPublicProfile ? path.split('/')[2] : null;
+    const urlIdentifier = isPublicProfile ? path.split('/')[2] : null;
     const token = localStorage.getItem('token');
 
-    // Глобальный контекст, доступный внутри HTML-компонентов
+    let targetUserId = null;
+    let myUserId = null;
+    let usernameForApi = urlIdentifier;
+
+    // 1. Pobieramy ID z tokena
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            myUserId = payload.id;
+        } catch(e) { console.warn('Token error:', e); }
+    }
+
+    // 2. Określamy czyj profil
+    if (!isPublicProfile || path === '/profile') {
+        targetUserId = myUserId;
+    } else if (urlIdentifier) {
+        try {
+            const res = await fetch(`/api/users/${urlIdentifier}`);
+            if (res.ok) {
+                const data = await res.json();
+                targetUserId = data.id;
+                usernameForApi = data.username;
+            }
+        } catch (e) { console.error('User fetch error:', e); }
+    }
+
+    if (!targetUserId && !isPublicProfile) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    // Inicjalizacja kontekstu
     window.profileContext = {
-        isPublic: isPublicProfile,
-        username: publicUsername,
+        isPublic: (myUserId !== targetUserId),
+        targetId: targetUserId,
+        username: usernameForApi,
         token: token,
-        // Хелпер для получения правильного URL API
-        // Хелпер для получения правильного URL API
-        getApiUrl: (endpoint) => {
-            if (isPublicProfile) {
-                // Для публичного профиля (друга): /api/users/<username>/<endpoint>
-                const separator = endpoint ? '/' : '';
-                return `/api/users/${publicUsername}${separator}${endpoint}`;
-            } else {
-                // Для "своих" данных (страница /profile)
-
-                // !!! ИСПРАВЛЕНИЕ: СВОИ СПИСКИ !!!
-                if (endpoint === 'lists') {
-                    return '/api/user-lists/my-lists'; // Используем правильный роут из userLists.js
-                }
-
-                // Обрабатываем пустую строку ('') или 'profile' для основного профиля
-                if (endpoint === '' || endpoint === 'profile') return '/api/users/me';
-                if (endpoint === 'my-tags') return '/api/tags/my-tags';
-
-                // Остальные роуты для себя
-                return `/api/users/${endpoint}`;
-            }
-        },
-        // Хелпер для Actions (listen, like, wishlist)
-        getActionUrl: (type) => {
-            if (isPublicProfile) {
-                return `/api/users/${publicUsername}/actions/${type}`;
-            }
-            return `/api/actions/${type}`; // Роут для себя
-        }
+        ready: true
     };
 
-    // === 2. ЗАГРУЗЧИК КОМПОНЕНТОВ ===
-    async function loadComponent(containerId, filePath) {
+    // Funkcja ładowania komponentów (Teraz dostępna globalnie)
+    window.loadComponent = async function(containerId, filePath) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
         try {
-            const res = await fetch(filePath);
-            if (!res.ok) throw new Error(`Failed to load ${filePath}`);
-            const html = await res.text();
+            const response = await fetch(filePath);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const html = await response.text();
 
-            container.innerHTML = html;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
 
-            // Ручной запуск скриптов внутри загруженного HTML
-            const scripts = container.querySelectorAll('script');
-            for (let script of scripts) {
+            const scripts = Array.from(tempDiv.querySelectorAll('script'));
+            scripts.forEach(oldScript => oldScript.remove());
+
+            container.innerHTML = tempDiv.innerHTML;
+
+            for (const oldScript of scripts) {
                 const newScript = document.createElement('script');
-                if (script.src) {
-                    newScript.src = script.src;
-                    // Добавляем async false, чтобы скрипты выполнялись последовательно
-                    newScript.async = false;
-                    document.body.appendChild(newScript);
+                Array.from(oldScript.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                if (oldScript.src) {
+                    newScript.src = oldScript.src;
                 } else {
-                    // Выполняем инлайн-скрипты
-                    newScript.textContent = script.textContent;
-                    document.body.appendChild(newScript);
+                    newScript.textContent = oldScript.textContent;
                 }
-                // Удаляем старый скрипт, чтобы избежать повторного выполнения
-                script.remove();
+                document.body.appendChild(newScript);
             }
+        } catch (error) {
+            console.error(`Error loading component ${filePath}:`, error);
+            container.innerHTML = `<div class="error">Błąd ładowania ${filePath}</div>`;
+        }
+    };
 
-        } catch (err) {
-            console.error(err);
-            container.innerHTML = `<div style="color:red; padding:20px;">Ошибка загрузки модуля: ${filePath}</div>`;
+    async function updateDynamicBackground() {
+        const bg = document.getElementById('dynamic-background');
+        const avatarImg = document.querySelector('.avatar img');
+
+        if (avatarImg && bg) {
+            const setImage = () => {
+                bg.style.backgroundImage = `url('${avatarImg.src}')`;
+            };
+            if (avatarImg.complete) {
+                setImage();
+            } else {
+                avatarImg.addEventListener('load', setImage);
+            }
         }
     }
 
-    // === 3. ЗАПУСК ===
-    // Загружаем блоки.
-    // === 3. ЗАПУСК ===
-    await Promise.all([
-        loadComponent('user-info-component', '/components/profile/user-info-panel.html'),
-        loadComponent('tabs-component', '/components/profile/tabs-panel.html'),
-        loadComponent('right-panel-component', '/components/profile/right-panel.html'),
-        loadComponent('user-lists-component', '/components/profile/user_lists.html'),
+    async function loadCommentsModule(userId) {
+        try {
+            const commentRes = await fetch('/components/comment-box.html');
+            if (commentRes.ok) {
+                const container = document.getElementById('comment-box-component');
+                if (container) {
+                    container.innerHTML = await commentRes.text();
+                    if (window.CommentsCore) {
+                        new window.CommentsCore({
+                            mode: 'USER',
+                            entityId: userId,
+                            containerId: 'comments-system-root'
+                        });
+                    }
+                }
+            }
+        } catch (e) { console.error("Błąd ładowania modułu komentarzy:", e); }
+    }
 
-        // --- ДОБАВЬТЕ ЭТУ СТРОКУ ---
-        loadComponent('comment-box-component', '/components/profile/comment-box-profile.html')
+    // Ładowanie głównych paneli
+    await Promise.all([
+        window.loadComponent('user-info-component', '/components/profile/user-info-panel.html'),
+        window.loadComponent('tabs-component', '/components/profile/tabs-panel.html'),
+        window.loadComponent('right-panel-component', '/components/profile/right-panel.html'),
     ]);
+
+    if (targetUserId) {
+        await loadCommentsModule(targetUserId);
+    }
+
+    updateDynamicBackground();
+
+    if (window.SimilarLoader && targetUserId) {
+        window.SimilarLoader.init('user', targetUserId, 'similar-users-container', 'compact');
+    }
 });

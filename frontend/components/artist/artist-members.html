@@ -1,101 +1,214 @@
-<div class="members-module">
-    <div class="members-header">
-        <h3 id="members-module-title">Members</h3>
-        <button id="btn-edit-members" class="icon-btn" style="display: none;" title="Edit Relations">✎</button>
+<link rel="stylesheet" href="/css/credits-members.css">
+
+<div class="cm-module" id="artist-members-module">
+    <div class="cm-header">
+        <h3 id="members-module-title">Członkowie</h3>
+        <button id="btn-edit-members" class="icon-btn" style="display: none;" title="Edytuj relacje">✎</button>
     </div>
 
-    <div id="members-list" class="members-list">
-        <div class="loading-placeholder">Loading...</div>
+    <div id="members-list" class="cm-list">
+        <div class="cm-placeholder">Ładowanie...</div>
     </div>
 
-    <div id="members-editor" class="members-editor" style="display: none;">
+    <div id="members-editor" class="cm-editor" style="display: none;">
         <div class="editor-row">
-            <div style="position: relative; flex: 1;">
-                <input type="text" id="member-artist-input" placeholder="Name..." autocomplete="off" style="width: 100%;">
-                <div id="artist-suggestions" class="suggestions-box"></div>
+            <div class="input-wrapper">
+                <input type="text" id="member-artist-input" class="cm-input" placeholder="Imię i nazwisko..." autocomplete="off">
+                <div id="member-name-suggestions" class="suggestions-box"></div>
             </div>
 
-            <div style="position: relative; flex: 1;">
-                <input type="text" id="member-role-input" placeholder="Role (e.g. Vocalist)..." autocomplete="off" style="width: 100%;">
-                <div id="role-suggestions" class="suggestions-box"></div>
+            <div class="input-wrapper">
+                <input type="text" id="member-role-input" class="cm-input" placeholder="Rola (np. Wokalista)..." autocomplete="off">
+                <div id="member-role-suggestions" class="suggestions-box"></div>
             </div>
         </div>
 
-        <div class="editor-row year-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <input type="number" id="member-start-year-input" placeholder="Start Year" min="1900" max="2100" style="flex: 1;">
-            <input type="number" id="member-end-year-input" placeholder="End Year" min="1900" max="2100" style="flex: 1;">
-            <button id="btn-add-member" class="button-small">Add</button>
+        <div class="editor-row">
+            <input type="number" id="member-start-year" class="cm-input" placeholder="Rok rozpoczęcia" min="1900" max="2100" style="flex: 1;">
+            <input type="number" id="member-end-year" class="cm-input" placeholder="Rok zakończenia" min="1900" max="2100" style="flex: 1;">
+            <button id="btn-add-member" class="cm-btn-add">Dodaj</button>
         </div>
-        <button id="btn-close-editor" class="text-btn">Done Editing</button>
+
+        <button id="btn-close-members-editor" class="cm-btn-close">Zakończ edycję</button>
     </div>
 </div>
 
-<style>
-    /* CSS остается прежним, но с небольшими правками для input */
-    .members-module {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .members-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 5px;
-    }
-    .members-header h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+<script>
+    (function() {
+        let ctx = { id: null, type: 'group', isAdmin: false, isEditing: false };
+        const token = localStorage.getItem('token');
 
-    .members-list { display: flex; flex-direction: column; gap: 8px; }
-    .member-item { display: flex; align-items: center; font-size: 0.9rem; }
-    .member-role { color: #aaa; width: 120px; text-align: right; margin-right: 15px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .member-artist a { color: #ADFF2F; text-decoration: none; font-weight: 600; }
-    .member-artist a:hover { text-decoration: underline; }
-    /* Отображение периода членства */
-    .member-period { color: #888; font-size: 0.85em; margin-left: 5px; }
+        // Inicjalizacja (wywoływana из artist.js)
+        window.initMembersModule = async function(artistId, artistType = 'group') {
+            ctx.id = artistId;
+            ctx.type = artistType;
+            ctx.isEditing = false;
 
-    .delete-member-btn {
-        background: none; border: none; color: #ff5555; cursor: pointer;
-        margin-left: auto; font-size: 1.2rem; line-height: 1; padding: 0 5px;
-    }
-    .delete-member-btn:hover { color: #ff0000; }
+            const titleEl = document.getElementById('members-module-title');
+            const inputEl = document.getElementById('member-artist-input');
 
-    .members-editor { margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; }
-    .editor-row { position: relative; margin-bottom: 10px; }
-    .editor-row:not(.year-row) { display: flex; gap: 10px; }
-    /* Правка input: убираем flex: 1, используем 100% внутри обертки */
-    .editor-row input { padding: 5px 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff; width: 100%; box-sizing: border-box; }
-    .year-row { display: flex; gap: 10px; }
-    .year-row input { flex: 1; }
+            if (titleEl && inputEl) {
+                const isSolo = ctx.type === 'solo';
+                titleEl.textContent = isSolo ? 'Występuje w grupach' : 'Członkowie';
+                inputEl.placeholder = isSolo ? 'Nazwa grupy...' : 'Nazwa artysty...';
+            }
 
-    /* Стили дляSuggestions Box */
-    .suggestions-box {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: #333;
-        border: 1px solid #555;
-        z-index: 10;
-        max-height: 150px;
-        overflow-y: auto;
-        display: none;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-        border-top: none;
-        color: #fff;
-    }
-    .suggestions-box .suggestion-item {
-        padding: 5px 8px;
-        cursor: pointer;
-    }
-    .suggestions-box .suggestion-item:hover {
-        background: #444;
-    }
+            await loadMembers();
+            await setupAdmin();
+        };
 
-    .icon-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.2rem; }
-    .button-small { background: #ADFF2F; border: none; color: #000; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .text-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 0.8rem; text-decoration: underline; }
-</style>
+        async function loadMembers() {
+            const mode = ctx.type === 'solo' ? 'groups' : 'members';
+            const list = document.getElementById('members-list');
+            if (!list) return;
+
+            try {
+                const res = await fetch(`/api/credits/related/${ctx.id}?mode=${mode}`);
+                const data = await res.json();
+
+                if (!data.length) {
+                    list.innerHTML = '<div class="cm-placeholder">Brak danych.</div>';
+                    return;
+                }
+
+                const groups = {};
+                data.forEach(item => {
+                    const key = `${item.target_id}_${item.role_name}`;
+                    if (!groups[key]) groups[key] = { ...item, periods: [], ids: [] };
+
+                    let period = item.start_year ? `${item.start_year}-${item.end_year || 'Obecnie'}` : '';
+                    if (period) groups[key].periods.push(`(${period})`);
+                    groups[key].ids.push(item.id);
+                });
+
+                list.innerHTML = Object.values(groups).map(g => `
+                <div class="cm-item">
+                    <span class="cm-artist-name">
+                        <a href="/artist.html?slug=${g.target_slug}">${g.target_name}</a>
+                        <span class="cm-period">${g.periods.join(', ')}</span>
+                    </span>
+                    <span class="cm-role">${g.role_name || 'Członek'}</span>
+                    ${ctx.isEditing ? `<button class="delete-btn" onclick="window.deleteMember('${g.ids.join(',')}')">×</button>` : ''}
+                </div>
+            `).join('');
+
+            } catch (e) {
+                list.innerHTML = '<div class="cm-placeholder">Błąd podczas ładowania danych.</div>';
+            }
+        }
+
+        async function setupAdmin() {
+            if (!token) return;
+            try {
+                const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
+                if (res.ok) {
+                    const user = await res.json();
+                    if (user.role === 'admin') {
+                        ctx.isAdmin = true;
+
+                        const btnEdit = document.getElementById('btn-edit-members');
+                        const editor = document.getElementById('members-editor');
+                        const btnClose = document.getElementById('btn-close-members-editor');
+                        const btnAdd = document.getElementById('btn-add-member');
+
+                        if (btnEdit) btnEdit.style.display = 'block';
+
+                        const toggleEditor = () => {
+                            ctx.isEditing = !ctx.isEditing;
+                            if (editor) editor.style.display = ctx.isEditing ? 'block' : 'none';
+                            loadMembers();
+                        };
+
+                        if (btnEdit) btnEdit.onclick = toggleEditor;
+                        if (btnClose) btnClose.onclick = toggleEditor;
+
+                        setupAutocomplete('member-artist-input', 'member-name-suggestions', 'search-artists');
+                        setupAutocomplete('member-role-input', 'member-role-suggestions', 'search-roles');
+
+                        if (btnAdd) {
+                            btnAdd.onclick = async () => {
+                                const targetName = document.getElementById('member-artist-input').value.trim();
+                                const roleName = document.getElementById('member-role-input').value.trim();
+                                const startYear = document.getElementById('member-start-year').value;
+                                const endYear = document.getElementById('member-end-year').value;
+
+                                if (!targetName || !roleName) return alert('Nazwa i rola są wymagane');
+
+                                const payload = {
+                                    hostArtistId: ctx.id,
+                                    hostType: ctx.type,
+                                    targetName,
+                                    roleName,
+                                    startYear,
+                                    endYear
+                                };
+
+                                const apiRes = await fetch('/api/credits', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify(payload)
+                                });
+
+                                if (apiRes.ok) {
+                                    document.getElementById('member-artist-input').value = '';
+                                    document.getElementById('member-role-input').value = '';
+                                    document.getElementById('member-start-year').value = '';
+                                    document.getElementById('member-end-year').value = '';
+                                    loadMembers();
+                                } else {
+                                    alert('Błąd podczas dodawania członka');
+                                }
+                            };
+                        }
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        window.deleteMember = async function(idsString) {
+            if (!confirm('Usunąć tę relację?')) return;
+            const ids = idsString.split(',');
+            for (const id of ids) {
+                await fetch(`/api/credits/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
+            loadMembers();
+        };
+
+        function setupAutocomplete(inputId, suggId, endpoint) {
+            const input = document.getElementById(inputId);
+            const sugg = document.getElementById(suggId);
+            if (!input || !sugg) return;
+
+            let timeout;
+            input.oninput = () => {
+                clearTimeout(timeout);
+                const q = input.value.trim();
+                if (q.length < 2) { sugg.style.display = 'none'; return; }
+
+                timeout = setTimeout(async () => {
+                    const res = await fetch(`/api/credits/${endpoint}?q=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+
+                    if (data.length > 0) {
+                        sugg.innerHTML = data.map(i => `<div class="suggestion-item">${i.name}</div>`).join('');
+                        sugg.style.display = 'block';
+                        sugg.querySelectorAll('.suggestion-item').forEach(el => {
+                            el.onclick = () => { input.value = el.textContent; sugg.style.display = 'none'; };
+                        });
+                    } else {
+                        sugg.style.display = 'none';
+                    }
+                }, 300);
+            };
+
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !sugg.contains(e.target)) {
+                    sugg.style.display = 'none';
+                }
+            });
+        }
+    })();
+</script>

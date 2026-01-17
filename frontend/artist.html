@@ -1,13 +1,22 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist | Melody Rater</title>
+    <title>Artysta | Melody Rater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/artist.css">
+    <link rel="stylesheet" href="/css/similar.css">
+    <link rel="stylesheet" href="/css/lists.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src="/js/autocomplete.js"></script>
+    <script src="/js/list-app-core.js"></script>
+    <script src="/js/list-app-modal.js"></script>
+    <script src="/js/comments-core.js"></script>
+    <script src="/js/similar-loader.js"></script>
+    <script src="/js/loadnavbar.js"></script>
 </head>
 <body>
 
@@ -19,11 +28,16 @@
     <aside class="left-panel">
         <div class="artist-card-sticky">
             <div class="artist-image-wrapper">
-                <img id="artist-picture" src="/images/default-artist.png" alt="Artist">
+                <img id="artist-picture" src="/images/default-artist.png" alt="Artysta">
             </div>
 
-            <h1 id="artist-name">Loading...</h1>
+            <h1 id="artist-name">Ładowanie...</h1>
             <div id="artist-genres" class="genre-badges"></div>
+
+            <div id="artist-rank-container" style="display:none; margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9rem;">
+                <div style="color: #00ffcc; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Rankingi:</div>
+                <div id="artist-rank-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+            </div>
 
             <div class="artist-meta-block">
                 <div class="meta-row">
@@ -35,21 +49,26 @@
             </div>
 
             <div class="score-block">
-                <div class="score-label">Avg. Score</div>
+                <div class="score-label">Śr. Ocena</div>
                 <div class="score-value" id="artist-global-score">N/A</div>
             </div>
 
             <div class="action-buttons">
                 <button id="follow-button" class="btn btn-block btn-outline">
-                    <i class="fas fa-plus"></i> Follow
+                    <i class="fas fa-plus"></i> Obserwuj
                 </button>
-                <button id="edit-bio-btn" class="btn btn-block btn-secondary" style="display:none;">
-                    <i class="fas fa-edit"></i> Edit
+
+                <button id="add-to-list-btn" class="btn btn-block btn-outline" style="margin-top: 10px;">
+                    <i class="fas fa-list"></i> Dodaj do listy
+                </button>
+
+                <button id="edit-bio-btn" class="btn btn-block btn-secondary" style="display:none; margin-top: 10px;">
+                    <i class="fas fa-edit"></i> Edytuj
                 </button>
             </div>
 
             <div class="followers-stat">
-                <i class="fas fa-users"></i> <span id="artist-followers-count">0</span> followers
+                <i class="fas fa-users"></i> <span id="artist-followers-count">0</span> obserwujących
             </div>
         </div>
     </aside>
@@ -57,73 +76,52 @@
     <main class="center-panel">
 
         <div class="tabs">
-            <div class="tab active" data-tab="discography">Discography</div>
-            <div class="tab" data-tab="bio">Biography & Members</div>
+            <div class="tab active" data-tab="discography">Dyskografia</div>
+            <div class="tab" data-tab="bio">Biografia i Członkowie</div>
+            <div class="tab" data-tab="reviews">Recenzje</div>
+            <div class="tab" data-tab="lists">Listy</div>
+            <div class="tab" data-tab="similar">Podobni</div>
         </div>
 
         <div id="discography" class="tab-content active">
             <div class="sort-controls">
-                <label for="sort-select">Sort By:</label>
+                <label for="sort-select">Sortuj według:</label>
                 <select id="sort-select" class="form-control">
-                    <option value="release_date_desc">Year (Newest First)</option>
-                    <option value="release_date_asc">Year (Oldest First)</option>
-                    <option value="average_rating_desc">Rating (Highest First)</option>
-                    <option value="ratings_count_desc">Ratings Count (Highest First)</option>
-                    <option value="title_asc">Title (A-Z)</option>
+                    <option value="release_date_desc">Rok (Najnowsze)</option>
+                    <option value="release_date_asc">Rok (Najstarsze)</option>
+                    <option value="average_rating_desc">Ocena (Najwyższa)</option>
+                    <option value="ratings_count_desc">Liczba ocen (Najwięcej)</option>
+                    <option value="title_asc">Tytuł (A-Z)</option>
                 </select>
             </div>
-            <div id="discography-list">
-            </div>
+            <div id="discography-list"></div>
         </div>
 
         <div id="bio" class="tab-content">
-            <div id="members-module-container">
-            </div>
+            <div id="members-module-container"></div>
             <div class="info-box">
-                <h3>Biography</h3>
-                <div id="artist-description" class="bio-text">No biography available.</div>
+                <h3>Biografia</h3>
+                <div id="artist-description" class="bio-text">Brak dostępnej biografii.</div>
             </div>
+        </div>
+
+        <div id="reviews" class="tab-content">
+            <div id="comments-module-container"></div>
+        </div>
+
+        <div id="lists" class="tab-content">
+            <div id="artist-lists-container"></div>
+        </div>
+
+        <div id="similar" class="tab-content similar-section">
+            <h3 style="margin-bottom: 15px;">Fani lubią również</h3>
+            <div id="similar-artists-container">Ładowanie podobnych artystów...</div>
         </div>
 
     </main>
 
 </div>
 
-<div id="edit-bio-modal" class="modal-overlay" style="display: none;">
-    <div class="form-container" style="margin-top: 10vh; max-width: 600px;">
-        <div class="form-card">
-            <h2>Edit Artist Details</h2>
-            <form id="edit-bio-form">
-                <div class="form-group">
-                    <label>Biography</label>
-                    <textarea id="modal-bio" class="form-control"></textarea>
-                </div>
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1">
-                        <label>Formed Year</label>
-                        <input type="text" id="modal-formed-year" class="form-control">
-                    </div>
-                    <div style="flex:1">
-                        <label>Country</label>
-                        <input type="text" id="modal-country" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Picture URL</label>
-                    <input type="text" id="modal-picture" class="form-control">
-                </div>
-                <div class="form-footer">
-                    <button type="submit" class="btn">Save Changes</button>
-                    <button type="button" id="close-modal-btn" class="btn btn-outline" style="margin-left: 10px;">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <script type="module" src="/js/artist.js"></script>
-<script src="/js/members.js"></script>
-<script src="/js/autocomplete.js"></script>
 </body>
 </html>

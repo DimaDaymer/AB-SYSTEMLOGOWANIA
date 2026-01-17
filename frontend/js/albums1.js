@@ -1,36 +1,23 @@
-// js/albums1.js
+// === 1. ZMIENNE GLOBALNE I STAN ===
+window.components = window.components || {};
+window.currentAlbumId = null;
+window.albumDataCache = null;
+window.currentAlbumRating = 0;
 
-// === ГЛОБАЛЬНЫЕ ФУНКЦИИ (Доступны везде) ===
-function showMessage(message, isError = false) {
-    const existingMessages = document.querySelectorAll('.global-message');
-    existingMessages.forEach(msg => msg.remove());
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'global-message';
-    messageDiv.textContent = message;
-    messageDiv.style.cssText = `
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        padding: 10px 20px; background: ${isError ? '#ffdddd' : '#ddffdd'};
-        color: ${isError ? '#ff0000' : '#008800'}; border: 1px solid ${isError ? '#ff0000' : '#008800'};
-        border-radius: 5px; z-index: 1000; font-weight: bold;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: opacity 0.3s ease;
-    `;
-    document.body.appendChild(messageDiv);
-    setTimeout(() => {
-        messageDiv.style.opacity = '0';
-        setTimeout(() => messageDiv.remove(), 300);
-    }, 5000);
-}
-window.showMessage = showMessage;
+window.showMessage = window.showMessage || function(msg, isError = false) {
+    console.log(`[Message] ${isError ? 'ERROR: ' : ''}${msg}`);
+    if (isError) alert(msg);
+};
+
+// === 2. FUNKCJE POMOCNICZE (HELPERS) ===
 
 async function loadComponent(containerId, componentPath) {
     try {
         const container = document.getElementById(containerId);
-        if (!container) {
-            return false;
-        }
+        if (!container) return false;
 
         const response = await fetch(componentPath);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} dla ${componentPath}`);
 
         const html = await response.text();
         container.innerHTML = html;
@@ -41,85 +28,28 @@ async function loadComponent(containerId, componentPath) {
             if (script.src) newScript.src = script.src;
             else newScript.textContent = script.textContent;
             document.head.appendChild(newScript);
-            // Удаляем старый скрипт, чтобы не засорять DOM,
-            // но помните, что appendChild в head все равно выполняет его.
             script.remove();
         });
         return true;
     } catch (error) {
-        console.warn(`[Component] Failed to load ${componentPath}:`, error);
+        console.warn(`[Komponent] Nie udało się załadować ${componentPath}:`, error);
         return false;
     }
 }
 window.loadComponent = loadComponent;
 
-// === ЛОГИКА АЛЬБОМОВ ===
-let currentAlbumId = null;
-let albumDataCache = null;
-window.components = window.components || {};
-
-document.addEventListener('DOMContentLoaded', async () => {
-    if (!document.getElementById('album-cover-container')) {
-        return;
-    }
-
-    try {
-        const slug = getSlugFromURL();
-        if (!slug) throw new Error('No slug provided');
-
-        await loadNavbar();
-        await loadBaseComponents();
-        await loadChildComponents();
-
-        albumDataCache = await fetchAlbum(slug);
-        currentAlbumId = albumDataCache.id;
-        window.currentAlbumId = currentAlbumId;
-        window.albumDataCache = albumDataCache;
-
-        updateComponents(albumDataCache);
-
-        updateScoresDisplay({
-            average_rating: albumDataCache.average_rating || albumDataCache.avg_score,
-            rating_count: albumDataCache.rating_count || albumDataCache.ratings_count
-        });
-
-        await loadUserData(currentAlbumId);
-        // ДОБАВЛЕНО: Загрузка средних оценок треков после загрузки альбома
-        await loadTrackScores(currentAlbumId);
-
-        checkAdminRights(slug);
-
-    } catch (error) {
-        console.error('[Albums] Init error:', error);
-    }
-});
-
 function getSlugFromURL() {
     const path = window.location.pathname;
-    const slug = path.substring(path.lastIndexOf('/') + 1);
-    return (slug && slug !== 'album') ? slug : null;
+    const parts = path.split('/');
+    const slug = parts[parts.length - 1];
+    return (slug && slug !== 'album' && slug !== '') ? slug : null;
 }
 
-async function loadNavbar() {
-    const cont = document.getElementById('navbar-container');
-    if(cont) {
-        try {
-            const res = await fetch('/navbar.html');
-            if(res.ok) {
-                cont.innerHTML = await res.text();
-                cont.querySelectorAll('script').forEach(s => {
-                    const sc = document.createElement('script');
-                    if(s.src) sc.src = s.src;
-                    else sc.textContent = s.textContent;
-                    document.body.appendChild(sc);
-                });
-                if (window.initNavbar) {
-                    window.initNavbar();
-                }
-            }
-        } catch(e) { console.error('Navbar load failed', e); }
-    }
+function getToken() {
+    return localStorage.getItem('token');
 }
+
+// === 3. ŁADOWANIE KOMPONENTÓW ===
 
 async function loadBaseComponents() {
     const baseComponents = [
@@ -135,105 +65,48 @@ async function loadBaseComponents() {
 }
 
 async function loadChildComponents() {
-    await loadComponent('track-ratings-tab-container', '/components/albums/track-ratings-tab.html');
-    await loadComponent('album-lists-tab-container', '/components/albums/album-lists.html');
-    await loadComponent('histogram-container', '/components/albums/histogram.html');
-    await loadComponent('album-star-rating-host', '/components/albums/album-rating-stars.html');
-    // Здесь загружается компонент комментариев, который внутри себя проверит загружен ли core.js
-    await loadComponent('comments-container', '/components/albums/comment-box-album.html');
-    await loadComponent('credits-container', '/components/albums/credits.html');
+    const children = [
+        { id: 'track-ratings-tab-container', path: '/components/albums/track-ratings-tab.html' },
+        { id: 'album-lists-tab-container', path: '/components/lists/entity-lists.html' },
+        { id: 'album-tags-tab-container', path: '/components/albums/tags.html' },
+        { id: 'histogram-container', path: '/components/albums/histogram.html' },
+        { id: 'album-star-rating-host', path: '/components/albums/album-rating-stars.html' },
+        { id: 'credits-container', path: '/components/albums/credits.html' }
+    ];
+    await Promise.all(children.map(c => loadComponent(c.id, c.path)));
 }
+
+async function loadCommentsModule(albumId) {
+    try {
+        const commentRes = await fetch('/components/comment-box.html');
+        if (commentRes.ok) {
+            const container = document.getElementById('comments-container') || document.getElementById('comments-module-container');
+            if (container) {
+                container.innerHTML = await commentRes.text();
+                if (window.CommentsCore) {
+                    new window.CommentsCore({
+                        mode: 'ALBUM',
+                        entityId: albumId,
+                        containerId: 'comments-system-root'
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Błąd ładowania modułu komentarzy:", e);
+    }
+}
+
+// === 4. PRACA Z DANYMI (API) ===
 
 async function fetchAlbum(slug) {
     const response = await fetch(`/api/albums/by-slug/${slug}`);
-    if (!response.ok) throw new Error('Album not found');
+    if (!response.ok) throw new Error('Album nie został znaleziony');
     return await response.json();
 }
 
-function updateComponents(data) {
-    const bg = document.getElementById('dynamic-background');
-    if (bg && data.cover_url) bg.style.backgroundImage = `url('${data.cover_url}')`;
-
-    if (window.components.albumCover) window.components.albumCover.update(data);
-
-    // Изначальное обновление tracklist. Средние оценки будут добавлены в loadTrackScores.
-    if (window.components.tracklist) window.components.tracklist.update(data.tracks || []);
-
-    if (window.components.albumInfo) window.components.albumInfo.update(data);
-    if (window.components.histogram) window.components.histogram.update(data.id);
-
-    // Безопасное обновление Media Links
-    if (window.components.mediaLinks) {
-        try {
-            window.components.mediaLinks.update(data.id);
-        } catch (e) {
-            console.warn("Media Links update failed (likely JSON error):", e);
-        }
-    }
-
-    if (window.components.trackRatingsTab && data.tracks) {
-        window.components.trackRatingsTab.update(data.tracks, {});
-    }
-
-    if (window.initCreditsModule && data.id) {
-        window.initCreditsModule(data.id);
-    }
-}
-
-function updateScoresDisplay(stats) {
-    const userScoreEl = document.getElementById('global-album-score');
-    const userRatingsCountEl = document.getElementById('global-ratings-count');
-
-    if (!stats) return;
-
-    const rawScore = parseFloat(stats.average_rating || stats.average_score);
-    const userTotalRatings = parseInt(stats.total_ratings || stats.rating_count || 0);
-    let displayScore = 'N/A';
-
-    if (!isNaN(rawScore) && (rawScore > 0 || userTotalRatings > 0)) {
-        displayScore = rawScore.toFixed(2);
-    }
-
-    if (userScoreEl) userScoreEl.innerHTML = `${displayScore} <span style="font-size:1.5rem;color:#ADFF2F;">★</span>`;
-    if (userRatingsCountEl) userRatingsCountEl.textContent = `based on ${userTotalRatings.toLocaleString()} ratings`;
-}
-
-// === НОВАЯ ФУНКЦИЯ: Загрузка средних оценок треков ===
-async function loadTrackScores(albumId) {
-    if (!window.components.tracklist || !albumDataCache.tracks) return;
-
-    try {
-        const res = await fetch(`/api/track-ratings/album/${albumId}/stats`);
-        if (!res.ok) throw new Error('Failed to fetch track scores');
-
-        const trackScores = await res.json();
-
-        // Обновление кэша данных альбома с оценками треков
-        const updatedTracks = albumDataCache.tracks.map(track => {
-            const scoreData = trackScores[track.id];
-            return {
-                ...track,
-                // Маппинг полей из бэкенда (avg_score, ratings_count) в поля,
-                // которые ожидает компонент tracklist (average_rating, rating_count)
-                average_rating: scoreData ? parseFloat(scoreData.avg_score) : null,
-                rating_count: scoreData ? parseInt(scoreData.ratings_count) : 0
-            };
-        });
-
-        // Обновление кэша с новыми данными
-        albumDataCache.tracks = updatedTracks;
-
-        // Обновление компонента трек-листа
-        window.components.tracklist.update(updatedTracks);
-
-    } catch(e) {
-        console.error('[Albums] Failed to load track scores:', e);
-    }
-}
-// ======================================================
-
 async function loadUserData(albumId) {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (!token) return;
 
     fetch(`/api/ratings/${albumId}/user-rating`, { headers: { 'Authorization': `Bearer ${token}` }})
@@ -243,7 +116,7 @@ async function loadUserData(albumId) {
                 window.currentAlbumRating = parseFloat(data.score);
                 window.components.albumRatingStars.updateRating(window.currentAlbumRating);
             }
-        });
+        }).catch(err => console.warn('User rating load error', err));
 
     fetch(`/api/actions/album/${albumId}`, { headers: { 'Authorization': `Bearer ${token}` }})
         .then(res => res.ok ? res.json() : [])
@@ -252,117 +125,180 @@ async function loadUserData(albumId) {
                 const btn = document.querySelector(`.user-actions div[data-action="${a.action_type}"]`);
                 if (btn) btn.classList.add('active');
             });
-        });
+        }).catch(err => console.warn('Actions load error', err));
+}
 
-    if (window.components.trackRatingsTab && albumDataCache.tracks) {
-        fetch(`/api/track-ratings/album/${albumId}`, { headers: { 'Authorization': `Bearer ${token}` }})
-            .then(res => res.ok ? res.json() : {})
-            .then(userTrackRatings => {
-                window.components.trackRatingsTab.update(albumDataCache.tracks, userTrackRatings);
-            });
+async function loadTrackScores(albumId) {
+    const token = getToken();
+    if (!token || !window.components.trackRatingsTab) return;
+
+    try {
+        const res = await fetch(`/api/track-ratings/album/${albumId}/user-scores`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Błąd pobierania ocen utworów');
+        const userRatingsMap = await res.json();
+
+        if (window.albumDataCache && window.albumDataCache.tracks) {
+            window.components.trackRatingsTab.update(window.albumDataCache.tracks, userRatingsMap);
+        }
+    } catch(e) { console.error('[Albumy] Utwory:', e); }
+}
+
+async function refreshStats() {
+    if (!window.currentAlbumId) return;
+    try {
+        const res = await fetch(`/api/ratings/album/${window.currentAlbumId}/stats`);
+        if (res.ok) {
+            const data = await res.json();
+            const normalizedData = {
+                avg_score: data.avg_score || data.average_rating || 0,
+                ratings_count: data.ratings_count || data.rating_count || 0
+            };
+            if (window.albumDataCache) {
+                window.albumDataCache.avg_score = normalizedData.avg_score;
+                window.albumDataCache.ratings_count = normalizedData.ratings_count;
+            }
+            updateScoresDisplay(normalizedData);
+            if (window.components.histogram) window.components.histogram.update(window.currentAlbumId);
+        }
+    } catch(e) { console.error('[Statystyki] Refresh error:', e); }
+}
+
+// === 5. AKTUALIZACJA INTERFEJSU (UI) ===
+
+function updateComponents(data) {
+    const bg = document.getElementById('dynamic-background');
+    if (bg && data.cover_url) bg.style.backgroundImage = `url('${data.cover_url}')`;
+
+    if (window.components.albumCover) window.components.albumCover.update(data);
+    if (window.components.tracklist) window.components.tracklist.update(data.tracks || []);
+    if (window.components.albumInfo) window.components.albumInfo.update(data);
+    if (window.components.histogram) window.components.histogram.update(data.id);
+
+    if (window.components.mediaLinks && typeof window.components.mediaLinks.update === 'function') {
+        window.components.mediaLinks.update(data.id);
+    }
+
+    if (window.components.trackRatingsTab && data.tracks) {
+        window.components.trackRatingsTab.update(data.tracks, {});
+    }
+
+    if (window.initCreditsModule) window.initCreditsModule(data.id);
+    if (window.renderAlbumTagsTab) window.renderAlbumTagsTab(data.id);
+    if (window.SimilarLoader) {
+        window.SimilarLoader.init('album', data.id, 'similar-albums-container', 'compact');
     }
 }
 
+function updateScoresDisplay(stats) {
+    const userScoreEl = document.getElementById('global-album-score');
+    const userRatingsCountEl = document.getElementById('global-ratings-count');
+    if (!stats) return;
+
+    const rawScore = parseFloat(stats.avg_score || stats.average_rating || 0);
+    const totalRatings = parseInt(stats.ratings_count || stats.rating_count || 0);
+
+    let displayScore = (totalRatings > 0 && !isNaN(rawScore)) ? rawScore.toFixed(2) : 'brak';
+
+    if (userScoreEl) {
+        userScoreEl.innerHTML = `${displayScore} <span style="font-size:1.5rem;color:#ADFF2F;">★</span>`;
+    }
+    // Teraz ten element istnieje w HTML, więc tekst się wyświetli
+    if (userRatingsCountEl) {
+        userRatingsCountEl.textContent = `na podstawie ${totalRatings.toLocaleString()} ocen`;
+    }
+}
+
+// === 6. OBSŁUGA ZDARZEŃ (AKCJE) ===
 
 window.rateAlbum = async (rating) => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) return window.location.href = '/login.html';
+    const token = getToken();
+    if (!token) return window.location.href = '/login.html';
 
-        const res = await fetch(`/api/ratings/${currentAlbumId}/ratings`, {
+    try {
+        const res = await fetch(`/api/ratings/${window.currentAlbumId}/ratings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ score: rating })
         });
-
-        if (!res.ok) throw new Error('Failed');
-        showMessage('Rating saved!');
+        if (!res.ok) throw new Error('Błąd zapisu');
 
         window.currentAlbumRating = rating;
         if (window.components.albumRatingStars) window.components.albumRatingStars.updateRating(rating);
 
-        setTimeout(() => {
-            refreshStats();
-            // ДОБАВЛЕНО: Обновление оценок треков после рейтинга альбома
-            loadTrackScores(currentAlbumId);
-        }, 500);
+        // НОВОЕ: Визуально помечаем кнопку "Przesłuchane" (listen) как активную
+        const listenBtn = document.querySelector('.user-actions div[data-action="listen"]');
+        if (listenBtn) {
+            listenBtn.classList.add('active');
+        }
 
-    } catch(e) { showMessage('Error saving rating', true); }
+        await refreshStats();
+        await loadTrackScores(window.currentAlbumId);
+        window.showMessage('Ocena została zapisana!');
+    } catch(e) {
+        window.showMessage('Błąd podczas zapisywania oceny', true);
+    }
 };
 
 window.clearAlbumRating = async () => {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) return window.location.href = '/login.html';
+    const token = getToken();
+    if (!token) return window.location.href = '/login.html';
 
-        const res = await fetch(`/api/ratings/${currentAlbumId}/ratings`, {
+    try {
+        const res = await fetch(`/api/ratings/${window.currentAlbumId}/ratings`, {
             method: 'DELETE',
             headers: {'Authorization': `Bearer ${token}`}
         });
-
-        if (!res.ok) throw new Error('Failed');
-        showMessage('Rating cleared!');
+        if (!res.ok) throw new Error('Błąd usuwania');
 
         window.currentAlbumRating = 0;
-        if (window.components.albumRatingStars){
-            window.components.albumRatingStars.updateRating(0);
-        }
-        setTimeout(() => {
-            refreshStats();
-            // ДОБАВЛЕНО: Обновление оценок треков после сброса рейтинга
-            loadTrackScores(currentAlbumId);
-        }, 500);
+        if (window.components.albumRatingStars) window.components.albumRatingStars.updateRating(0);
 
-    } catch(e) { showMessage('Error clearing rating', true); }
+        await refreshStats();
+        await loadTrackScores(window.currentAlbumId);
+        window.showMessage('Ocena została usunięta!');
+    } catch(e) {
+        window.showMessage('Błąd podczas usuwania oceny', true);
+    }
 };
 
-async function refreshStats() {
-    try {
-        const res = await fetch(`/api/ratings/album/${currentAlbumId}/stats`);
-        if (res.ok) {
-            const data = await res.json();
-            updateScoresDisplay(data);
-        }
-        if (window.components.histogram) {
-            window.components.histogram.update(currentAlbumId);
-        }
-    } catch(e) { console.error(e); }
-}
-
 async function sendAlbumAction(actionType) {
-    if (!currentAlbumId) return;
+    if (!window.currentAlbumId) return;
+    const token = getToken();
+    if (!token) return window.location.href = '/login.html';
+
     try {
-        const token = localStorage.getItem('token');
-        if (!token) return window.location.href = '/login.html';
         const button = document.querySelector(`.user-actions div[data-action="${actionType}"]`);
         if (!button) return;
+
         const isActive = button.classList.contains('active');
         const method = isActive ? 'DELETE' : 'POST';
-        const url = isActive ? `/api/actions?albumId=${currentAlbumId}&actionType=${actionType}` : '/api/actions';
+        const url = isActive ? `/api/actions?albumId=${window.currentAlbumId}&actionType=${actionType}` : '/api/actions';
+
         const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: method === 'POST' ? JSON.stringify({ albumId: currentAlbumId, actionType }) : null
+            body: method === 'POST' ? JSON.stringify({ albumId: window.currentAlbumId, actionType }) : null
         });
-        if (!res.ok) throw new Error('Action failed');
+
+        if (!res.ok) throw new Error('Akcja nie powiodła się');
         button.classList.toggle('active');
-        showMessage(isActive ? `Removed from ${actionType}` : `Added to ${actionType}`);
-    } catch (err) { showMessage('Error: ' + err.message, true); }
+        window.showMessage(isActive ? `Usunięto z ${actionType}` : `Dodano do ${actionType}`);
+    } catch (err) {
+        window.showMessage('Błąd: ' + err.message, true);
+    }
 }
 
-document.addEventListener('click', async (e) => {
-    if (e.target.closest('.user-actions div[data-action]')) {
-        const button = e.target.closest('.user-actions div[data-action]');
-        const actionType = button.dataset.action;
-        if (actionType !== 'add-to-list') await sendAlbumAction(actionType);
-    }
-});
+// NOTE: Funkcja openTagWindow została przeniesiona do tag-app-modal.js
+// Zapewniamy kompatybilność, jeśli tamten skrypt jest załadowany
 
 async function checkAdminRights(slug) {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (!token) return;
     try {
         const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
+        if (!res.ok) return;
         const user = await res.json();
         const btn = document.getElementById('edit-album-btn');
         if (btn && user.role === 'admin') {
@@ -372,65 +308,61 @@ async function checkAdminRights(slug) {
     } catch(e) {}
 }
 
-async function openTagWindow() {
+// === 7. INICJALIZACJA ===
+
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!document.getElementById('album-cover-container')) return;
+
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login.html';
-            return;
-        }
+        const slug = getSlugFromURL();
+        if (!slug) throw new Error('Nie podano sluga');
 
-        const response = await fetch('/tag_window.html');
-        if (!response.ok) {
-            window.showMessage('Failed to fetch tag_window.html.', true);
-            throw new Error(`Failed to fetch tag_window.html: ${response.status}`);
-        }
-        const html = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        await loadBaseComponents();
+        await loadChildComponents();
 
-        const head = document.head;
-        const styleElement = doc.querySelector('style');
-        if (styleElement && !head.querySelector('#tag-window-styles')) {
-            const newStyle = document.createElement('style');
-            newStyle.id = 'tag-window-styles';
-            newStyle.textContent = styleElement.textContent;
-            head.appendChild(newStyle);
-        }
+        const albumData = await fetchAlbum(slug);
+        window.currentAlbumId = albumData.id;
+        window.albumDataCache = albumData;
 
-        const overlayElement = doc.querySelector('.overlay');
-        if (!overlayElement) return;
-
-        let existingOverlay = document.getElementById('tag-overlay');
-        if (existingOverlay) existingOverlay.remove();
-
-        overlayElement.id = 'tag-overlay';
-        document.body.appendChild(overlayElement);
-
-        await new Promise(resolve => setTimeout(resolve, 50));
-        const targetOverlay = document.getElementById('tag-overlay');
-        if (targetOverlay) {
-            targetOverlay.style.display = 'flex';
-            document.body.classList.add('no-scroll');
-        }
-
-        doc.querySelectorAll('script').forEach(script => {
-            const newScript = document.createElement('script');
-            newScript.textContent = script.textContent;
-            document.body.appendChild(newScript);
+        updateComponents(albumData);
+        updateScoresDisplay({
+            avg_score: albumData.avg_score || albumData.average_rating,
+            ratings_count: albumData.ratings_count || albumData.rating_count
         });
 
-        if (window.loadAlbumTags) {
-            window.loadAlbumTags();
-        }
-    } catch (err) {
-        console.error('Failed to open tag window:', err);
-    }
-}
+        await loadUserData(window.currentAlbumId);
+        await loadTrackScores(window.currentAlbumId);
+        await loadCommentsModule(window.currentAlbumId);
+        checkAdminRights(slug);
 
-window.openTagWindow = openTagWindow;
+    } catch (error) {
+        console.error('[Błąd inicjalizacji]:', error);
+    }
+});
+
+// Rejestracja globalnych funkcji
 window.sendAlbumAction = sendAlbumAction;
 window.rateAlbum = rateAlbum;
 window.clearAlbumRating = clearAlbumRating;
-window.currentAlbumId = currentAlbumId;
-window.albumDataCache = albumDataCache;
+// window.openTagWindow jest teraz obsługiwane przez tag-app-modal.js
+
+// Obsługa kliknięć w akcje użytkownika
+document.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('.user-actions div[data-action]');
+    if (actionBtn) {
+        const actionType = actionBtn.dataset.action;
+        if (actionType === 'add-to-list') {
+            if (actionBtn.hasAttribute('onclick')) {
+                return;
+            }
+            // Sprawdzamy czy window.openListWindow został poprawnie nadpisany przez list-app-modal.js
+            if (typeof window.openListWindow === 'function') {
+                window.openListWindow(window.currentAlbumId, 'album');
+            } else {
+                console.error("Moduł list nie został jeszcze załadowany.");
+            }
+        } else {
+            sendAlbumAction(actionType);
+        }
+    }
+});

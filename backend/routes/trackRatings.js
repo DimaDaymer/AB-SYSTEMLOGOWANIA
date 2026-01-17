@@ -1,152 +1,178 @@
-// routes/trackRatings.js
+// backend/routes/trackRatings.js
 const express = require('express');
 const router = express.Router();
 const authenticate = require('../authMiddleware');
 
 module.exports = (pool) => {
 
-    // === ФУНКЦИЯ ОБНОВЛЕНИЯ СТАТИСТИКИ ТРЕКА ===
-    // ИСПРАВЛЕНО: Использование INSERT...SELECT для надежного расчета и обновления.
-    async function updateTrackStats(targetTrackId) {
-        let connection = null;
-        try {
-            connection = await pool.getConnection();
-            await connection.query(`
-                INSERT INTO track_stats (track_id, ratings_count, avg_score)
-                SELECT
-                    ? AS track_id,
-                    COUNT(tr.score) AS ratings_count,
-                    COALESCE(AVG(tr.score), 0) AS avg_score
-                FROM tracks t
-                         LEFT JOIN track_ratings tr ON t.id = tr.track_id
-                WHERE t.id = ?
-                GROUP BY t.id
-                ON DUPLICATE KEY UPDATE
-                                     ratings_count = VALUES(ratings_count),
-                                     avg_score = VALUES(avg_score),
-                                     last_updated = CURRENT_TIMESTAMP
-            `, [targetTrackId, targetTrackId]);
+    // Helper: Aktualizacja statystyk utworu wewnątrz transakcji
+    const updateTrackStatsInTransaction = async (connection, trackId) => {
+        await connection.execute(`
+            INSERT INTO tracks_stats (track_id, ratings_count, avg_score)
+            SELECT 
+                ? as track_id,
+                (SELECT COUNT(*) FROM track_ratings WHERE track_id = ?) as ratings_count,
+                (SELECT COALESCE(AVG(score), 0) FROM track_ratings WHERE track_id = ?) as avg_score
+            ON DUPLICATE KEY UPDATE 
+                ratings_count = VALUES(ratings_count),
+                avg_score = VALUES(avg_score)
+        `, [trackId, trackId, trackId]);
+    };
 
-        } catch (err) {
-            console.error("Track Stats update failed:", err);
-        } finally {
-            if (connection) connection.release();
-        }
-    }
+    // --- ROUTES ---
 
-
-    // POST (Создание / Обновление)
-    router.post('/:trackId', authenticate, async (req, res) => {
-        try {
-            const { trackId } = req.params;
-            const { rating } = req.body;
-            const userId = req.user.id;
-
-            const scoreValue = parseFloat(rating);
-
-            if (isNaN(scoreValue) || scoreValue < 0.5 || scoreValue > 5.0) {
-                return res.status(400).json({ error: 'Score must be between 0.5 and 5.0.' });
-            }
-
-            await pool.execute(
-                `INSERT INTO track_ratings (user_id, track_id, score)
-                 VALUES (?, ?, ?)
-                 ON DUPLICATE KEY UPDATE score = VALUES(score)`,
-                [userId, trackId, scoreValue]
-            );
-
-            // 1. Обновляем статистику трека
-            await updateTrackStats(trackId);
-
-            res.json({ success: true });
-        } catch (err) {
-            console.error('POST /track-ratings error:', err);
-            res.status(500).json({ error: 'Failed to save track rating' });
-        }
-    });
-
-    // DELETE (Удаление)
-    router.delete('/:trackId', authenticate, async (req, res) => {
-        try {
-            const { trackId } = req.params;
-            const userId = req.user.id;
-
-            await pool.execute(
-                `DELETE FROM track_ratings WHERE user_id = ? AND track_id = ?`,
-                [userId, trackId]
-            );
-
-            // 2. Обновляем статистику трека
-            await updateTrackStats(trackId);
-
-            res.json({ success: true, message: 'Rating deleted' });
-        } catch (err) {
-            console.error('DELETE /track-ratings error:', err);
-            res.status(500).json({ error: 'Failed to delete track rating' });
-        }
-    });
-
-
-    // GET (Получение оценок текущего пользователя для альбома)
-    router.get('/album/:albumId', authenticate, async (req, res) => {
-        try {
-            const albumId = parseInt(req.params.albumId);
-            const userId = req.user.id;
-
-            if (isNaN(albumId)) {
-                return res.status(400).json({ error: 'Invalid album ID' });
-            }
-
-            const [ratings] = await pool.execute(`
-                SELECT t.id AS track_id, tr.score
-                FROM tracks t
-                         LEFT JOIN track_ratings tr ON t.id = tr.track_id AND tr.user_id = ?
-                WHERE t.album_id = ?
-            `, [userId, albumId]);
-
-            const ratingsMap = {};
-            ratings.forEach(r => {
-                if (r.score !== null) {
-                    ratingsMap[r.track_id] = parseFloat(r.score);
-                }
-            });
-
-            res.json(ratingsMap);
-        } catch (err) {
-            console.error('GET /track-ratings/album error:', err);
-            res.status(500).json({ error: 'Failed to get user track ratings' });
-        }
-    });
-
-    // НОВЫЙ МАРШРУТ: GET (Получение средней оценки для всех треков альбома)
+    // 1. Statystyki wszystkich utworów w albumie (Bulk Read)
     router.get('/album/:albumId/stats', async (req, res) => {
         try {
-            const albumId = parseInt(req.params.albumId);
-
-            if (isNaN(albumId)) {
-                return res.status(400).json({ error: 'Invalid album ID' });
-            }
-
-            // Получаем статистику для всех треков в альбоме
-            const [stats] = await pool.execute(`
-                SELECT t.id AS track_id, ts.avg_score, ts.ratings_count
-                FROM tracks t
-                         LEFT JOIN track_stats ts ON t.id = ts.track_id
+            const { albumId } = req.params;
+            const [rows] = await pool.execute(`
+                SELECT ts.track_id, ts.avg_score, ts.ratings_count
+                FROM tracks_stats ts
+                JOIN tracks t ON ts.track_id = t.id
                 WHERE t.album_id = ?
             `, [albumId]);
 
             const statsMap = {};
-            stats.forEach(s => {
-                statsMap[s.track_id] = {
-                    avg_score: s.avg_score ? parseFloat(s.avg_score).toFixed(2) : '0.00',
-                    ratings_count: s.ratings_count || 0
+            rows.forEach(row => {
+                statsMap[row.track_id] = {
+                    avg_score: row.avg_score ? parseFloat(row.avg_score).toFixed(2) : '0.00',
+                    ratings_count: row.ratings_count || 0
                 };
             });
-
             res.json(statsMap);
         } catch (err) {
-            console.error('GET /track-ratings/album/stats error:', err);
-            res.status(500).json({ error: 'Failed to get track stats' });
+            console.error("[Track Stats Error]:", err);
+            res.status(500).json({ error: 'Nie udało się załadować ocen utworów' });
+        }
+    });
+
+    // 2. Oceny użytkownika dla wszystkich utworów w albumie (Bulk Read)
+    router.get('/album/:albumId/user-scores', authenticate, async (req, res) => {
+        try {
+            const { albumId } = req.params;
+            const userId = req.user.id;
+
+            const [rows] = await pool.execute(`
+                SELECT tr.track_id, tr.score
+                FROM track_ratings tr
+                JOIN tracks t ON tr.track_id = t.id
+                WHERE t.album_id = ? AND tr.user_id = ?
+            `, [albumId, userId]);
+
+            const userScores = {};
+            rows.forEach(r => userScores[r.track_id] = parseFloat(r.score));
+            res.json(userScores);
+        } catch (err) {
+            console.error("[User Track Scores Error]:", err);
+            res.status(500).json({ error: 'Błąd bazy danych' });
+        }
+    });
+
+    // 3. Statystyki pojedynczego utworu
+    router.get('/:trackId/stats', async (req, res) => {
+        try {
+            const { trackId } = req.params;
+            const [rows] = await pool.execute('SELECT avg_score, ratings_count FROM tracks_stats WHERE track_id = ?', [trackId]);
+
+            const s = rows[0] || { avg_score: 0, ratings_count: 0 };
+            res.json({
+                avg_score: s.avg_score ? parseFloat(s.avg_score).toFixed(2) : '0.00',
+                ratings_count: s.ratings_count || 0
+            });
+        } catch (err) {
+            res.status(500).json({ error: 'Nie udało się pobrać statystyk' });
+        }
+    });
+
+    // 4. Ocena użytkownika dla jednego utworu
+    router.get('/:trackId/user-rating', authenticate, async (req, res) => {
+        try {
+            const { trackId } = req.params;
+            const userId = req.user.id;
+
+            const [rows] = await pool.execute('SELECT score FROM track_ratings WHERE user_id = ? AND track_id = ?', [userId, trackId]);
+
+            res.json({ score: rows[0] ? parseFloat(rows[0].score) : null });
+        } catch (err) {
+            res.status(500).json({ error: 'Błąd bazy danych' });
+        }
+    });
+
+    // 5. Wystaw ocenę (Zoptymalizowane transakcją)
+    router.post('/:trackId', authenticate, async (req, res) => {
+        let connection = null;
+        try {
+            const { trackId } = req.params;
+            const userId = req.user.id;
+
+            let rawScore = req.body.score !== undefined ? req.body.score : req.body.rating;
+            const scoreVal = parseFloat(rawScore);
+
+            if (isNaN(scoreVal) || scoreVal < 0.5 || scoreVal > 5.0) {
+                return res.status(400).json({ error: 'Nieprawidłowa ocena' });
+            }
+
+            // Rozpoczynamy transakcję
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            // 1. Zapis oceny
+            await connection.execute(`
+                INSERT INTO track_ratings (user_id, track_id, score) VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE score = VALUES(score)
+            `, [userId, trackId, scoreVal]);
+
+            // 2. Aktualizacja statystyk
+            await updateTrackStatsInTransaction(connection, trackId);
+
+            await connection.commit();
+
+            res.json({ message: 'Ocena została zapisana', score: scoreVal });
+        } catch (err) {
+            if (connection) await connection.rollback();
+            console.error("[Track Rating Error]:", err);
+            res.status(500).json({ error: 'Nie udało się zapisać oceny' });
+        } finally {
+            if (connection) connection.release();
+        }
+    });
+
+    // 6. Usuń ocenę (Zoptymalizowane transakcją)
+    router.delete('/:trackId', authenticate, async (req, res) => {
+        let connection = null;
+        try {
+            const { trackId } = req.params;
+            const userId = req.user.id;
+
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+
+            await connection.execute('DELETE FROM track_ratings WHERE user_id = ? AND track_id = ?', [userId, trackId]);
+
+            await updateTrackStatsInTransaction(connection, trackId);
+
+            await connection.commit();
+            res.json({ message: 'Ocena została usunięta' });
+        } catch (err) {
+            if (connection) await connection.rollback();
+            console.error("[Track Delete Error]:", err);
+            res.status(500).json({ error: 'Nie udało się usunąć oceny' });
+        } finally {
+            if (connection) connection.release();
+        }
+    });
+
+    // 7. Histogram
+    router.get('/:trackId/histogram', async (req, res) => {
+        try {
+            const { trackId } = req.params;
+            const [rows] = await pool.execute(`
+                SELECT score, COUNT(*) as count FROM track_ratings
+                WHERE track_id = ? GROUP BY score ORDER BY score DESC
+            `, [trackId]);
+            res.json(rows);
+        } catch (err) {
+            res.status(500).json({ error: 'Nie udało się załadować histogramu' });
         }
     });
 

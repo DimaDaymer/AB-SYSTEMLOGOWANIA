@@ -1,18 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Navbar Component</title>
+    <title>Komponent Nawigacji</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #1a1a1a;
-            color: white;
-            min-height: 100vh;
-        }
-
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -176,110 +168,86 @@
                 width: 100%;
             }
         }
+
+        #search-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 350px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            border: 1px solid #333;
+        }
+
+        #search-dropdown.show { display: flex; }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: #eee;
+            transition: background 0.2s;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .suggestion-item:hover { background: #2a2a2a; }
+
+        .suggestion-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            margin-right: 12px;
+            object-fit: cover;
+            background-color: #333;
+        }
+
+        .suggestion-info { display: flex; flex-direction: column; }
+        .suggestion-title { font-weight: 600; font-size: 0.95em; }
+        .suggestion-type {
+            font-size: 0.7em;
+            color: #3b82f6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .highlight { color: #3b82f6; font-weight: bold; }
+        .see-all { justify-content: center; background: #161616; color: #3b82f6; }
     </style>
+
 </head>
-<body>
 <nav class="navbar">
     <div class="navbar-left">
         <a href="/" class="site-logo">
-            <img src="/img/MelodyRaterLogo.png" alt="MelodyRater Logo">
+            <img src="/img/MelodyRaterLogo.png" alt="MelodyRater" onerror="this.style.display='none'">
         </a>
     </div>
 
     <div class="navbar-center">
-        <a href="/browse.html">Browse</a>
-        <a href="/chart-page.html">Charts</a>
-        <a href="/genres">Genres</a>
-        <a href="/global_lists.html">Lists</a>
+        <a href="/browse.html">Przeglądaj</a>
+        <a href="/chart-page.html">Rankingi</a>
+        <a href="/global_lists.html">Listy</a>
     </div>
+
     <div class="navbar-right">
         <div class="search-container">
             <button class="icon-button search-toggle-button">🔍</button>
-            <input type="search" class="search-input" placeholder="Search...">
+            <input type="text" class="search-input" id="navbar-search" placeholder="Szukaj artystów, albumów..." autocomplete="off">
+            <div class="search-dropdown" id="search-dropdown"></div>
         </div>
+
         <div class="user-menu">
             <button class="icon-button profile-toggle-button">👤</button>
             <div class="dropdown-content">
-                <a href="/profile">Profile</a>
-                <a href="/notifications">Notifications</a>
-                <a href="edit-profile.html">Settings</a>
-                <a href="#" id="logout-button">Logout</a>
+                <a href="#" id="nav-profile-link">Profil</a>
+                <a href="/edit-profile.html">Ustawienia</a>
+                <a href="#" id="logout-button">Wyloguj</a>
             </div>
         </div>
     </div>
 </nav>
-
-<script>
-    function initNavbar() {
-        const profileToggleButton = document.querySelector('.profile-toggle-button');
-        const dropdownContent = document.querySelector('.dropdown-content');
-        const searchToggleButton = document.querySelector('.search-toggle-button');
-        const searchInput = document.querySelector('.search-input');
-
-        if (profileToggleButton && dropdownContent) {
-            profileToggleButton.addEventListener('click', (event) => {
-                dropdownContent.classList.toggle('show');
-                if (searchInput) searchInput.classList.remove('active');
-                event.stopPropagation();
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!profileToggleButton.contains(event.target) && !dropdownContent.contains(event.target)) {
-                    dropdownContent.classList.remove('show');
-                }
-            });
-        }
-
-        if (searchToggleButton && searchInput) {
-            searchToggleButton.addEventListener('click', (event) => {
-                searchInput.classList.toggle('active');
-                if (searchInput.classList.contains('active')) {
-                    searchInput.focus();
-                } else {
-                    searchInput.value = '';
-                }
-                if (dropdownContent) dropdownContent.classList.remove('show');
-                event.stopPropagation();
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!searchToggleButton.contains(event.target) && !searchInput.contains(event.target)) {
-                    searchInput.classList.remove('active');
-                }
-            });
-        }
-
-        const logoutButton = document.getElementById('logout-button');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem('token');
-                localStorage.removeItem('userAvatar');
-                window.location.href = '/login.html';
-            });
-        }
-    }
-    const currentPath = window.location.pathname;
-    document.querySelectorAll('.navbar-center a').forEach(link => {
-        // Здесь используется `link.getAttribute('href')`, но `searchInput` не определен в этой области видимости.
-        // Переменную `searchInput` нужно объявить в скрипте.
-        if (link.getAttribute('href') === currentPath) {
-            link.classList.add('active');
-        }
-    });
-
-    const searchInput = document.querySelector('.search-input'); // Объявляем searchInput здесь
-    if (searchInput) {
-        searchInput.addEventListener('input', async (e) => {
-            const query = e.target.value;
-            if (query.length < 3) return;
-
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            const results = await response.json();
-            // Логика отображения результатов поиска отсутствует, но для работы навбара это не критично.
-        });
-    }
-
-</script>
-</body>
-</html>

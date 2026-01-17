@@ -2,19 +2,16 @@
 
 <script>
     (function() {
-        // Защита: класс должен быть загружен глобально в head
         if (typeof StarRating === 'undefined') return;
 
         const container = document.getElementById('album-rating-component-host');
         if (!container) return;
 
-        // Создаем экземпляр
         const ratingInstance = new StarRating(container, {
             showValue: true,
             clearableText: '×'
         });
 
-        // Слушаем изменения от UI (когда юзер кликает)
         ratingInstance.container.addEventListener('ratingChanged', (e) => {
             const newRating = e.detail.rating;
             if (newRating === 0) {
@@ -24,7 +21,6 @@
             }
         });
 
-        // Регистрируем компонент, чтобы albums1.js мог его обновлять
         window.components = window.components || {};
         window.components.albumRatingStars = {
             updateRating: (rating) => {
@@ -32,7 +28,6 @@
             }
         };
 
-        // Ставим начальное значение, если оно уже прилетело
         if (typeof window.currentAlbumRating === 'number') {
             ratingInstance.setValue(window.currentAlbumRating);
         }

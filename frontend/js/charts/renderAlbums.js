@@ -1,12 +1,7 @@
-// frontend/js/renderAlbums.js
+// frontend/js/charts/renderAlbums.js
 
-import { handleAlbumAction } from './handleAlbumAction.js';
+const defaultContainer = document.getElementById('newReleasesContainer');
 
-const newReleasesContainer = document.getElementById('newReleasesContainer');
-
-/**
- * Проверяет хеш URL и скроллит к соответствующему альбому, выделяя его.
- */
 export function checkAndScrollToAlbum() {
     const hash = window.location.hash.substring(1);
     if (hash) {
@@ -19,31 +14,37 @@ export function checkAndScrollToAlbum() {
     }
 }
 
-/**
- * Отрисовывает список альбомов.
- * @param {Array<object>} albums - Массив объектов альбомов.
- */
-export function renderAlbums(albums) {
+export function renderAlbums(albums, container = defaultContainer) {
+    if (!container) return;
+
     if (!albums || albums.length === 0) {
-        newReleasesContainer.innerHTML = '<p>No albums found.</p>';
+        container.innerHTML = '<p>Nie znaleziono albumów.</p>';
         return;
     }
-    newReleasesContainer.innerHTML = '';
+    container.innerHTML = '';
 
-    albums.forEach(album => {
+    albums.forEach((album, index) => {
         const albumCard = document.createElement('div');
         albumCard.classList.add('album-card');
         if (album.slug) albumCard.id = album.slug;
+        albumCard.dataset.albumId = album.id;
 
         const albumUrl = `/release/album/${album.slug}`;
-        const releaseYear = album.release_date ? new Date(album.release_date).getFullYear() : (album.release_year || 'N/A');
+        let releaseYear = album.release_year || (album.release_date ? new Date(album.release_date).getFullYear() : 'N/A');
 
         const ratingValue = parseFloat(album.avg_score);
-        const rating = (ratingValue && !isNaN(ratingValue) && ratingValue > 0) ? `${ratingValue.toFixed(2)} / 5.0` : "N/A";
+        const rating = (ratingValue && !isNaN(ratingValue) && ratingValue > 0)
+            ? `${ratingValue.toFixed(2)} / 5.0`
+            : "N/A";
 
-        const descriptorTags = album.descriptors;
-        const descriptorsDisplay = Array.isArray(descriptorTags) && descriptorTags.length > 0
-            ? descriptorTags.join(', ')
+        const genres = Array.isArray(album.genres) ? album.genres.join(', ') : 'N/A';
+        const descriptorsDisplay = Array.isArray(album.descriptors) && album.descriptors.length > 0
+            ? album.descriptors.join(', ')
+            : 'N/A';
+
+        const formatDisplay = album.format_name ? album.format_name : 'N/A';
+        const attributesDisplay = (Array.isArray(album.album_attributes) && album.album_attributes.length > 0)
+            ? album.album_attributes.join(', ')
             : 'N/A';
 
         const listensCount = parseInt(album.listens_count || 0).toLocaleString();
@@ -56,53 +57,121 @@ export function renderAlbums(albums) {
         const activeLike = album.is_liked ? 'active' : '';
         const activeWish = album.is_wishlisted ? 'active' : '';
 
-        const rankHtml = (album.global_rank && album.global_rank > 0) ?
-            `<div class="chart-rank">#${album.global_rank}</div>` :
-            '';
+        const rank = album.global_rank || (index + 1);
 
         albumCard.innerHTML = `
-            ${rankHtml} <a href="${albumUrl}" class="album-cover-link">
-                ${album.cover_url ?
-            `<img src="${album.cover_url}" alt="${album.title} cover">` :
-            '<img src="https://via.placeholder.com/120" alt="Placeholder cover">'}
+            <div class="chart-rank">#${rank}</div>
+            <a href="${albumUrl}" class="album-cover-link">
+                ${album.cover_url
+            ? `<img src="${album.cover_url}" alt="okładka ${album.title}">`
+            : '<img src="https://via.placeholder.com/120" alt="Brak okładki">'}
             </a>
 
             <div class="album-details-wrapper">
                 <a href="${albumUrl}" class="album-text-link">
                     <h2>${album.title}</h2>
-                    <p><strong>Artist:</strong> ${album.artist_name || 'N/A'}</p>
-                    <p><strong>Year:</strong> ${releaseYear}</p>
-                    <p><strong>Genres:</strong> ${Array.isArray(album.genres) ? album.genres.join(', ') : 'N/A'}</p>
-                    <p><strong>Descriptors:</strong> ${descriptorsDisplay}</p>
+                    <p><strong>Wykonawca:</strong> ${album.artist_name || 'N/A'}</p>
+                    <p><strong>Rok:</strong> ${releaseYear}</p>
+                    <p><strong>Format:</strong> ${formatDisplay}</p>
+                    <p><strong>Atrybuty:</strong> ${attributesDisplay}</p>
+                    <p><strong>Gatunki:</strong> ${genres}</p>
+                    <p><strong>Deskryptory:</strong> ${descriptorsDisplay}</p>
                 </a>
 
                 <div class="rating-info">
                     <span class="score">${rating}</span>
-                    <span title="Listens">🎧 ${listensCount} Listens</span>
-                    <span title="Likes">❤️ ${likesCount} Likes</span>
-                    <span title="Wishlist">⭐ ${wishlistCount} Wishlist</span>
-                    <span title="Lists">📜 ${inListsCount} Lists</span>
-                    <span title="Reviews">💬 ${reviewsCount} Reviews</span>
+                    <span title="Odsłuchania" class="stat-listens"><i class="icon-listen"></i> <span class="count-val">${listensCount}</span> Odsłuchań</span>
+                    <span title="Polubienia" class="stat-likes"><i class="icon-like"></i> <span class="count-val">${likesCount}</span> Polubień</span>
+                    <span title="Lista życzeń" class="stat-wishlist"><i class="icon-wish"></i> <span class="count-val">${wishlistCount}</span> Chce usłyszeć</span>
+                    <span title="Listy"><i class="icon-list"></i> ${inListsCount} List</span>
+                    <span title="Recenzje"><i class="icon-review"></i> ${reviewsCount} Recenzji</span>
                 </div>
 
                 <div class="album-actions">
                     <button class="action-button ${activeListen}" data-album-id="${album.id}" data-action="listen">
-                        🎧 Listen
+                        <i class="icon-listen"></i>
                     </button>
                     <button class="action-button ${activeLike}" data-album-id="${album.id}" data-action="like">
-                        ❤️ Like
+                        <i class="icon-like"></i>
                     </button>
                     <button class="action-button ${activeWish}" data-album-id="${album.id}" data-action="wishlist">
-                        ⭐ Wishlist
+                        <i class="icon-wish"></i>
                     </button>
                 </div>
             </div>
         `;
-        newReleasesContainer.appendChild(albumCard);
+        container.appendChild(albumCard);
     });
 
-    // Привязка обработчика действий к кнопкам
-    document.querySelectorAll('.action-button').forEach(button => {
-        button.addEventListener('click', handleAlbumAction);
+    container.querySelectorAll('.action-button').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const button = e.currentTarget;
+            const albumId = button.dataset.albumId;
+            const actionType = button.dataset.action;
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            button.disabled = true;
+
+            try {
+                const res = await fetch('/api/actions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ albumId, actionType })
+                });
+
+                if (!res.ok) throw new Error('Akcja nieudana');
+
+                const data = await res.json();
+                const isActive = data.active;
+
+                if (isActive) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+
+                updateAlbumCounter(button, actionType, isActive);
+
+            } catch (err) {
+                console.error("Błąd akcji:", err);
+                alert("Coś poszło nie tak. Spróbuj ponownie.");
+            } finally {
+                button.disabled = false;
+            }
+        });
     });
+}
+
+function updateAlbumCounter(button, actionType, isNowActive) {
+    const detailsWrapper = button.closest('.album-details-wrapper');
+    if (!detailsWrapper) return;
+
+    let selector = '';
+    if (actionType === 'listen') selector = '.stat-listens .count-val';
+    else if (actionType === 'like') selector = '.stat-likes .count-val';
+    else if (actionType === 'wishlist') selector = '.stat-wishlist .count-val';
+
+    if (!selector) return;
+
+    const countSpan = detailsWrapper.querySelector(selector);
+    if (countSpan) {
+        let count = parseInt(countSpan.textContent.replace(/\D/g, '')) || 0;
+
+        if (isNowActive) {
+            count++;
+        } else {
+            count = Math.max(0, count - 1);
+        }
+
+        countSpan.textContent = count.toLocaleString();
+    }
 }

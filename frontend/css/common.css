@@ -1,18 +1,26 @@
+/* common.css */
+
 :root {
     --bg-dark: #1f1f1f;
-    --card-bg: #1a1a1a;
+    --card-bg: #1a1a1a; /* Немного темнее для контраста */
     --text-primary: #eee;
     --text-secondary: #bbb;
-    --accent-primary: #00ffcc;
-    --accent-secondary: greenyellow;
+
+    /* Акцентные цвета */
+    --accent-primary: #00ffcc;     /* Циан (по умолчанию) */
+    --accent-warning: #FFC107;     /* Оранжевый (Редактирование) */
+    --accent-success: #4CAF50;     /* Зеленый (Добавление) */
+    --accent-danger: #ff5555;      /* Красный (Удаление/Ошибка) */
+
     --border-color: #333;
     --input-bg: #2a2a2a;
-    --error-color: #ff5555;
-    --success-color: #00cc99;
+
+    /* Шрифты */
+    --font-main: 'Inter', sans-serif;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-main);
     background-color: var(--bg-dark);
     margin: 0;
     padding: 0;
@@ -32,6 +40,7 @@ body {
     padding: 0 20px;
 }
 
+/* Карточки */
 .form-card, .auth-card {
     background-color: var(--card-bg);
     border-radius: 12px;
@@ -50,6 +59,7 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Поля ввода */
 .form-group {
     margin-bottom: 20px;
 }
@@ -62,20 +72,20 @@ body {
     font-size: 15px;
 }
 
-.form-control {
+.form-control, .form-select {
     width: 100%;
     padding: 12px 15px;
     background-color: var(--input-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-main);
     transition: all 0.2s;
     box-sizing: border-box;
     color: var(--text-primary);
 }
 
-.form-control:focus {
+.form-control:focus, .form-select:focus {
     border-color: var(--accent-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.2);
@@ -86,7 +96,8 @@ textarea.form-control {
     resize: vertical;
 }
 
-select.form-control {
+/* Стилизация Select */
+select.form-control, .form-select {
     appearance: none;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
@@ -94,6 +105,7 @@ select.form-control {
     background-size: 16px;
 }
 
+/* КНОПКИ (Базовые стили) */
 .btn {
     display: inline-block;
     background-color: var(--accent-primary);
@@ -106,7 +118,8 @@ select.form-control {
     font-weight: 600;
     transition: all 0.3s;
     text-align: center;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-main);
+    text-decoration: none;
 }
 
 .btn-block {
@@ -115,7 +128,7 @@ select.form-control {
 }
 
 .btn:hover {
-    background-color: #00e6b8;
+    filter: brightness(1.1);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
@@ -124,16 +137,7 @@ select.form-control {
     transform: translateY(0);
 }
 
-.btn-outline {
-    background: transparent;
-    border: 2px solid var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-.btn-outline:hover {
-    background-color: rgba(0, 255, 204, 0.1);
-}
-
+/* Подвал формы и ссылки */
 .form-footer {
     text-align: center;
     margin-top: 25px;
@@ -153,8 +157,9 @@ select.form-control {
     color: #00e6b8;
 }
 
+/* Сообщения */
 .error-message {
-    color: var(--error-color);
+    color: var(--accent-danger);
     font-size: 14px;
     margin-top: 5px;
     display: block;
@@ -164,7 +169,7 @@ select.form-control {
 }
 
 .success-message {
-    color: var(--success-color);
+    color: var(--accent-success);
     font-size: 14px;
     margin-top: 10px;
     padding: 10px;
@@ -173,6 +178,7 @@ select.form-control {
     text-align: center;
 }
 
+/* Треклист (общие элементы) */
 .track-item {
     display: flex;
     gap: 12px;
@@ -189,22 +195,12 @@ select.form-control {
     background-color: #3a3a3a;
 }
 
-.track-item .track-number {
-    width: 70px;
-    text-align: center;
-}
-
-.track-item .track-title {
-    flex-grow: 1;
-}
-
-.track-item .track-duration {
-    width: 120px;
-    flex-shrink: 0;
-}
+.track-item .track-number { width: 70px; text-align: center; }
+.track-item .track-title { flex-grow: 1; }
+.track-item .track-duration { width: 120px; flex-shrink: 0; }
 
 .remove-track {
-    background-color: var(--error-color);
+    background-color: var(--accent-danger);
     color: white;
     border: none;
     width: 36px;
@@ -225,10 +221,58 @@ select.form-control {
 }
 
 .add-item-btn {
-    background-color: #2196F3;
+    background-color: #2196F3; /* Specific blue for adding items */
     margin-top: 10px;
 }
 
 .add-item-btn:hover {
     background-color: #0b7dda;
 }
+
+/* Контейнер для строки соцсетей */
+.social-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* Специфические настройки полей внутри строки */
+.social-row .social-platform {
+    flex: 1;
+}
+
+.social-row .social-link {
+    flex: 2;
+}
+
+/* Кнопка удаления */
+.remove-social-btn {
+    background-color: transparent;
+    color: var(--accent-danger); /* Используем ваш цвет #ff5555 */
+    border: 1px solid var(--accent-danger);
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.remove-social-btn:hover {
+    background-color: var(--accent-danger);
+    color: white;
+    box-shadow: 0 0 8px rgba(255, 85, 85, 0.4);
+}
+
+/* Убираем лишний фон/рамку у родительского контейнера в HTML */
+#social-inputs-container {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    margin-bottom: 10px;
+}
+

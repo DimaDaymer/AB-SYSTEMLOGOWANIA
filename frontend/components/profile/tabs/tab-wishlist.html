@@ -1,0 +1,26 @@
+<div id="wishlist-container"></div>
+<div class="view-all-wrapper"></div>
+
+<script type="module">
+    (function() {
+        const { getUrl, getHeaders, getArtist, createOpenAllBtn, openOverlay, PREVIEW_LIMIT } = window.TabsShared;
+
+        async function fetchActionsApi(page, limit, type) {
+            const res = await fetch(`${getUrl('actions', type)}?page=${page}&limit=${limit}`, { headers: getHeaders() });
+            return await res.json();
+        }
+
+        async function loadActions() {
+            const container = document.getElementById('wishlist-container');
+            container.innerHTML = 'Wczytywanie...';
+            try {
+                const data = await fetchActionsApi(1, PREVIEW_LIMIT, 'wishlist');
+                const items = data.items || data;
+                container.innerHTML = items.slice(0, 10).map(a => `<div class="album-entry"><img src="${a.cover_url || '/img/default-artist.png'}" class="album-cover-small"><div class="album-details"><a href="/release/album/${a.slug}" class="title">${a.title || a.album_title}</a><span class="artist-info">${getArtist(a)}</span></div></div>`).join('');
+                createOpenAllBtn('wishlist', data.total || items.length, () => openOverlay('CHCĘ USŁYSZEĆ', 'wishlist', (p, l) => fetchActionsApi(p, l, 'wishlist')));
+            } catch (e) { container.innerHTML = 'Błąd.'; }
+        }
+
+        loadActions();
+    })();
+</script>

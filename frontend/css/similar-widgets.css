@@ -1,0 +1,103 @@
+/* frontend/css/similar-widgets.css */
+
+.tabs-header {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    transition: all 0.3s;
+}
+
+.tab-btn:hover { color: #fff; }
+.tab-btn.active { color: #00ffcc; border-bottom: 2px solid #00ffcc; }
+
+.recommendations-section { display: none; }
+.recommendations-section.active { display: block; }
+
+.horizontal-scroll-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.similar-grid-horizontal {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    gap: 15px;
+    padding: 10px 5px;
+    scrollbar-width: none;
+}
+
+.similar-grid-horizontal::-webkit-scrollbar { display: none; }
+
+/* Базовый стиль карточки (может перекрываться через lists.css) */
+.card-recommendation {
+    flex: 0 0 140px;
+    background: #1e1e1e;
+    border-radius: 10px;
+    padding: 10px;
+    transition: transform 0.2s, background 0.2s;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.card-recommendation:hover {
+    transform: translateY(-3px);
+    background: #282828;
+}
+
+.card-recommendation img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.card-recommendation .title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+}
+
+.card-recommendation .sub-title {
+    font-size: 0.75rem;
+    color: #aaa;
+}
+
+.scroll-btn {
+    background: rgba(0, 255, 204, 0.1);
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    color: #00ffcc;
+    font-size: 20px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    position: absolute;
+    z-index: 10;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.3s;
+}
+
+.scroll-btn:hover { background: #00ffcc; color: #000; }
+.scroll-btn.left { left: -15px; }
+.scroll-btn.right { right: -15px; }

@@ -1,7 +1,7 @@
 /* css/comments.css */
 
 .comment-section-wrapper {
-    background: #1e1e1e;
+    background: rgba(0, 0, 0, 0.4); /* Полупрозрачный темный фон */
     border-radius: 12px;
     padding: 20px;
     margin-top: 30px;
@@ -189,6 +189,49 @@
 }
 
 .close-thread { cursor: pointer; font-size: 1.5rem; line-height: 1; color: #fff; }
+
+/* Внешний контейнер модального окна */
+.thread-modal .thread-body {
+    padding: 20px;
+}
+
+/* Главный комментарий треда */
+.thread-modal .main-thread-comment {
+    border-bottom: 1px solid #333; /* Визуальный разделитель */
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+/* Контейнер для всех ответов */
+.thread-replies-list-wrapper {
+    /* Левая граница, как на Youtube, для визуальной связи */
+    border-left: 2px solid #555;
+    padding-left: 15px;
+}
+
+/* Ответы, которые вложены (имеют класс reply-item) */
+.thread-modal .comment-item.reply-item {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    /* Убираем правый отступ, чтобы ответы плотнее прилегали */
+    /* margin-left: 10px; */
+}
+
+/* Контейнер для вложенных ответов на ответы */
+.nested-replies-container {
+    margin-top: 10px;
+    padding-left: 20px;
+    /* Можно добавить границу для более глубокой вложенности, если нужно */
+    /* border-left: 1px dashed #444; */
+}
+
+/* Кнопка "more replies" */
+.show-replies-btn {
+    color: #007bff;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-left: 5px;
+}
 
 /* Edit Mode Styles */
 .edit-wrapper { margin-top: 10px; display: none; }

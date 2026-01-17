@@ -1,40 +1,42 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register | MelodyRater</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/common.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestracja | MelodyRater</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/common.css">
 </head>
 <body>
 <div class="auth-container">
-  <div class="auth-card">
-    <h2>Register</h2>
-    <form id="registerForm">
-      <div class="form-group">
-        <input type="text" id="username" class="form-control" placeholder="Username" required>
-      </div>
+    <div class="auth-card">
+        <h2>Zarejestruj się</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">Nazwa użytkownika</label>
+                <input type="text" id="username" class="form-control" placeholder="Nazwa użytkownika" required>
+            </div>
 
-      <div class="form-group">
-        <input type="email" id="email" class="form-control" placeholder="Email" required>
-      </div>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" class="form-control" placeholder="E-mail" required>
+            </div>
 
-      <div class="form-group">
-        <input type="password" id="password" class="form-control" placeholder="Password" required>
-      </div>
+            <div class="form-group">
+                <label for="password">Hasło</label>
+                <input type="password" id="password" class="form-control" placeholder="Hasło" required>
+            </div>
 
-      <button type="submit" class="btn btn-block">Register</button>
-    </form>
+            <button type="submit" class="btn btn-block">Zarejestruj się</button>
+        </form>
 
-    <div class="form-footer">
-      <p>Already have an account? <a href="login.html">Login here</a></p>
+        <div class="form-footer">
+            <p>Masz już konto? <a href="./login.html">Zaloguj się tutaj</a></p>
+        </div>
+
+        <div id="registerError" class="error-message"></div>
     </div>
-
-    <div id="registerError" class="error-message"></div>
-  </div>
 </div>
-<script src="js/auth.js"></script>
+<script src="./js/auth.js"></script>
 </body>
 </html>

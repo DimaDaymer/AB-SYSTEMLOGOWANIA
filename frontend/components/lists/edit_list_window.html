@@ -1,34 +1,34 @@
 <div class="overlay" id="list-edit-overlay">
     <div class="list-window">
-        <h2>Edit list</h2>
+        <h2>Edytuj listę</h2>
 
         <div class="form-group">
-            <label for="edit-list-name">Title</label>
+            <label for="edit-list-name">Tytuł</label>
             <input type="text" id="edit-list-name" maxlength="100">
         </div>
 
         <div class="form-group">
-            <label for="edit-list-description">Description</label>
+            <label for="edit-list-description">Opis</label>
             <textarea id="edit-list-description" rows="4"></textarea>
         </div>
 
         <div class="form-group">
-            <label for="edit-list-cover-url">Cover (URL)</label>
-            <input type="text" id="edit-list-cover-url" placeholder="Leave empty to use the first album">
+            <label for="edit-list-cover-url">Okładka (URL)</label>
+            <input type="text" id="edit-list-cover-url" placeholder="Pozostaw puste, aby użyć okładki pierwszego elementu">
         </div>
 
         <div class="action-buttons" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <button class="delete-button" id="delete-list-btn" style="background: #e74c3c;">Delete list</button>
+            <button class="delete-button" id="delete-list-btn" style="background: #e74c3c;">Usuń listę</button>
             <div style="display:flex; gap: 10px;">
-                <button class="cancel-button" onclick="ListApp.editModal.close()">Cancel</button>
-                <button class="save-button" onclick="ListApp.editModal.saveChanges()" style="background: #00ffcc; color: #111;">Save</button>
+                <button class="cancel-button" onclick="ListApp.editModal.close()">Anuluj</button>
+                <button class="save-button" onclick="ListApp.editModal.saveChanges()" style="background: #00ffcc; color: #111;">Zapisz</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* Стили для модального окна редактирования */
+    /* Style dla okna modalnego edycji */
     #list-edit-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0, 0, 0, 0.7); display: none; justify-content: center;

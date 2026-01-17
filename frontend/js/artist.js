@@ -1,62 +1,98 @@
-// public/js/artist.js
+// === 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СОСТОЯНИЕ ===
+window.components = window.components || {};
+window.currentArtistId = null;
+window.artistDataCache = null;
+let similarTabLoaded = false;
 
-import { handleAlbumAction } from './charts/handleAlbumAction.js';
+// === 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (HELPERS) ===
 
-let currentArtistId = null;
-let artistDiscography = {};
+async function loadComponent(containerId, componentPath) {
+    try {
+        const container = document.getElementById(containerId);
+        if (!container) return false;
 
-document.addEventListener('DOMContentLoaded', async () => {
+        const response = await fetch(componentPath);
+        if (!response.ok) throw new Error(`HTTP ${response.status} for ${componentPath}`);
+
+        const html = await response.text();
+        container.innerHTML = html;
+
+        // Важная часть: принудительный запуск скриптов из HTML
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(script => {
+            const newScript = document.createElement('script');
+            if (script.src) {
+                newScript.src = script.src;
+            } else {
+                newScript.textContent = script.textContent;
+            }
+            document.head.appendChild(newScript);
+            script.remove();
+        });
+        return true;
+    } catch (error) {
+        console.warn(`[Component] Failed to load ${componentPath}:`, error);
+        return false;
+    }
+}
+
+function getSlugFromURL() {
     let slug = window.location.pathname.split('/').pop();
     if (slug === 'artist.html' || !slug || slug.includes('.html')) {
         const urlParams = new URLSearchParams(window.location.search);
         slug = urlParams.get('slug');
     }
+    return slug;
+}
 
-    if (!slug) return console.error('No artist slug found');
+function getToken() {
+    return localStorage.getItem('token');
+}
 
-    const token = localStorage.getItem('token');
+// === 3. ЗАГРУЗКА МОДУЛЕЙ И КОМПОНЕНТОВ ===
 
-    try {
-        const response = await fetch(`/api/artist/${slug}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': token ? `Bearer ${token}` : ''
-            }
-        });
+async function loadArtistModules(artistId, artistType) {
+    // Используем loadComponent вместо простого innerHTML, чтобы скрипты внутри выполнились
+    const loaded = await loadComponent('members-module-container', '/components/artist/artist-members.html');
 
-        if (!response.ok) throw new Error('API Error');
-
-        const data = await response.json();
-        currentArtistId = data.artist.id;
-        window.currentArtistSlug = slug;
-
-        artistDiscography = data.discography;
-
-        await renderArtistPage(data);
-        setupFollowButton(data.artist.id, data.artist.isFollowing);
-        checkAdminRightsAndSetupEditButton(slug);
-        setupTabs();
-        setupDiscographySort();
-
-    } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('artist-name').textContent = 'Error loading artist';
+    // Если компонент загрузился и скрипт внутри него создал функцию initMembersModule
+    if (loaded && window.initMembersModule) {
+        window.initMembersModule(artistId, artistType || 'solo');
     }
-});
 
-function setupDiscographySort() {
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', () => {
-            const sortBy = sortSelect.value;
-            renderDiscography(artistDiscography, sortBy);
-            setupAlbumActionButtons();
-        });
+    // Загрузка комментариев
+    const commentRes = await fetch('/components/comment-box.html');
+    if (commentRes.ok) {
+        document.getElementById('comments-module-container').innerHTML = await commentRes.text();
+        if (window.CommentsCore) {
+            new window.CommentsCore({
+                mode: 'ARTIST',
+                entityId: artistId,
+                containerId: 'comments-system-root'
+            });
+        }
     }
 }
 
-async function checkAdminRightsAndSetupEditButton(slug) {
-    const token = localStorage.getItem('token');
+async function loadListsModule() {
+    const container = document.getElementById('artist-lists-container');
+    if (!container || container.childElementCount > 1) return;
+    await loadComponent('artist-lists-container', '/components/lists/entity-lists.html');
+}
+
+// === 4. РАБОТА С ДАННЫМИ (API) ===
+
+async function fetchArtist(slug) {
+    const token = getToken();
+    const response = await fetch(`/api/artist/${slug}`, {
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+    });
+    if (!response.ok) throw new Error('Artist fetch failed');
+    return await response.json();
+}
+
+async function checkAdminRights(slug) {
+    const token = getToken();
     if (!token) return;
     try {
         const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
@@ -66,220 +102,261 @@ async function checkAdminRightsAndSetupEditButton(slug) {
             btn.style.display = 'block';
             btn.onclick = () => window.location.href = `/edit_artist.html?slug=${slug}`;
         }
-    } catch(e) {
-        console.error('Admin check failed for edit button', e);
-    }
+    } catch(e) {}
 }
 
-async function loadMembersModule(containerId) {
-    try {
-        const res = await fetch('/components/artist/artist-members.html');
-        if (res.ok) {
-            document.getElementById(containerId).innerHTML = await res.text();
-            return true;
-        } else {
-            console.warn(`Failed to fetch /components/artist/artist-members.html.`);
-            document.getElementById(containerId).innerHTML = '<div style="color:red;">Failed to load members module.</div>';
-        }
-    } catch (e) {
-        console.error('Error loading members module:', e);
-    }
-    return false;
-}
+// === 5. ОБНОВЛЕНИЕ UI И РЕНДЕРИНГ ===
 
-async function renderArtistPage(data) {
+function renderArtistUI(data) {
     const { artist, discography } = data;
-
     document.title = `${artist.name} | Melody Rater`;
-    document.getElementById('artist-name').textContent = artist.name;
 
-    const artistImg = artist.picture_url || '/images/default-artist.png';
-    document.getElementById('artist-picture').src = artistImg;
+    const nameEl = document.getElementById('artist-name');
+    if (nameEl) nameEl.textContent = artist.name;
+
+    const picEl = document.getElementById('artist-picture');
+    const artistImg = artist.picture_url || '/img/default-artist.png';
+    if (picEl) picEl.src = artistImg;
+
     const bg = document.getElementById('dynamic-background');
-    if(bg) bg.style.backgroundImage = `url('${artistImg}')`;
+    if (bg) bg.style.backgroundImage = `url('${artistImg}')`;
 
-    document.getElementById('artist-country').textContent = artist.origin_country || 'Unknown';
-    document.getElementById('artist-formed-year').textContent = artist.formed_year || 'N/A';
-    document.getElementById('artist-followers-count').textContent = artist.followers_count || 0;
-    document.getElementById('artist-global-score').textContent = artist.globalScore || 'N/A';
+    renderRanks(artist);
+    renderMetadata(artist);
 
-    const genresContainer = document.getElementById('artist-genres');
-    genresContainer.innerHTML = '';
-    if (artist.genres && artist.genres.length > 0) {
-        artist.genres.forEach(g => {
-            const link = document.createElement('a');
-            link.href = `/chart-page.html?genre=${encodeURIComponent(g)}`;
-            link.className = 'genre-tag';
-            link.textContent = g;
-            genresContainer.appendChild(link);
+    const currentSort = document.getElementById('sort-select')?.value || 'release_date_desc';
+    renderDiscography(discography, currentSort);
+}
+
+function renderRanks(artist) {
+    const rankContainer = document.getElementById('artist-rank-container');
+    const rankList = document.getElementById('artist-rank-list');
+    if (!rankContainer || !artist.ranks) return;
+
+    let ranksHTML = [];
+    if (artist.ranks.global) {
+        ranksHTML.push(`<div><a href="/chart-page.html?type=artists&sort=rating#${artist.slug}" style="color: #adff2f; font-weight: bold;">#${artist.ranks.global} in General Chart</a></div>`);
+    }
+    if (artist.ranks.locations) {
+        artist.ranks.locations.forEach(loc => {
+            ranksHTML.push(`<div><a href="/chart-page.html?type=artists&location=${encodeURIComponent(loc.name)}&sort=rating#${artist.slug}" style="color: #00ffcc;">#${loc.rank} for ${loc.name}</a></div>`);
         });
     }
-
-    const bioText = artist.bio || 'No biography available.';
-    document.getElementById('artist-description').innerHTML = bioText.replace(/\n/g, '<br>');
-
-    // 1. Рендеринг дискографии
-    renderDiscography(discography, document.getElementById('sort-select').value);
-
-    // 2. Привязка обработчиков после рендеринга
-    setupAlbumActionButtons();
-
-    const moduleLoaded = await loadMembersModule('members-module-container');
-    if (moduleLoaded && window.initMembersModule) {
-        console.log("Initializing Members Module for:", artist.name, "Type:", artist.artist_type);
-        window.initMembersModule(artist.id, artist.artist_type || 'solo');
-    }
+    rankList.innerHTML = ranksHTML.join('');
+    rankContainer.style.display = ranksHTML.length > 0 ? 'block' : 'none';
 }
 
-function renderDiscography(discography, sortBy = 'release_date_desc') {
+function renderMetadata(artist) {
+    const countryEl = document.getElementById('artist-country');
+    if (countryEl && artist.locations) {
+        countryEl.innerHTML = artist.locations.map(loc =>
+            `<a href="/chart-page.html?type=artists&location=${encodeURIComponent(loc)}" class="location-link">${loc}</a>`
+        ).join(', ') || 'Unknown';
+    }
+
+    const genresEl = document.getElementById('artist-genres');
+    if (genresEl && artist.genres) {
+        genresEl.innerHTML = artist.genres.map(g =>
+            `<a href="/chart-page.html?type=artists&genres=${encodeURIComponent(g)}" class="genre-tag">${g}</a>`
+        ).join('');
+    }
+
+    if (document.getElementById('artist-formed-year')) document.getElementById('artist-formed-year').textContent = artist.formed_year || 'N/A';
+    if (document.getElementById('artist-followers-count')) document.getElementById('artist-followers-count').textContent = artist.followers_count || 0;
+    if (document.getElementById('artist-global-score')) document.getElementById('artist-global-score').textContent = artist.globalScore || 'N/A';
+    if (document.getElementById('artist-description')) document.getElementById('artist-description').innerHTML = (artist.bio || 'No bio.').replace(/\n/g, '<br>');
+}
+
+function renderDiscography(discography, sortBy) {
     const discoContainer = document.getElementById('discography-list');
+    if (!discoContainer) return;
     discoContainer.innerHTML = '';
-    const order = ['Album', 'EP', 'Mixtape', 'Single', 'Compilation', 'Live'];
+
+    const priorities = ['Album', 'EP', 'Mixtape', 'Single', 'Compilation', 'Live', 'Demo'];
     const types = Object.keys(discography).sort((a, b) => {
-        let idxA = order.indexOf(a); let idxB = order.indexOf(b);
-        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        const getIdx = (s) => { const i = priorities.findIndex(p => s.includes(p)); return i === -1 ? 99 : i; };
+        return getIdx(a) - getIdx(b);
     });
 
-    const sortAlbums = (albums) => {
-        return albums.slice().sort((a, b) => {
-            switch (sortBy) {
-                case 'average_rating_desc':
-                    const ratingA = a.average_rating || 0;
-                    const ratingB = b.average_rating || 0;
-                    if (ratingB === ratingA) return 0;
-                    if (ratingA === 0) return 1;
-                    if (ratingB === 0) return -1;
-                    return ratingB - ratingA;
-                case 'ratings_count_desc': return (b.ratings_count || 0) - (a.ratings_count || 0);
-                case 'release_date_asc': return (a.release_year || 0) - (b.release_year || 0);
-                case 'release_date_desc': return (b.release_year || 0) - (a.release_year || 0);
-                case 'title_asc': return a.title.localeCompare(b.title);
-                default: return (b.release_year || 0) - (a.release_year || 0);
-            }
-        });
-    };
-
     types.forEach(type => {
-        let albums = discography[type];
+        const albums = sortAlbums(discography[type], sortBy);
         if (!albums.length) return;
-        albums = sortAlbums(albums);
 
         const section = document.createElement('div');
         section.className = 'disco-section';
         section.innerHTML = `<h3 class="section-title">${type}s</h3>`;
+
         const grid = document.createElement('div');
         grid.className = 'albums-grid';
+
         albums.forEach(album => {
-            const albumId = album.id;
-
-            const card = document.createElement('div');
-            card.className = 'album-card';
-
-            // Получение активных состояний: эти флаги приходят с сервера
-            const activeListen = album.is_listened ? 'active' : '';
-            const activeLike = album.is_liked ? 'active' : '';
-            const activeWish = album.is_wishlisted ? 'active' : '';
-
-            const rating = album.average_rating > 0 ? Number(album.average_rating).toFixed(1) : '-';
-            card.innerHTML = `
-                <a href="/release/album/${album.slug}" class="album-link">
-                    <div class="cover-wrapper">
-                        <img src="${album.cover_url || '/images/default_cover.png'}" alt="${album.title}" loading="lazy">
-                        <div class="rating-badge">${rating}</div>
+            const rating = parseFloat(album.average_rating) > 0 ? Number(album.average_rating).toFixed(1) : '-';
+            grid.innerHTML += `
+                <div class="album-card">
+                    <a href="/release/album/${album.slug}" class="album-link">
+                        <div class="cover-wrapper">
+                            <img src="${album.cover_url || '/img/default-artist.png'}" loading="lazy">
+                            <div class="rating-badge">${rating}</div>
+                        </div>
+                        <div class="album-title">${album.title}</div>
+                        <div class="album-year">${album.release_year}</div>
+                    </a>
+                    <div class="album-actions">
+                        <button class="action-button ${album.is_listened ? 'active' : ''}" data-album-id="${album.id}" data-action="listen">
+                            <i class="fas fa-headphones"></i>
+                        </button>
+                        <button class="action-button ${album.is_wishlisted ? 'active' : ''}" data-album-id="${album.id}" data-action="wishlist">
+                            <img src="https://api.iconify.design/material-symbols:bookmark.svg" alt="wishlist" />
+                        </button>
+                        <button class="action-button ${album.is_liked ? 'active' : ''}" data-album-id="${album.id}" data-action="like">
+                            <i class="fas fa-heart"></i>
+                        </button>
                     </div>
-                    <div class="album-title">${album.title}</div>
-                    <div class="album-year">${album.release_year}</div>
-                </a>
-                
-                ${albumId ? `
-                <div class="album-actions">
-                    <button class="action-button ${activeListen}" data-album-id="${albumId}" data-action="listen" title="Listen">
-                        <i class="fas fa-headphones"></i>
-                    </button>
-                    <button class="action-button ${activeLike}" data-album-id="${albumId}" data-action="like" title="Like">
-                        <i class="fas fa-heart"></i>
-                    </button>
-                    <button class="action-button ${activeWish}" data-album-id="${albumId}" data-action="wishlist" title="Wishlist">
-                        <i class="fas fa-star"></i>
-                    </button>
-                </div>
-                ` : `
-                <div class="album-actions" style="opacity:0.5; font-size: 0.9em; padding-top: 10px; border-top: 1px solid #2a2a2a; color: #777; justify-content: center;" title="The server did not provide the database ID for this album. Actions are disabled.">
-                    Album ID Unavailable (Check server response)
-                </div>
-                `}
-                `;
-            grid.appendChild(card);
+                </div>`;
         });
         section.appendChild(grid);
         discoContainer.appendChild(section);
     });
+    setupAlbumActionButtons();
 }
 
-function setupAlbumActionButtons() {
-    document.querySelectorAll('.album-actions .action-button').forEach(button => {
-        button.removeEventListener('click', handleAlbumAction);
-        button.addEventListener('click', handleAlbumAction);
+// === 6. ОБРАБОТЧИКИ (HANDLERS) ===
+
+function sortAlbums(albums, sortBy) {
+    return [...albums].sort((a, b) => {
+        const rA = parseFloat(a.average_rating) || 0, rB = parseFloat(b.average_rating) || 0;
+        const dA = new Date(a.release_date).getTime() || 0, dB = new Date(b.release_date).getTime() || 0;
+        switch (sortBy) {
+            case 'average_rating_desc': return rB - rA || (b.ratings_count - a.ratings_count);
+            case 'release_date_asc': return dA - dB;
+            case 'release_date_desc': return dB - dA;
+            case 'title_asc': return a.title.localeCompare(b.title);
+            default: return dB - dA;
+        }
     });
 }
 
-function setupFollowButton(artistId, isFollowing) {
-    const btn = document.getElementById('follow-button');
-    if(!btn) return;
+async function handleAlbumAction(e) {
+    const btn = e.currentTarget;
+    const albumId = btn.dataset.albumId;
+    const actionType = btn.dataset.action;
+    const token = getToken();
 
-    const updateBtn = (active) => {
-        if (active) {
-            btn.innerHTML = '<i class="fas fa-check"></i> Following';
-            btn.classList.add('following');
-            btn.classList.remove('btn-outline');
-        } else {
-            btn.innerHTML = '<i class="fas fa-plus"></i> Follow';
-            btn.classList.remove('following');
-            btn.classList.add('btn-outline');
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    try {
+        const isActive = btn.classList.contains('active');
+        const method = isActive ? 'DELETE' : 'POST';
+        const url = isActive
+            ? `/api/actions?albumId=${albumId}&actionType=${actionType}`
+            : '/api/actions';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: method === 'POST' ? JSON.stringify({ albumId, actionType }) : null
+        });
+
+        if (res.ok) {
+            btn.classList.toggle('active');
         }
-    };
-    updateBtn(isFollowing);
-
-    btn.onclick = async () => {
-        btn.disabled = true;
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                alert('Для подписки необходима авторизация.');
-                window.location.href = '/login.html';
-                return;
-            }
-            const res = await fetch(`/api/artist/${artistId}/follow`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({})
-            });
-            if (res.status === 401) {
-                window.location.href = '/login.html';
-                return;
-            }
-            const data = await res.json();
-            if (res.ok) {
-                document.getElementById('artist-followers-count').textContent = data.followers_count;
-                updateBtn(data.status === 'followed');
-            }
-        } catch (e) { console.error(e); } finally { btn.disabled = false; }
-    };
+    } catch (err) {
+        console.error('Action failed:', err);
+    }
 }
 
-function setupTabs() {
-    const tabs = document.querySelectorAll('.tab');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            document.getElementById(tab.dataset.tab).classList.add('active');
+function setupAlbumActionButtons() {
+    document.querySelectorAll('.album-actions .action-button').forEach(btn => {
+        btn.onclick = (e) => handleAlbumAction(e);
+    });
+}
 
-            if (tab.dataset.tab === 'discography') {
-                setupAlbumActionButtons();
-            }
+window.setupFollowButton = (artistId, isFollowing) => {
+    const btn = document.getElementById('follow-button');
+    if (!btn) return;
+
+    const updateUI = (active) => {
+        btn.innerHTML = active ? '<i class="fas fa-check"></i> Obserwujesz' : '<i class="fas fa-plus"></i> Obserwuj';
+        if (active) {
+            btn.classList.add('following');
+        } else {
+            btn.classList.remove('following');
+        }
+    };
+
+    updateUI(isFollowing);
+
+    btn.onclick = async () => {
+        const token = getToken();
+        if (!token) return window.location.href = '/login.html';
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/artist/${artistId}/follow`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (res.ok) updateUI(data.status === 'followed');
+        } catch (e) {
+            console.error('Follow error:', e);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+};
+
+// === 7. ИНИЦИАЛИЗАЦИЯ ===
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const slug = getSlugFromURL();
+    if (!slug) return;
+
+    try {
+        const data = await fetchArtist(slug);
+        window.currentArtistId = data.artist.id;
+        window.artistDataCache = data;
+
+        renderArtistUI(data);
+        setupFollowButton(data.artist.id, data.artist.isFollowing);
+
+        const listBtn = document.getElementById('add-to-list-btn');
+        if (listBtn) listBtn.onclick = () => window.openListWindow?.(data.artist.id, 'artist');
+
+        checkAdminRights(slug);
+        setupTabs();
+
+        await loadArtistModules(data.artist.id, data.artist.artist_type);
+
+        document.getElementById('sort-select')?.addEventListener('change', (e) => {
+            renderDiscography(window.artistDataCache.discography, e.target.value);
         });
+
+    } catch (error) {
+        console.error('Init Error:', error);
+    }
+});
+
+function setupTabs() {
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.onclick = () => {
+            document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+            tab.classList.add('active');
+            const content = document.getElementById(tab.dataset.tab);
+            if (content) content.classList.add('active');
+
+            if (tab.dataset.tab === 'lists') loadListsModule();
+            if (tab.dataset.tab === 'similar' && !similarTabLoaded) {
+                window.SimilarLoader?.init('artist', window.currentArtistId, 'similar-artists-container', 'compact');
+                similarTabLoaded = true;
+            }
+            if (tab.dataset.tab === 'discography') setupAlbumActionButtons();
+        };
     });
 }

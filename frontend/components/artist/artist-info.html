@@ -1,0 +1,184 @@
+<div class="artist-card-sticky">
+    <div class="artist-image-wrapper">
+        <img id="artist-picture" src="/images/default-artist.png" alt="Artysta">
+    </div>
+
+    <h1 id="artist-name">Ładowanie...</h1>
+    <div id="artist-genres" class="genre-badges"></div>
+
+    <div id="artist-rank-container" style="display:none; margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9rem;">
+        <div style="color: #00ffcc; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Rankingi:</div>
+        <div id="artist-rank-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+    </div>
+
+    <div class="artist-meta-block">
+        <div class="meta-row">
+            <i class="fas fa-map-marker-alt"></i> <span id="artist-country">-</span>
+        </div>
+        <div class="meta-row">
+            <i class="fas fa-calendar-alt"></i> <span id="artist-formed-year">-</span>
+        </div>
+    </div>
+
+    <div class="score-block">
+        <div class="score-label">Śr. Ocena</div>
+        <div class="score-value" id="artist-global-score">N/A</div>
+    </div>
+
+    <div class="action-buttons">
+        <button id="follow-button" class="btn btn-block btn-outline">
+            <i class="fas fa-plus"></i> Obserwuj
+        </button>
+        <button id="add-to-list-btn" class="btn btn-block btn-outline" style="margin-top: 10px;">
+            <i class="fas fa-list"></i> Dodaj do listy
+        </button>
+        <button id="edit-bio-btn" class="btn btn-block btn-secondary" style="display:none; margin-top: 10px;">
+            <i class="fas fa-edit"></i> Edytuj
+        </button>
+    </div>
+
+    <div class="followers-stat">
+        <i class="fas fa-users"></i> <span id="artist-followers-count">0</span> obserwujących
+    </div>
+</div>
+
+<script>
+    window.renderArtistInfoComponent = function(data) {
+        const { artist } = data;
+        if (!artist) return;
+
+        document.title = `${artist.name} | Melody Rater`;
+        const nameEl = document.getElementById('artist-name');
+        if(nameEl) nameEl.textContent = artist.name;
+
+        const artistImg = artist.picture_url || '/images/default-artist.png';
+        const picEl = document.getElementById('artist-picture');
+        if(picEl) picEl.src = artistImg;
+
+        const bg = document.getElementById('dynamic-background');
+        if(bg) bg.style.backgroundImage = `url('${artistImg}')`;
+
+        renderRanks(artist);
+        renderLocations(artist);
+
+        const formedEl = document.getElementById('artist-formed-year');
+        if(formedEl) formedEl.textContent = artist.formed_year || 'N/A';
+
+        const followersEl = document.getElementById('artist-followers-count');
+        if(followersEl) followersEl.textContent = artist.followers_count || 0;
+
+        const scoreEl = document.getElementById('artist-global-score');
+        if(scoreEl) scoreEl.textContent = artist.globalScore || 'N/A';
+
+        renderGenres(artist);
+
+        const bioText = artist.bio || 'Brak dostępnej biografii.';
+        const descEl = document.getElementById('artist-description');
+        if(descEl) descEl.innerHTML = bioText.replace(/\n/g, '<br>');
+
+        setupFollowButton(artist.id, artist.isFollowing);
+        setupListButton(artist.id);
+    };
+
+    function renderRanks(artist) {
+        const rankContainer = document.getElementById('artist-rank-container');
+        const rankList = document.getElementById('artist-rank-list');
+        if (!rankContainer || !rankList || !artist.ranks) return;
+
+        let ranksHTML = [];
+        const slugHash = `#${artist.slug}`;
+
+        if (artist.ranks.global) {
+            const generalUrl = `/chart-page.html?type=artists&sort=rating${slugHash}`;
+            ranksHTML.push(`<div><a href="${generalUrl}" style="color: #adff2f; font-weight: bold;">#${artist.ranks.global} w Rankingu Ogólnym</a></div>`);
+        }
+
+        if (artist.ranks.locations) {
+            artist.ranks.locations.forEach(locRank => {
+                const url = `/chart-page.html?type=artists&location=${encodeURIComponent(locRank.name)}&sort=rating${slugHash}`;
+                ranksHTML.push(`<div><a href="${url}" style="color: #00ffcc;">#${locRank.rank} w ${locRank.name}</a></div>`);
+            });
+        }
+
+        if (ranksHTML.length > 0) {
+            rankList.innerHTML = ranksHTML.join('');
+            rankContainer.style.display = 'block';
+        }
+    }
+
+    function renderLocations(artist) {
+        const countryEl = document.getElementById('artist-country');
+        if(!countryEl) return;
+        countryEl.innerHTML = '';
+        if (artist.locations && artist.locations.length > 0) {
+            artist.locations.forEach((loc, index) => {
+                const link = document.createElement('a');
+                link.href = `/chart-page.html?type=artists&location=${encodeURIComponent(loc)}`;
+                link.className = 'location-link';
+                link.textContent = loc;
+                countryEl.appendChild(link);
+                if (index < artist.locations.length - 1) countryEl.appendChild(document.createTextNode(', '));
+            });
+        } else {
+            countryEl.textContent = 'Nieznane';
+        }
+    }
+
+    function renderGenres(artist) {
+        const genresContainer = document.getElementById('artist-genres');
+        if(!genresContainer) return;
+        genresContainer.innerHTML = '';
+        if (artist.genres) {
+            artist.genres.forEach(g => {
+                const link = document.createElement('a');
+                link.href = `/chart-page.html?type=artists&genres=${encodeURIComponent(g)}`;
+                link.className = 'genre-tag';
+                link.textContent = g;
+                genresContainer.appendChild(link);
+            });
+        }
+    }
+
+    function setupListButton(artistId) {
+        const btn = document.getElementById('add-to-list-btn');
+        if (!btn) return;
+        btn.onclick = () => {
+            if (window.openListWindow) window.openListWindow(artistId, 'artist');
+            else alert('Błąd: Moduł list nie został załadowany.');
+        };
+    }
+
+    function setupFollowButton(artistId, isFollowing) {
+        const btn = document.getElementById('follow-button');
+        if(!btn) return;
+
+        const updateBtn = (active) => {
+            // Принудительно сохраняем все классы структуры
+            btn.innerHTML = active ? '<i class="fas fa-check"></i> Obserwujesz' : '<i class="fas fa-plus"></i> Obserwuj';
+
+            // Сначала сбрасываем состояние, затем добавляем нужное
+            btn.classList.remove('following');
+            if (active) {
+                btn.classList.add('following');
+            }
+        };
+
+        updateBtn(isFollowing);
+
+        btn.onclick = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return window.location.href = '/login.html';
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/artist/${artistId}/follow`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    updateBtn(data.status === 'followed');
+                }
+            } catch (e) { console.error(e); } finally { btn.disabled = false; }
+        };
+    }
+</script>

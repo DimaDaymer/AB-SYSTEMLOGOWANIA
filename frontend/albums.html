@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Album Details | MelodyRater</title>
+    <title>Szczegóły Albumu | MelodyRater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
 
     <link rel="stylesheet" href="/css/albums.css">
     <link rel="stylesheet" href="/css/stars.css">
     <link rel="stylesheet" href="/css/comments.css">
-
+    <link rel="stylesheet" href="/css/similar.css">
+    <script src="/js/tag-app-modal.js"></script>
     <script src="/js/StarRating.js"></script>
     <script src="/js/list-app-core.js"></script>
     <script src="/js/list-app-modal.js"></script>
     <script src="/js/comments-core.js"></script>
+    <script src="/js/similar-loader.js"></script>
+    <script src="/js/loadnavbar.js"></script>
 
 </head>
 <body>
@@ -30,6 +34,8 @@
         <div id="album-info-container"></div>
         <div id="tabs-container"></div>
         <div id="comments-container"></div>
+
+
     </div>
 
     <div class="right-panel">
@@ -39,10 +45,12 @@
 
         <div id="media-links-container"></div>
         <div class="album-info-container">
-            <button id="edit-album-btn" class="button" style="display: none;">Редактировать альбом</button>
+            <button id="edit-album-btn" class="button" style="display: none;">Edytuj album</button>
         </div>
-
-
+        <div class="similar-section">
+            <h3>Podobne albumy</h3>
+            <div id="similar-albums-container"></div>
+        </div>
     </div>
 </div>
 

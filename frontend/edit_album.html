@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Album | MelodyRater</title>
+    <title>Edytuj Album | MelodyRater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/album_edit.css">
@@ -11,57 +11,57 @@
 <body>
 <div class="form-container">
     <div class="form-card edit-form-accent">
-        <h1>Edit Album</h1>
+        <h1>Edytuj Album</h1>
         <div id="cover-preview" style="text-align: center; margin-bottom: 20px;">
-            <img id="current-cover" src="" alt="Album Cover" style="display: none;">
-            <p id="no-cover-text">No cover available</p>
+            <img id="current-cover" src="" alt="Okładka albumu" style="display: none;">
+            <p id="no-cover-text">Brak okładki</p>
         </div>
 
         <form id="editAlbumForm">
             <input type="hidden" id="album-identifier" name="album-identifier">
 
             <div class="form-group">
-                <label for="title">Title*</label>
-                <input type="text" id="title" name="title" class="form-control" required placeholder="Enter album title">
+                <label for="title">Tytuł*</label>
+                <input type="text" id="title" name="title" class="form-control" required placeholder="Wpisz tytuł albumu">
             </div>
 
             <div class="form-group">
-                <label for="artist">Artist*</label>
-                <input type="text" id="artist" name="artist" class="form-control" required placeholder="Enter artist names, separated by commas">
+                <label for="artist">Artysta*</label>
+                <input type="text" id="artist" name="artist" class="form-control" required placeholder="Wpisz nazwy artystów, oddzielone przecinkami">
             </div>
 
             <div class="form-group">
-                <label for="cover_url">Cover URL</label>
-                <input type="text" id="cover_url" name="cover_url" class="form-control" placeholder="Image link">
+                <label for="cover_url">URL okładki</label>
+                <input type="text" id="cover_url" name="cover_url" class="form-control" placeholder="Link do obrazka">
             </div>
 
             <div class="form-group">
-                <label for="release_date">Release Date</label>
+                <label for="release_date">Data wydania</label>
                 <input type="date" id="release_date" name="release_date" class="form-control">
             </div>
 
             <div class="classification-box">
-                <label style="color: #FFC107; margin-bottom: 10px;">Release Classification</label>
+                <label style="color: #FFC107; margin-bottom: 10px;">Klasyfikacja wydania</label>
 
                 <div style="margin-bottom: 15px;">
-                    <label for="primary_format" style="font-size: 0.9em; color: #ccc;">Primary Format (Choose one):</label>
+                    <label for="primary_format" style="font-size: 0.9em; color: #ccc;">Format podstawowy (Wybierz jeden):</label>
                     <select id="primary_format" name="primary_format" class="form-select">
-                        <option value="Album">Studio Album</option>
+                        <option value="Album">Album studyjny</option>
                         <option value="EP">EP</option>
-                        <option value="Single">Single</option>
+                        <option value="Single">Singiel</option>
                         <option value="Mixtape">Mixtape</option>
                         <option value="DJ Mix">DJ Mix</option>
-                        <option value="Compilation">Compilation</option>
-                        <option value="Video">Video</option>
+                        <option value="Compilation">Kompilacja</option>
+                        <option value="Video">Wideo</option>
                     </select>
                 </div>
 
                 <div>
-                    <label style="font-size: 0.9em; color: #ccc;">Attributes (Optional):</label>
+                    <label style="font-size: 0.9em; color: #ccc;">Atrybuty (Opcjonalnie):</label>
                     <div class="attr-grid">
                         <label><input type="checkbox" name="attributes" value="Live"> Live</label>
                         <label><input type="checkbox" name="attributes" value="Soundtrack"> Soundtrack</label>
-                        <label><input type="checkbox" name="attributes" value="Unauthorized"> Unauthorized / Bootleg</label>
+                        <label><input type="checkbox" name="attributes" value="Unauthorized"> Nieoficjalne / Bootleg</label>
                         <label><input type="checkbox" name="attributes" value="Demo"> Demo</label>
                         <label><input type="checkbox" name="attributes" value="Box Set"> Box Set</label>
                     </div>
@@ -69,33 +69,33 @@
             </div>
 
             <div class="form-group">
-                <label for="genres">Genres</label>
-                <input type="text" id="genres" name="genres" class="form-control" placeholder="Genre1, Genre2, ...">
+                <label for="genres">Gatunki</label>
+                <input type="text" id="genres" name="genres" class="form-control" placeholder="Gatunek1, Gatunek2, ...">
             </div>
 
             <div class="form-group">
-                <label for="label">Label</label>
-                <input type="text" id="label" name="label" class="form-control" placeholder="Record Label">
+                <label for="label">Wytwórnia</label>
+                <input type="text" id="label" name="label" class="form-control" placeholder="Wytwórnia płytowa">
             </div>
 
             <div class="form-group">
-                <label for="language">Language</label>
-                <input type="text" id="language" name="language" class="form-control" placeholder="English, Russian, ...">
+                <label for="language">Język</label>
+                <input type="text" id="language" name="language" class="form-control" placeholder="Angielski, Polski, ...">
             </div>
 
             <div class="form-group">
-                <label for="description">Description (Keywords)</label>
-                <textarea id="description" name="description" class="form-control" placeholder="Keywords (e.g., dark, humorous, lo-fi)"></textarea>
+                <label for="description">Opis (Słowa kluczowe)</label>
+                <textarea id="description" name="description" class="form-control" placeholder="Słowa kluczowe (np. mroczny, humorystyczny, lo-fi)"></textarea>
             </div>
             <div class="tracklist-header">
-                <h2>Tracklist</h2>
-                <button type="button" id="add-track-btn" class="button small-btn">+ Add Track</button>
+                <h2>Lista utworów</h2>
+                <button type="button" id="add-track-btn" class="button small-btn">+ Dodaj utwór</button>
             </div>
 
             <div id="tracklist-container">
             </div>
 
-            <button type="submit" class="button">Save Changes</button>
+            <button type="submit" class="button">Zapisz zmiany</button>
         </form>
     </div>
 </div>
@@ -105,8 +105,7 @@
     async function enforceAdminAccess() {
         const token = localStorage.getItem('token');
         if (!token) {
-            // Если нет токена, перенаправляем на логин
-            alert('Для редактирования альбома необходима авторизация.');
+            alert('Aby edytować album, wymagane jest zalogowanie.');
             window.location.href = '/login.html';
             return false;
         }
@@ -116,33 +115,28 @@
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!res.ok) throw new Error('Failed to fetch user data');
+            if (!res.ok) throw new Error('Nie udało się pobrać danych użytkownika');
 
             const user = await res.json();
 
             if (user.role !== 'admin') {
-                // Если не админ, перенаправляем на главную или страницу ошибки
-                alert('У вас нет прав администратора для доступа к этой странице.');
+                alert('Nie masz uprawnień administratora do dostępu do tej strony.');
                 window.location.href = '/';
                 return false;
             }
-            // Пользователь - админ, доступ разрешен
             return true;
 
         } catch(e) {
-            console.error('Admin check failed:', e);
-            alert('Ошибка проверки прав доступа. Попробуйте войти снова.');
+            console.error('Błąd weryfikacji administratora:', e);
+            alert('Błąd sprawdzania uprawnień. Zaloguj się ponownie.');
             window.location.href = '/login.html';
             return false;
         }
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {        // 1. Проверка прав администратора
+    document.addEventListener('DOMContentLoaded', async () => {
         const hasAccess = await enforceAdminAccess();
-        if (!hasAccess) {
-            // Прерываем выполнение всего остального скрипта, если доступа нет
-            return;
-        }
+        if (!hasAccess) return;
 
         const form = document.getElementById('editAlbumForm');
         const tracklistContainer = document.getElementById('tracklist-container');
@@ -153,8 +147,6 @@
 
         let trackCounter = 1;
 
-        // --- Вспомогательные функции для Tracklist (как и в add_album.html) ---
-
         function addTrack(number = trackCounter, title = '', duration = '') {
             const trackDiv = document.createElement('div');
             trackDiv.classList.add('track-entry');
@@ -162,9 +154,9 @@
 
             trackDiv.innerHTML = `
                 <input type="number" class="form-control track-number" value="${number}" min="1" required style="width: 100%;">
-                <input type="text" class="form-control track-title" placeholder="Track Title" value="${title}" required>
+                <input type="text" class="form-control track-title" placeholder="Tytuł utworu" value="${title}" required>
                 <input type="text" class="form-control track-duration" placeholder="00:00" value="${duration}">
-                <span class="track-delete" title="Remove track">×</span>
+                <span class="track-delete" title="Usuń utwór">×</span>
             `;
 
             tracklistContainer.appendChild(trackDiv);
@@ -195,11 +187,6 @@
 
         addTrackBtn.addEventListener('click', () => addTrack());
 
-        // --- Новые функции для редактирования ---
-
-        /**
-         * Получает параметр из URL по имени.
-         */
         function getUrlParameter(name) {
             name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
             const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -207,48 +194,34 @@
             return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
         }
 
-        /**
-         * Функция для очистки и преобразования строки (например, "Genre1, Genre2") в массив
-         */
         const cleanStringToArray = (input) => {
             if (!input) return [];
             return input.split(',')
                 .map(s => s.trim())
                 .filter(s => s.length > 0)
-                // Удаляем лишние кавычки в начале и конце строки
                 .map(s => s.replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
         }
 
-        /**
-         * Загружает данные альбома и заполняет форму.
-         */
         async function loadAlbumData(identifier) {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Для редактирования альбома необходимо авторизоваться.');
+                alert('Aby edytować album, należy się zalogować.');
                 window.location.href = '/login.html';
                 return;
             }
 
             try {
-                // Используем /api/albums/by-slug/${identifier} для загрузки данных
                 const response = await fetch(`/api/albums/by-slug/${identifier}`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (response.ok) {
                     const album = await response.json();
 
-                    // 1. Сохраняем идентификатор
                     albumIdentifierInput.value = album.slug || album.id;
-
-                    // 2. Заполнение основных полей (Теперь поля существуют, ошибки не будет)
                     document.getElementById('title').value = album.title || '';
 
-                    // Используем массив album.artists для получения имен исполнителей
                     const artistNamesString = Array.isArray(album.artists)
                         ? album.artists.map(a => a.name).join(', ')
                         : '';
@@ -256,15 +229,11 @@
 
                     document.getElementById('cover_url').value = album.cover_url || '';
                     document.getElementById('release_date').value = album.release_date ? album.release_date.split('T')[0] : '';
-
-                    // Преобразуем массив жанров в строку для поля ввода.
                     document.getElementById('genres').value = Array.isArray(album.genres) ? album.genres.join(', ') : '';
-
                     document.getElementById('label').value = album.label || '';
-                    document.getElementById('language').value = Array.isArray(album.language) ? album.language.join(', ') : '';
-                    document.getElementById('description').value = album.description || '';
+                    document.getElementById('language').value = Array.isArray(album.languages) ? album.languages.join(', ') : '';
+                    document.getElementById('description').value = Array.isArray(album.descriptors) ? album.descriptors.join(', ') : '';
 
-                    // Обложка
                     if (album.cover_url) {
                         currentCoverImg.src = album.cover_url;
                         currentCoverImg.style.display = 'block';
@@ -274,24 +243,21 @@
                         noCoverText.style.display = 'block';
                     }
 
-                    // 3. Заполнение Primary Format
                     const primaryFormatSelect = document.getElementById('primary_format');
-                    // Проверка на null не нужна, так как поле было восстановлено
                     primaryFormatSelect.value = album.format_name || 'Album';
 
-                    // 4. Заполнение Attributes (чекбоксы)
                     const attributes = album.attributes || [];
                     document.querySelectorAll('input[name="attributes"]').forEach(checkbox => {
                         checkbox.checked = Array.isArray(attributes) && attributes.includes(checkbox.value);
                     });
 
-                    // 5. Заполнение треклиста
                     tracklistContainer.innerHTML = '';
                     trackCounter = 1;
 
                     if (album.tracks && album.tracks.length > 0) {
                         album.tracks.sort((a, b) => a.number - b.number).forEach(track => {
-                            addTrack(track.track_number, track.title, track.duration);
+                            const durationValue = track.duration || '';
+                            addTrack(track.track_number, track.title, durationValue);
                         });
                         renumberTracks();
                     } else {
@@ -299,26 +265,24 @@
                     }
 
                 } else if (response.status === 404) {
-                    alert('Альбом не найден.');
+                    alert('Nie znaleziono albumu.');
                     window.location.href = '/';
                 } else {
                     const errorData = await response.text();
                     console.error("API Load Error:", errorData);
-                    alert('Не удалось загрузить данные альбома. Ошибка сервера.');
+                    alert('Nie udało się załadować danych albumu. Błąd serwera.');
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
-                alert('Произошла ошибка при загрузке данных альбома.');
+                alert('Wystąpił błąd podczas ładowania danych albumu.');
             }
         }
-
-        // --- Инициализация и Обработчик Отправки Формы ---
 
         const albumIdentifier = getUrlParameter('slug') || getUrlParameter('id');
         if (albumIdentifier) {
             loadAlbumData(albumIdentifier);
         } else {
-            alert('Не указан идентификатор альбома для редактирования.');
+            alert('Nie określono identyfikatora albumu do edycji.');
             window.location.href = '/';
             return;
         }
@@ -331,13 +295,13 @@
             const artist = formData.get('artist');
             const identifier = albumIdentifierInput.value || albumIdentifier;
 
-            if (!title || title.trim() === '') { alert('Поле "Title" не может быть пустым.'); return; }
-            if (!artist || artist.trim() === '') { alert('Поле "Artist" не может быть пустым.'); return; }
-            if (!identifier) { alert('Ошибка: Отсутствует идентификатор альбома.'); return; }
+            if (!title || title.trim() === '') { alert('Pole "Tytuł" nie może być puste.'); return; }
+            if (!artist || artist.trim() === '') { alert('Pole "Artysta" nie może być puste.'); return; }
+            if (!identifier) { alert('Błąd: Brak identyfikatora albumu.'); return; }
 
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Для обновления альбома необходимо авторизоваться.');
+                alert('Aby zaktualizować album, należy się zalogować.');
                 window.location.href = '/login.html';
                 return;
             }
@@ -357,21 +321,16 @@
                 artist: artist,
                 cover_url: formData.get('cover_url'),
                 release_date: formData.get('release_date'),
-
                 primary_format: formData.get('primary_format'),
                 attributes: selectedAttributes,
-
-                // ИСПОЛЬЗУЕМ cleanStringToArray для предотвращения лишних кавычек
                 genres: cleanStringToArray(formData.get('genres')),
                 label: formData.get('label'),
-                // ИСПОЛЬЗУЕМ cleanStringToArray
                 language: cleanStringToArray(formData.get('language')),
                 description: formData.get('description'),
                 tracks: tracks
             };
 
             try {
-                // Сервер теперь корректно обрабатывает PUT-запрос и массивы genres/language
                 const response = await fetch(`/api/albums/${identifier}`, {
                     method: 'PUT',
                     headers: {
@@ -383,20 +342,20 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    alert('Альбом успешно обновлен!');
+                    alert('Album został pomyślnie zaktualizowany!');
                     window.location.href = `/release/album/${data.slug || identifier}`;
                 } else if (response.status === 401) {
-                    alert('Ошибка авторизации. Недостаточно прав или токен недействителен.');
+                    alert('Błąd autoryzacji. Brak uprawnień lub token wygasł.');
                     window.location.href = '/login.html';
                 } else if (response.status === 404) {
-                    alert('Альбом для обновления не найден.');
+                    alert('Nie znaleziono albumu do aktualizacji.');
                 } else {
                     const errorData = await response.json().catch(() => ({}));
-                    alert('Ошибка при обновлении: ' + (errorData.error || errorData.message || response.statusText));
+                    alert('Błąd podczas aktualizacji: ' + (errorData.error || errorData.message || response.statusText));
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
-                alert('Произошла ошибка при попытке обновить альбом.');
+                alert('Wystąpił błąd podczas próby aktualizacji albumu.');
             }
         });
     });

@@ -1,11 +1,5 @@
 // frontend/js/autocomplete.js
 
-// --- КОНСТАНТЫ И ПЕРЕМЕННЫЕ ---
-let debounceTimer;
-
-/**
- * Инициализирует логику автодополнения.
- */
 export function initAutocomplete() {
     const autocompleteResults = document.getElementById('autocomplete-results');
     const searchInput = document.getElementById('filter-search-input');
@@ -14,76 +8,86 @@ export function initAutocomplete() {
         return;
     }
 
-    // Ссылка на обновление URL из sidebar
     const applyFiltersAndRefreshUrl = () => {
         if (typeof window.updateUrl === 'function') {
             window.updateUrl();
+        } else if (typeof window.applyFilters === 'function') {
+            window.applyFilters();
         } else {
-            console.error("Function window.updateUrl is not defined.");
+            console.error("Funkcje nawigacji (updateUrl/applyFilters) nie są zdefiniowane.");
         }
     };
 
-    /**
-     * Обработка выбора тегов.
-     * Добавляет тег в глобальный массив и запускает обновление.
-     */
-    function handleTagSelection(tag, type) {
-        let array;
+    function handleTagSelection(tag, type, action = 'include') {
+        let selectedArray = null;
+        let excludedArray = null;
 
-        // Определяем, в какой массив добавлять
         if (type === 'genre') {
-            array = window.selectedGenresArray;
+            selectedArray = window.selectedGenreArray;
+            excludedArray = window.excludedGenreArray;
         } else if (type === 'language') {
-            array = window.selectedLanguageArray;
-        } else if (type === 'description') {
-            array = window.selectedDescriptionArray;
-        } else if (type === 'artist' || type === 'title' || type === 'search') {
-            // Для обычного поиска или артиста просто вставляем в инпут
+            selectedArray = window.selectedLanguageArray;
+            excludedArray = window.excludedLanguageArray;
+        } else if (type === 'descriptor' || type === 'description') {
+            selectedArray = window.selectedDescriptionArray;
+            excludedArray = window.excludedDescriptionArray;
+        } else if (type === 'location' || type === 'locations') {
+            selectedArray = window.selectedLocationArray;
+            excludedArray = window.excludedLocationArray;
+        }
+
+        if (type === 'artist' || type === 'title' || type === 'search') {
             searchInput.value = tag;
             autocompleteResults.innerHTML = '';
+            autocompleteResults.style.display = 'none';
             applyFiltersAndRefreshUrl();
             return;
         }
 
-        // Если массив найден и тега там еще нет
-        if (array && !array.includes(tag)) {
-            array.push(tag);
+        if (selectedArray && excludedArray) {
+            const idxS = selectedArray.indexOf(tag);
+            if (idxS > -1) selectedArray.splice(idxS, 1);
+
+            const idxE = excludedArray.indexOf(tag);
+            if (idxE > -1) excludedArray.splice(idxE, 1);
+
+            if (action === 'include') {
+                selectedArray.push(tag);
+            } else if (action === 'exclude') {
+                excludedArray.push(tag);
+            }
+
+            searchInput.value = '';
+        } else {
+            searchInput.value = tag;
         }
 
-        // Очищаем поле ввода для следующего тега
-        searchInput.value = '';
         autocompleteResults.innerHTML = '';
+        autocompleteResults.style.display = 'none';
 
-        // Применяем фильтры
         applyFiltersAndRefreshUrl();
+
+        if (typeof window.updateSelectedCountsUI === 'function') {
+            window.updateSelectedCountsUI();
+        }
     }
 
-    /**
-     * Подсветка совпадающей части текста.
-     * Пример: query="hip", text="Abstract Hip-Hop" -> "Abstract <b>Hip</b>-Hop"
-     */
     function highlightMatch(text, query) {
         const regex = new RegExp(`(${query})`, 'gi');
         return text.replace(regex, '<b style="color: #3b82f6;">$1</b>');
     }
 
-    /**
-     * Асинхронно получает результаты автодополнения.
-     */
     async function fetchAutocomplete(query) {
-        // Минимальная длина запроса
         if (query.length < 2) {
             autocompleteResults.innerHTML = '';
             return;
         }
 
         try {
-            // Вызываем наш умный API
             const response = await fetch(`/api/filters/autocomplete?q=${encodeURIComponent(query)}`);
-            if (!response.ok) throw new Error('Failed to fetch autocomplete results');
+            if (!response.ok) throw new Error('Nie udało się pobrać wyników autouzupełniania');
 
             const results = await response.json();
-
             autocompleteResults.innerHTML = '';
 
             if (results && results.length > 0) {
@@ -91,71 +95,66 @@ export function initAutocomplete() {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'autocomplete-item';
 
-                    // Стилизация (вы можете перенести это в CSS)
-                    itemEl.style.padding = '8px 12px';
-                    itemEl.style.cursor = 'pointer';
-                    itemEl.style.borderBottom = '1px solid #eee';
-                    itemEl.style.display = 'flex';
-                    itemEl.style.justifyContent = 'space-between';
-                    itemEl.style.alignItems = 'center';
-
-                    // Определяем красивое название типа
-                    let typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1);
-
-                    // Цветовая кодировка типов (опционально)
                     let typeColor = '#888';
-                    if (item.type === 'genre') typeColor = '#e91e63'; // Розовый для жанров
-                    if (item.type === 'language') typeColor = '#2196f3'; // Синий для языков
-                    if (item.type === 'description') typeColor = '#4caf50'; // Зеленый для дескрипторов
+                    let typeLabel = item.type;
+                    if (item.type === 'genre') { typeColor = '#e91e63'; typeLabel = 'Gatunek'; }
+                    if (item.type === 'language') { typeColor = '#2196f3'; typeLabel = 'Język'; }
+                    if (item.type === 'descriptor' || item.type === 'description') { typeColor = '#4caf50'; typeLabel = 'Deskryptor'; }
+                    if (item.type === 'location' || item.type === 'locations') { typeColor = '#ff9800'; typeLabel = 'Lokalizacja'; }
 
-                    // Формируем HTML с подсветкой
                     const highlightedText = highlightMatch(item.value, query);
 
                     itemEl.innerHTML = `
-                        <span>${highlightedText}</span>
-                        <span style="font-size: 0.8em; color: ${typeColor}; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">
-                            ${typeLabel}
-                        </span>
+                        <div class="autocomplete-info">
+                            <span class="autocomplete-text">${highlightedText}</span>
+                            <span class="autocomplete-type-tag" style="color: ${typeColor};">${typeLabel}</span>
+                        </div>
+                        <div class="autocomplete-actions">
+                            <button class="auto-btn auto-include" title="Uwzględnij">✔</button>
+                            <button class="auto-btn auto-exclude" title="Wyklucz">✖</button>
+                        </div>
                     `;
 
-                    // Добавляем эффект наведения (hover) через JS или лучше в CSS
-                    itemEl.onmouseover = () => { itemEl.style.backgroundColor = '#f9f9f9'; };
-                    itemEl.onmouseout = () => { itemEl.style.backgroundColor = 'white'; };
+                    const includeBtn = itemEl.querySelector('.auto-include');
+                    const excludeBtn = itemEl.querySelector('.auto-exclude');
 
-                    itemEl.onclick = () => handleTagSelection(item.value, item.type);
+                    includeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        handleTagSelection(item.value, item.type, 'include');
+                    };
+
+                    excludeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        handleTagSelection(item.value, item.type, 'exclude');
+                    };
+
+                    itemEl.onclick = () => handleTagSelection(item.value, item.type, 'include');
 
                     autocompleteResults.appendChild(itemEl);
                 });
-
-                // Показываем контейнер
                 autocompleteResults.style.display = 'block';
 
             } else {
-                // Если ничего не найдено, предлагаем просто текстовый поиск
                 const fallbackEl = document.createElement('div');
                 fallbackEl.className = 'autocomplete-item';
-                fallbackEl.style.padding = '8px 12px';
-                fallbackEl.style.cursor = 'pointer';
-                fallbackEl.innerHTML = `Search for "<b>${query}</b>"`;
+                fallbackEl.style.padding = '10px';
+                fallbackEl.innerHTML = `Szukaj "<b>${query}</b>"`;
                 fallbackEl.onclick = () => handleTagSelection(query, 'search');
                 autocompleteResults.appendChild(fallbackEl);
             }
 
         } catch (error) {
-            console.error('Autocomplete error:', error);
-            // Тихо скрываем ошибки, чтобы не пугать пользователя
+            console.error('Błąd autouzupełniania:', error);
             autocompleteResults.innerHTML = '';
         }
     }
 
-    // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
-
+    let debounceTimer;
     searchInput.addEventListener('input', (e) => {
         clearTimeout(debounceTimer);
         const query = e.target.value.trim();
 
         if (query.length >= 2) {
-            // Задержка 300мс перед отправкой запроса
             debounceTimer = setTimeout(() => fetchAutocomplete(query), 300);
         } else {
             autocompleteResults.innerHTML = '';
@@ -166,13 +165,13 @@ export function initAutocomplete() {
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            autocompleteResults.innerHTML = '';
-            autocompleteResults.style.display = 'none';
-            applyFiltersAndRefreshUrl();
+            const query = searchInput.value.trim();
+            if (query) {
+                handleTagSelection(query, 'search');
+            }
         }
     });
 
-    // Скрытие при клике вне области
     document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
             autocompleteResults.innerHTML = '';

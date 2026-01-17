@@ -1,0 +1,80 @@
+/* Основной контейнер - теперь это сетка, чтобы карточки стояли рядом или в колонку */
+.similar-compact-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Карточки будут подстраиваться под ширину */
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* Карточка рекомендации: вертикальная ориентация */
+.compact-item {
+    display: flex;
+    flex-direction: column; /* Текст под картинкой */
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 12px;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid #333;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.compact-item:hover {
+    transform: translateY(-5px);
+    background-color: #202020;
+    border-color: rgba(0, 255, 204, 0.5);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Обложка сверху */
+.compact-item img {
+    width: 100%; /* Растягиваем на всю ширину карточки */
+    aspect-ratio: 1 / 1; /* Делаем квадратной */
+    height: auto;
+    flex-shrink: 0;
+    border-radius: 8px;
+    object-fit: cover;
+    background-color: #111;
+}
+
+/* Контентная часть снизу */
+.compact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.compact-title {
+    margin: 0;
+    font-size: 0.95rem; /* Чуть меньше для вертикального вида */
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-meta {
+    margin-top: 4px;
+}
+
+.compact-type-badge {
+    display: inline-block;
+    background-color: rgba(0, 255, 204, 0.1);
+    color: #00ffcc;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}

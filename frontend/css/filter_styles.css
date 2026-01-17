@@ -1,225 +1,259 @@
-/* Styles for Filter Sidebar */
+/* Styles for Filter Sidebar - Compact Version */
 #filter-sidebar-container {
-    width: 300px;
+    width: 280px;
     flex-shrink: 0;
-    background-color: #2a2a2a;
+    /* Эффект стекла для основного контейнера */
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
 }
+
 .filter-header {
-    font-size: 1.5em;
+    font-size: 1.2em;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     color: #f0f0f0;
 }
+
+.compact-header {
+    margin-top: 15px;
+    font-size: 1.1em;
+}
+
+/* Entity Type Toggle Button Group */
+.entity-toggle-section {
+    padding: 0 !important;
+    background: none !important;
+}
+
+.entity-type-toggle {
+    display: flex;
+    /* Стеклянная подложка для группы переключателей */
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 10px 5px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-btn.active {
+    /* Активное состояние — яркое стекло */
+    background-color: rgba(0, 255, 204, 0.2);
+    color: #00ffcc;
+    box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.2);
+    border: 1px solid rgba(0, 255, 204, 0.3);
+}
+
+/* Dropdowns & Search */
 .filter-dropdowns {
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 12px;
 }
+
 .filter-dropdown {
-    background-color: #444;
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     color: #f0f0f0;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 0.9em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 0.85em;
     cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
     appearance: none;
     background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23f0f0f0%22%20d%3D%22M208.5%2089.5L128%20169L47.5%2089.5L59%2078L128%20147L197%2078L208.5%2089.5z%22%2F%3E%3C%2Fsvg%3E');
     background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 12px;
-    padding-right: 25px;
+    background-position: right 6px center;
+    background-size: 10px;
 }
+
+.filter-dropdown:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
 .filter-search-container {
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
+
 .filter-search-input {
-    width: calc(100% - 40px);
-    padding: 10px 15px;
-    padding-right: 40px;
-    border: 1px solid #555;
-    border-radius: 5px;
-    background-color: #333;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 35px 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(5px);
     color: #f0f0f0;
     font-size: 0.9em;
 }
-.filter-search-input::placeholder {
-    color: #bbb;
+
+.filter-search-input:focus {
+    outline: none;
+    border-color: rgba(0, 255, 204, 0.5);
+    background-color: rgba(255, 255, 255, 0.1);
 }
+
 .filter-search-icon {
     position: absolute;
-    right: 15px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    color: #bbb;
-    cursor: pointer;
-}
-.filter-section {
-    margin-bottom: 20px;
-    background-color: #333;
-    border-radius: 8px;
-    padding: 15px;
-}
-.filter-section h3 {
-    font-size: 1.1em;
-    color: #e0e0e0;
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-.filter-options-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-}
-.filter-option-button {
-    background-color: #444;
-    color: #f0f0f0;
-    border: 1px solid #555;
-    border-radius: 5px;
-    padding: 8px 10px;
-    font-size: 0.85em;
-    cursor: pointer;
-    text-align: center;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-.filter-option-button:hover {
-    background-color: #555;
-    border-color: #777;
-}
-.filter-option-button.active {
-    background-color: #00ffcc;
-    color: #1a1a1a;
-    border-color: #00ffcc;
-    font-weight: 600;
-}
-.filter-link-button {
-    background-color: #444;
-    color: #00ffcc;
-    border: 1px solid #00ffcc;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 0.85em;
-    cursor: pointer;
-    text-align: center;
-    margin-top: 10px;
-    display: block;
-    text-decoration: none;
-    transition: background-color 0.2s, color 0.2s;
-}
-.filter-link-button:hover {
-    background-color: #00ffcc;
-    color: #1a1a1a;
-}
-.year-filter-options {
-    padding: 10px 0;
-}
-.year-filter-options label {
-    display: block;
-    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.9em;
+}
+
+/* Sections */
+.filter-section {
+    margin-bottom: 12px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.filter-section h3 {
+    font-size: 0.95em;
     color: #e0e0e0;
-    cursor: pointer;
+    margin: 0 0 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-.year-filter-options input[type="radio"] {
-    margin-right: 8px;
+
+.sel-count {
+    color: #00ffcc;
+    font-size: 0.85em;
+    font-weight: normal;
 }
-.year-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
-    margin-top: 10px;
-    text-align: center;
-}
-.year-grid div {
-    background-color: #444;
-    padding: 5px 0;
-    border-radius: 4px;
+
+.metadata {
     font-size: 0.8em;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.year-grid div:hover {
-    background-color: #555;
-}
-.year-grid div.active {
-    background-color: #00ffcc;
-    color: #1a1a1a;
-    font-weight: 600;
-}
-@media (max-width: 900px) {
-    body {
-        flex-direction: column;
-    }
-    #filter-sidebar-container {
-        width: 90%;
-        max-width: 600px;
-        order: -1;
-        margin-bottom: 20px;
-    }
+    color: rgba(255, 255, 255, 0.4);
+    margin: -5px 0 8px 0;
 }
 
-.filter-option-button.excluded {
-    background-color: #ff4d4d !important; /* Красный */
-    color: white !important;
-    border-color: #ff4d4d !important;
-}
-.filter-option-button.excluded:hover {
-    background-color: #cc0000 !important;
-}
-/* Небольшой индикатор минуса для ясности */
-.filter-option-button.excluded::after {
-    content: " ✖";
-    font-size: 0.8em;
-    margin-left: 4px;
-    opacity: 0.8;
-}
-
-/* Styles for the Grid layout and individual Tag items, common to all filter lists (Genres, Descriptions, Languages) */
-
-.tags-container {
-    display: grid;
-    /* Адаптивная сетка, минимум 130px на колонку */
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+/* Activity & Timeframe */
+.status-filter-options {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
 }
 
-/* ОСНОВНОЙ КОНТЕЙНЕР ТЕГА */
+.status-filter-options label, .year-filter-options label {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}
+
+.one-per-artist-wrap {
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 8px;
+}
+
+.sub-label {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 4px;
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.year-input {
+    width: 90px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #eee;
+    padding: 5px 8px;
+    font-size: 0.85em;
+    border-radius: 3px;
+}
+
+/* Buttons */
+.filter-link-button {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #00ffcc;
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    backdrop-filter: blur(5px);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.9em;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: 0.2s;
+}
+
+.filter-link-button:hover {
+    background-color: rgba(0, 255, 204, 0.15);
+    border-color: #00ffcc;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+}
+
+/* Tags Grid */
+.tags-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
 .tag-item-wrapper {
     display: flex;
-    height: 36px;
+    height: 38px;
     border-radius: 4px;
     overflow: hidden;
     font-size: 0.85em;
-    user-select: none;
-    transition: box-shadow 0.15s;
-    border: 1px solid #555; /* Начальная граница */
-}
-.tag-item-wrapper:hover {
-    box-shadow: 0 0 5px rgba(0, 255, 204, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* ЭЛЕМЕНТ С ИМЕНЕМ (МЕТОЙ) */
 .tag-name-label {
     flex-grow: 1;
     display: flex;
     align-items: center;
     padding: 0 8px;
-    background-color: #444;
-    color: #ccc;
-    /* Запрещаем клик по имени, чтобы не путать с кнопками */
-    pointer-events: none;
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
 }
 
-/* КОНТРОЛЫ ВКЛЮЧЕНИЯ/ИСКЛЮЧЕНИЯ */
 .tag-controls {
     display: flex;
-    width: 50px; /* Фиксированная ширина для кнопок */
+    width: 50px;
 }
 
 .control-area {
@@ -228,54 +262,26 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.1s, color 0.1s;
+    font-size: 1em;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.3);
+    transition: 0.2s;
 }
 
-/* СТИЛИ ДЛЯ ВКЛЮЧЕНИЯ (✔) */
-.control-include {
-    background-color: #555;
-    color: #ccc;
+.tag-item-wrapper.included {
+    background-color: rgba(0, 255, 204, 0.15);
+    border-color: rgba(0, 255, 204, 0.4);
 }
-.control-include:hover {
-    background-color: #008066; /* Темно-зеленый при наведении */
-}
+.tag-item-wrapper.included .tag-name-label { color: #00ffcc; font-weight: 600; }
+.tag-item-wrapper.included .control-include { background-color: rgba(0, 255, 204, 0.3); color: #fff; }
 
-/* СТИЛИ ДЛЯ ИСКЛЮЧЕНИЯ (✖) */
-.control-exclude {
-    background-color: #555;
-    color: #ccc;
+.tag-item-wrapper.excluded {
+    background-color: rgba(255, 77, 77, 0.15);
+    border-color: rgba(255, 77, 77, 0.4);
 }
-.control-exclude:hover {
-    background-color: #cc0000; /* Темно-красный при наведении */
-}
+.tag-item-wrapper.excluded .tag-name-label { color: #ff4d4d; }
+.tag-item-wrapper.excluded .control-exclude { background-color: rgba(255, 77, 77, 0.3); color: #fff; }
 
-/* --- АКТИВНЫЕ СОСТОЯНИЯ (Applied states) --- */
-
-/* ТЕГ ВКЛЮЧЕН (ЗЕЛЕНЫЙ) */
-.tag-item-wrapper.included .tag-name-label,
-.tag-item-wrapper.included .control-include {
-    background-color: #00ffcc !important;
-    color: #1a1a1a !important;
-}
-.tag-item-wrapper.included .control-exclude {
-    background-color: #444; /* Сброс неактивного контрола */
-    color: #aaa;
-}
-.tag-item-wrapper.included .control-include:hover {
-    background-color: #008066; /* Сохраняем ховер-цвет при активном включении */
-}
-
-/* ТЕГ ИСКЛЮЧЕН (КРАСНЫЙ) */
-.tag-item-wrapper.excluded .tag-name-label,
-.tag-item-wrapper.excluded .control-exclude {
-    background-color: #ff4d4d !important;
-    color: white !important;
-}
-.tag-item-wrapper.excluded .control-include {
-    background-color: #444; /* Сброс неактивного контрола */
-    color: #aaa;
-}
-.tag-item-wrapper.excluded .control-exclude:hover {
-    background-color: #cc0000; /* Сохраняем ховер-цвет при активном исключении */
+@media (max-width: 900px) {
+    #filter-sidebar-container { width: 100%; box-sizing: border-box; }
 }

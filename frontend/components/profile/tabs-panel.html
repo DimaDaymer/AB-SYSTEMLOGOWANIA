@@ -1,707 +1,336 @@
+<style>
+    /* Style dla paginacji w overlayu */
+    #overlay-pagination-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 20px;
+        padding-bottom: 20px;
+    }
+    .page-btn {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        color: #fff;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .page-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .sort-table th { cursor: pointer; user-select: none; }
+    .sort-table th:hover { background: rgba(255,255,255,0.1); }
+</style>
+
+<div id="overlay-module" class="full-screen-overlay">
+    <span class="close-overlay" id="close-overlay-btn">&times;</span>
+    <div class="overlay-content">
+        <h2 id="overlay-title" style="color: var(--accent); margin-bottom: 25px; font-weight: 300; letter-spacing: 1px; border-left: 4px solid var(--accent); padding-left: 15px;"></h2>
+        <div id="overlay-table-container"></div>
+        <div id="overlay-pagination-container"></div>
+    </div>
+</div>
+
 <div class="tabs-header">
-    <div class="tab active" data-tab="recent">Rated Albums</div>
-    <div class="tab" data-tab="trackratings">Track Ratings</div>
-    <div class="tab" data-tab="reviews">Reviews</div> <div class="tab" data-tab="liked">Liked</div>
-    <div class="tab" data-tab="wishlist">Wishlist</div>
-    <div class="tab" data-tab="albums">Listened</div>
-    <div class="tab" data-tab="tags">Tags</div>
+    <div class="tab active" data-tab="recent" data-src="/components/profile/tabs/tab-ratings.html">Oceny</div>
+    <div class="tab" data-tab="trackratings" data-src="/components/profile/tabs/tab-tracks.html">Utwory</div>
+    <div class="tab" data-tab="reviews" data-src="/components/profile/tabs/tab-reviews.html">Recenzje</div>
+    <div class="tab" data-tab="userlists" data-src="/components/profile/tabs/tab-lists.html">Listy</div>
+    <div class="tab" data-tab="liked" data-src="/components/profile/tabs/tab-liked.html">Polubione</div>
+    <div class="tab" data-tab="wishlist" data-src="/components/profile/tabs/tab-wishlist.html">Chcę usłyszeć</div>
+    <div class="tab" data-tab="albums" data-src="/components/profile/tabs/tab-listened.html">Przesłuchane</div>
+    <div class="tab" data-tab="tags" data-src="/components/profile/tabs/tab-tags.html">Tagi</div>
 </div>
 
 <div class="tabs-body">
-    <div id="recent" class="tab-content active">
-        <div id="histogram-wrapper">
-        </div>
-
-        <div id="rated-albums-list" style="display: none;">
-            <button id="back-to-histogram" class="back-to-stats-btn">← Back to Statistics</button>
-            <h3 id="current-filter-title" style="color: #fff; margin-bottom: 15px;"></h3>
-            <div id="rated-albums-container"></div>
-        </div>
-    </div>
-
-    <div id="trackratings" class="tab-content">
-        <div id="track-ratings-container"></div>
-    </div>
-
-    <div id="reviews" class="tab-content">
-        <div id="reviews-container"></div>
-    </div>
-
-    <div id="liked" class="tab-content">
-        <div id="liked-container"></div>
-    </div>
-
-    <div id="wishlist" class="tab-content">
-        <div id="wishlist-container"></div>
-    </div>
-
-    <div id="albums" class="tab-content">
-        <div id="albums-container"></div>
-    </div>
-
-    <div id="tags" class="tab-content">
-        <div id="user-tags-container"></div>
-    </div>
+    <div id="recent" class="tab-content active"></div>
+    <div id="trackratings" class="tab-content"></div>
+    <div id="reviews" class="tab-content"></div>
+    <div id="userlists" class="tab-content"></div>
+    <div id="liked" class="tab-content"></div>
+    <div id="wishlist" class="tab-content"></div>
+    <div id="albums" class="tab-content"></div>
+    <div id="tags" class="tab-content"></div>
 </div>
 
-<style>
-    /* === GENERAL TAB STYLES === */
-    .tabs-header { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-    .tab { padding: 10px 15px; cursor: pointer; color: #888; transition: color 0.2s, border-bottom 0.2s; font-weight: 500; }
-    .tab:hover { color: #fff; }
-    .tab.active { color: #00ffcc; border-bottom: 2px solid #00ffcc; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; animation: fadeIn 0.3s; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+<script type="module">
+    import pagination from '/js/pagination.js';
 
-    /* === ALBUM LIST STYLES === */
-    .album-entry {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 15px;
-        background: #1a1a1a;
-        padding: 10px;
-        border-radius: 4px;
-    }
-    .album-entry-header {
-        display: flex;
-        align-items: center;
-        width: 100%;
-    }
-    .list-image { width: 50px; height: 50px; margin-right: 15px; flex-shrink: 0; }
-    .album-cover-small { width: 100%; height: 100%; object-fit: cover; border-radius: 2px; }
-    .album-details { display: flex; flex-direction: column; justify-content: center; flex-grow: 1;}
-    .title { font-weight: bold; color: #fff; font-size: 1em; }
-    .artist-year { color: #aaa; font-size: 0.9em; }
-
-    /* Review Text Styles */
-    .review-block { margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; color: #ddd; font-size: 0.95em; line-height: 1.4; }
-    .review-title { font-weight: bold; color: #fff; margin-bottom: 5px; display: block; }
-    .review-date { font-size: 0.8em; color: #666; margin-top: 5px; display: block; }
-
-    .rating-stars { color: #ffd700; letter-spacing: 2px; margin-left: auto; white-space: nowrap; }
-
-    .pagination-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 10px 0; }
-    .pagination-button { padding: 5px 10px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
-    .pagination-button:hover:not(:disabled), .pagination-button.active { background: #00ffcc; color: #1a1a1a; }
-    .pagination-button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* === HISTOGRAM STYLES (Интегрированы сюда) === */
-    .histogram-container {
-        background-color: #111;
-        padding: 20px;
-        border-radius: 8px;
-        color: #fff;
-        font-family: sans-serif;
-        margin-bottom: 20px;
-        border: 1px solid #2a2a2a;
-    }
-    .histogram-header {
-        display: flex; justify-content: space-between; margin-bottom: 15px;
-        padding-bottom: 10px; border-bottom: 1px solid #333;
-        font-size: 0.9em; color: #aaa;
-    }
-    .hist-row {
-        display: flex; align-items: center; padding: 8px 0;
-        border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background-color 0.2s;
-    }
-    .hist-row:hover { background-color: #1a1a1a; }
-    .hist-score { width: 40px; font-weight: bold; font-size: 1.1em; color: #fff; }
-    .hist-count { width: 60px; color: #888; font-size: 0.9em; text-align: right; margin-right: 15px; }
-    .hist-bar-area {
-        flex-grow: 1; margin-right: 20px; background-color: #1a1a1a;
-        height: 24px; border-radius: 2px; position: relative;
-    }
-    .hist-bar-fill {
-        background-color: #3b4d61; height: 100%; border-radius: 2px;
-        width: 0; transition: width 0.5s ease-out;
-    }
-    .hist-stars { width: 100px; text-align: right; color: #ccc; font-size: 1.2em; letter-spacing: 2px; }
-    .back-to-stats-btn {
-        background: none; border: 1px solid #00ffcc; color: #00ffcc;
-        padding: 5px 15px; cursor: pointer; margin-bottom: 15px;
-        border-radius: 4px; display: flex; align-items: center; gap: 5px;
-    }
-    .back-to-stats-btn:hover { background: rgba(0, 255, 204, 0.1); }
-
-    /* === TRACK & TAG STYLES === */
-    .tag-group { margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; }
-    .tag-group-title {
-        color: #00ffcc; cursor: pointer; padding: 10px 5px; margin: 0;
-        font-size: 1.2em; display: flex; justify-content: space-between; align-items: center;
-        transition: background-color 0.2s ease;
-    }
-    .tag-group-title:hover { background-color: #2a2a2a; }
-    .tag-group-title::after { content: '▼'; font-size: 0.8em; color: #888; transition: transform 0.3s ease-out; }
-    .tag-group.expanded .tag-group-title::after { transform: rotate(180deg); }
-    .tag-albums-list { overflow: hidden; transition: max-height 0.3s ease-out; display: flex; flex-direction: column; gap: 10px; padding: 0; }
-
-    .album-with-tracks { margin-bottom: 15px; background: #1e1e1e; border-radius: 5px; overflow: hidden; }
-    .album-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer; background: #252525; }
-    .album-header-content { display: flex; align-items: center; gap: 10px; }
-    .toggle-icon { font-size: 0.8em; color: #888; }
-    .tracks-container { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #111; }
-    .track-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #222; }
-    .track-name { color: #ddd; }
-    .track-rating { display: flex; gap: 10px; align-items: center; }
-    .rating-value { color: #00ffcc; font-weight: bold; }
-</style>
-
-<script>
     (function() {
-        // === КЛАСС ГИСТОГРАММЫ (RatingsHistogram) ===
-        class RatingsHistogram {
-            constructor(containerId, username, apiBaseUrl, onRowClick) {
-                this.container = document.getElementById(containerId);
-                this.username = username;
-                this.apiBaseUrl = apiBaseUrl;
-                this.onRowClick = onRowClick;
-                this.stats = null;
-            }
+        const OVERLAY_LIMIT = 100;
+        let currentSort = { key: 'title', asc: true };
+        let overlayState = { type: '', title: '', extra: null, fetchFn: null };
+        const overlay = document.getElementById('overlay-module');
 
-            async loadStats() {
-                try {
-                    const url = `/api/users/${this.username}/stats/ratings`;
-                    const headers = {};
-                    if (window.profileContext && window.profileContext.token) {
-                        headers['Authorization'] = `Bearer ${window.profileContext.token}`;
-                    }
+        // --- SHARED UTILITIES EXPORT ---
+        // Tworzymy globalny obiekt, aby pod-moduły mogły korzystać z tych funkcji
+        window.TabsShared = {
+            PREVIEW_LIMIT: 10,
 
-                    const response = await fetch(url, { headers });
-                    if(!response.ok) throw new Error("Stats load failed");
+            formatDate: (dateStr) => {
+                if (!dateStr) return '—';
+                const d = new Date(dateStr);
+                return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            },
 
-                    const data = await response.json();
-                    this.stats = data.stats;
-                    this.total = data.totalRatings;
-                    this.render();
-                } catch (error) {
-                    console.error("Failed to load stats", error);
-                    this.container.innerHTML = "<p style='padding:20px; color:#aaa'>No ratings statistics available.</p>";
+            getArtist: (a) => {
+                return a.artist || a.artist_name || (a.artists && a.artists[0] ? a.artists[0].name : '') || 'Nieznany wykonawca';
+            },
+
+            getStars: (score) => {
+                if (!score || score === 0) return '';
+                const s = parseFloat(score);
+                const full = Math.floor(s);
+                const half = s % 1 >= 0.5 ? '½' : '';
+                const empty = 5 - full - (half ? 1 : 0);
+                return '★'.repeat(full) + half + '☆'.repeat(Math.max(0, empty));
+            },
+
+            getUrl: (type, extra = '') => {
+                const ctx = window.profileContext || { username: 'me', isPublic: false };
+                const base = ctx.isPublic ? `/api/users/${ctx.username}` : `/api/users`;
+                switch(type) {
+                    case 'stats': return ctx.isPublic ? `${base}/stats/ratings` : `/api/users/me/stats/ratings`;
+                    case 'rated-albums': return `${base}/rated-albums${extra}`;
+                    case 'album-details': return `/api/albums/${extra}`;
+                    case 'track-user-scores': return `/api/track-ratings/album/${extra}/user-scores`;
+                    case 'actions': return ctx.isPublic ? `${base}/actions/${extra}` : `/api/actions/${extra}`;
+                    case 'reviews': return `${base}/reviews`;
+                    case 'lists': return `${base}/lists`;
+                    case 'my-tags': return `${base}/tags`;
+                    default: return '';
                 }
-            }
+            },
 
-            render() {
-                this.container.innerHTML = `
-                <div class="histogram-container">
-                    <div class="histogram-header">
-                        <span>Rating</span>
-                        <span style="margin-left: auto; margin-right: 140px;">Histogram statistics</span>
-                        <span>Stars</span>
-                    </div>
-                    <div id="histogram-rows"></div>
-                </div>`;
+            getHeaders: () => {
+                const token = localStorage.getItem('token') || (window.profileContext && window.profileContext.token);
+                return token ? { 'Authorization': `Bearer ${token}` } : {};
+            },
 
-                const rowsContainer = this.container.querySelector('#histogram-rows');
-                const scores = Object.keys(this.stats).sort((a, b) => parseFloat(b) - parseFloat(a));
-                const maxCount = Math.max(...Object.values(this.stats)) || 1;
-
-                scores.forEach(score => {
-                    const count = this.stats[score];
-                    const percentage = (count / maxCount) * 100;
-                    const starsHtml = this.generateStars(parseFloat(score));
-
-                    const row = document.createElement('div');
-                    row.className = 'hist-row';
-                    row.innerHTML = `
-                        <div class="hist-score">${score}</div>
-                        <div class="hist-count">${count > 0 ? count : '-'}</div>
-                        <div class="hist-bar-area">
-                            <div class="hist-bar-fill" style="width: ${percentage}%"></div>
-                        </div>
-                        <div class="hist-stars">${starsHtml}</div>
-                    `;
-
-                    row.addEventListener('click', () => {
-                        if (this.onRowClick && count > 0) {
-                            this.onRowClick(score);
-                        }
-                    });
-
-                    rowsContainer.appendChild(row);
-                });
-            }
-
-            generateStars(score) {
-                let stars = '';
-                for (let i = 1; i <= 5; i++) {
-                    if (score >= i) stars += '★';
-                    else if (score >= i - 0.5) stars += '½';
-                    else stars += '☆';
+            createOpenAllBtn: (tabId, total, fn) => {
+                const wrap = document.querySelector(`#${tabId} .view-all-wrapper`);
+                if (!wrap) return;
+                wrap.innerHTML = '';
+                if (total > window.TabsShared.PREVIEW_LIMIT) {
+                    const btn = document.createElement('button');
+                    btn.className = 'view-all-btn';
+                    btn.textContent = `OTWÓRZ PEŁNĄ LISTĘ (${total})`;
+                    btn.onclick = fn;
+                    wrap.appendChild(btn);
                 }
-                return stars;
+            },
+
+            openOverlay: async (title, type, fetchFn, extra = null) => {
+                overlayState = { title, type, fetchFn, extra };
+                document.getElementById('overlay-title').textContent = title;
+                document.body.classList.add('overlay-open');
+                overlay.style.display = 'block';
+                overlay.scrollTop = 0;
+                loadOverlayPage(1);
             }
-        }
-        // =================================================================
-
-        const ctx = window.profileContext;
-        const ALBUM_LIMIT = 10;
-        let currentPage = {};
-        let currentScoreFilter = null;
-        let histogramInstance = null;
-
-        function scoreToStars(score) {
-            if (score === null || typeof score === 'undefined') return '';
-            const stars = score <= 5 ? score : score / 2;
-            const fullStars = Math.floor(stars);
-            const halfStar = stars % 1 >= 0.25 && stars % 1 < 0.75 ? '½' : '';
-            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-            return '★'.repeat(Math.max(0, fullStars)) + halfStar + '☆'.repeat(Math.max(0, emptyStars));
-        }
-
-        /**
-         * Обновленная функция рендеринга пагинации с номерами страниц.
-         */
-        function renderPagination(container, tabName, totalCount) {
-            const totalPages = Math.ceil(totalCount / ALBUM_LIMIT);
-            const currentPageNum = currentPage[tabName] || 1;
-
-            // Удаляем старую пагинацию
-            container.querySelectorAll('.pagination-controls').forEach(el => el.remove());
-
-            if (totalPages <= 1) return;
-
-            const paginationDiv = document.createElement('div');
-            paginationDiv.className = 'pagination-controls';
-
-            // Кнопка "Предыдущая"
-            paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button" data-page="${currentPageNum - 1}" data-action="prev" ${currentPageNum === 1 ? 'disabled' : ''}>«</button>`);
-
-            // Отображение номеров страниц (логика для показа только ближайших страниц)
-            const maxVisiblePages = 7; // Максимальное количество видимых кнопок
-            let startPage = Math.max(1, currentPageNum - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-
-            // Добавляем кнопки с номерами страниц
-            for (let i = startPage; i <= endPage; i++) {
-                const isActive = i === currentPageNum ? 'active' : '';
-                paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button ${isActive}" data-page="${i}">${i}</button>`);
-            }
-
-            // Кнопка "Следующая"
-            paginationDiv.insertAdjacentHTML('beforeend', `<button class="pagination-button" data-page="${currentPageNum + 1}" data-action="next" ${currentPageNum === totalPages ? 'disabled' : ''}>»</button>`);
-
-            // Добавляем обработчик клика для всех кнопок пагинации
-            paginationDiv.querySelectorAll('.pagination-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const newPage = parseInt(button.dataset.page);
-
-                    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPageNum) {
-                        currentPage[tabName] = newPage;
-                        // Вызываем triggerLoad, который знает о фильтре
-                        triggerLoad(tabName, newPage);
-                    }
-                });
-            });
-
-            container.appendChild(paginationDiv);
-        }
-
-        // --- Load User Reviews ---
-        async function loadUserReviews(page = 1) {
-            const container = document.getElementById('reviews');
-            if (!container) return;
-
-            const tabName = 'reviews';
-            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
-
-            container.innerHTML = '<div class="loading">Loading reviews...</div>';
-            try {
-                const url = `${ctx.getApiUrl('reviews')}?page=${page}&limit=${ALBUM_LIMIT}`;
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
-                const res = await fetch(url, { headers });
-                if (!res.ok) throw new Error(`Status: ${res.status}`);
-
-                const data = await res.json();
-                const reviews = data.items || [];
-                const totalCount = data.total_count || 0;
-
-                if (!reviews || reviews.length === 0) {
-                    container.innerHTML = '<p>No reviews written yet.</p>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                reviews.forEach(review => {
-                    const reviewEl = document.createElement('div');
-                    reviewEl.className = 'album-entry';
-                    reviewEl.innerHTML = `
-                    <div class="album-entry-header">
-                        <div class="list-image">
-                            <img src="${review.cover_url || '/assets/album-placeholder.png'}" alt="${review.album_title}" class="album-cover-small" />
-                        </div>
-                        <a href="/release/album/${review.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                            <div class="album-details">
-                                <span class="title">${review.album_title}</span>
-                                <span class="artist-year">${review.artist || 'Unknown Artist'}</span>
-                            </div>
-                            <span class="rating-stars">${scoreToStars(review.user_score)}</span>
-                        </a>
-                    </div>
-                    <div class="review-block">
-                        ${review.review_title ? `<span class="review-title">${review.review_title}</span>` : ''}
-                        ${review.content}
-                        <span class="review-date">${new Date(review.created_at).toLocaleDateString()}</span>
-                    </div>
-                    `;
-                    container.appendChild(reviewEl);
-                });
-
-                renderPagination(container, tabName, totalCount);
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<p>Failed to load reviews.</p>';
-            }
-        }
-
-        // --- Logic for Rated Albums & Histogram ---
-        async function loadRatedAlbums(page = 1, scoreFilter = null) {
-            const listContainer = document.getElementById('rated-albums-container');
-            const listWrapper = document.getElementById('rated-albums-list');
-            const histogramWrapper = document.getElementById('histogram-wrapper');
-            const titleEl = document.getElementById('current-filter-title');
-
-            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
-
-            if (scoreFilter) {
-                // Фильтр активен: показываем список, скрываем гистограмму
-                histogramWrapper.style.display = 'none';
-                listWrapper.style.display = 'block';
-                titleEl.textContent = `Albums rated ${scoreFilter}`;
-                currentScoreFilter = scoreFilter;
-            }
-
-            listContainer.innerHTML = '<div class="loading">Loading albums...</div>';
-
-            try {
-                let url = `${ctx.getApiUrl('rated-albums')}?page=${page}&limit=${ALBUM_LIMIT}`;
-                if (scoreFilter) url += `&score=${scoreFilter}`;
-
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-                const res = await fetch(url, { headers });
-                const data = await res.json();
-                const albums = data.items || [];
-
-                if (albums.length === 0) {
-                    listContainer.innerHTML = '<p>No albums found for this rating.</p>';
-                    return;
-                }
-
-                listContainer.innerHTML = '';
-                albums.forEach(album => {
-                    const albumEl = document.createElement('div');
-                    albumEl.className = 'album-entry';
-                    albumEl.innerHTML = `
-                        <div class="album-entry-header">
-                            <div class="list-image">
-                                <img src="${album.cover_url || '/assets/album-placeholder.png'}" alt="${album.title}" class="album-cover-small" />
-                            </div>
-                            <a href="/release/album/${album.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                                <div class="album-details">
-                                    <span class="title">${album.title}</span>
-                                    <span class="artist-year">${album.artist}</span>
-                                </div>
-                                <span class="rating-stars">${scoreToStars(album.score)}</span>
-                            </a>
-                        </div>
-                    `;
-                    listContainer.appendChild(albumEl);
-                });
-
-                renderPagination(listContainer, 'recent', data.total_count);
-
-            } catch (err) {
-                console.error(err);
-                listContainer.innerHTML = '<p>Failed to load.</p>';
-            }
-        }
-
-        // --- Init Histogram ---
-        function initHistogram() {
-            const container = document.getElementById('histogram-wrapper');
-            container.style.display = 'block';
-            document.getElementById('rated-albums-list').style.display = 'none';
-
-            // Если гистограмма уже инициализирована, просто перезагружаем статистику
-            if (histogramInstance) {
-                histogramInstance.loadStats();
-                return;
-            }
-
-            const username = ctx.username || (ctx.user ? ctx.user.username : 'me');
-
-            histogramInstance = new RatingsHistogram(
-                'histogram-wrapper',
-                username,
-                '/api',
-                (score) => {
-                    // При клике на бар загружаем список с фильтром
-                    loadRatedAlbums(1, score);
-                }
-            );
-            histogramInstance.loadStats();
-        }
-
-        // Back Button
-        const backBtn = document.getElementById('back-to-histogram');
-        if(backBtn) {
-            backBtn.addEventListener('click', () => {
-                document.getElementById('rated-albums-list').style.display = 'none';
-                document.getElementById('histogram-wrapper').style.display = 'block';
-                currentScoreFilter = null;
-                // При возврате, убедитесь, что контейнер списка очищен от старой пагинации
-                document.getElementById('rated-albums-container').innerHTML = '';
-            });
-        }
-
-        async function loadUserActions(type, containerId, page = 1) {
-            const container = document.getElementById(containerId + '-container') || document.getElementById(containerId);
-            if (!container) return;
-
-            const tabName = containerId;
-            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
-
-            container.innerHTML = '<div class="loading">Loading...</div>';
-            try {
-                const url = `${ctx.getActionUrl(type)}?page=${page}&limit=${ALBUM_LIMIT}`;
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
-                const res = await fetch(url, { headers });
-                if (!res.ok) { container.innerHTML = '<p>Empty.</p>'; return; }
-
-                const data = await res.json();
-                const actions = data.items || data;
-                const totalCount = data.total_count || actions.length;
-
-                if (!actions || actions.length === 0) {
-                    container.innerHTML = `<p>List is empty</p>`;
-                    return;
-                }
-
-                container.innerHTML = '';
-                actions.forEach(action => {
-                    const actionEl = document.createElement('div');
-                    actionEl.className = 'album-entry';
-                    actionEl.innerHTML = `
-                    <div class="album-entry-header">
-                        <div class="list-image">
-                            <img src="${action.cover_url || '/assets/album-placeholder.png'}" alt="${action.title}" class="album-cover-small" />
-                        </div>
-                        <a href="/release/album/${action.slug}" style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                            <div class="album-details">
-                                <span class="title">${action.title}</span>
-                                <span class="artist-year">${action.artist}</span>
-                            </div>
-                        </a>
-                    </div>
-                `;
-                    container.appendChild(actionEl);
-                });
-                renderPagination(container, tabName, totalCount);
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<p>Failed to load list.</p>';
-            }
-        }
-
-        async function loadAlbumsWithTrackRatings() {
-            const container = document.getElementById('track-ratings-container');
-            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
-
-            container.innerHTML = '<div class="loading">Loading track ratings...</div>';
-            try {
-                const url = ctx.getApiUrl('track-ratings');
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
-                const res = await fetch(url, { headers });
-                if (!res.ok) throw new Error('Failed');
-                const albumsWithRatings = await res.json();
-
-                if (!albumsWithRatings || albumsWithRatings.length === 0) {
-                    container.innerHTML = '<div class="no-ratings">No track ratings yet</div>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                albumsWithRatings.forEach(album => {
-                    const displayArtist = album.artist ? album.artist.split(',')[0].trim() : 'Unknown Artist';
-                    const albumElement = document.createElement('div');
-                    albumElement.className = 'album-with-tracks';
-                    albumElement.innerHTML = `
-                    <div class="album-header">
-                        <div class="album-header-content">
-                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                                 alt="${album.title}" class="album-cover-small" style="width:40px; height:40px;">
-                            <div>
-                                <div class="album-title" style="color:#fff; font-weight:bold;">${album.title}</div>
-                                <div class="album-artist" style="color:#888; font-size:0.9em;">${displayArtist}</div>
-                            </div>
-                        </div>
-                        <div class="toggle-icon">▼</div>
-                    </div>
-                    <div class="tracks-container"></div>
-                `;
-                    container.appendChild(albumElement);
-
-                    const header = albumElement.querySelector('.album-header');
-                    const tracksContainer = albumElement.querySelector('.tracks-container');
-
-                    header.addEventListener('click', () => {
-                        if (tracksContainer.innerHTML === '') {
-                            album.tracks.forEach(track => {
-                                const tDiv = document.createElement('div');
-                                tDiv.className = 'track-item';
-                                tDiv.innerHTML = `
-                                <div class="track-name">${track.track_number}. ${track.title}</div>
-                                <div class="track-rating">
-                                    <span class="rating-stars" style="color:#ffd700;">${scoreToStars(track.user_rating)}</span>
-                                    <span class="rating-value">${track.user_rating}</span>
-                                </div>`;
-                                tracksContainer.appendChild(tDiv);
-                            });
-                        }
-                        if (tracksContainer.style.maxHeight) {
-                            tracksContainer.style.maxHeight = null;
-                            header.querySelector('.toggle-icon').textContent = '▼';
-                        } else {
-                            tracksContainer.style.maxHeight = tracksContainer.scrollHeight + 'px';
-                            header.querySelector('.toggle-icon').textContent = '▲';
-                        }
-                    });
-                });
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<p>Error loading tracks.</p>';
-            }
-        }
-
-        async function loadUserTags() {
-            const container = document.getElementById('user-tags-container');
-            if (!ctx || (!ctx.isPublic && !ctx.token)) return;
-
-            container.innerHTML = '<div class="loading">Loading tags...</div>';
-            try {
-                const url = ctx.isPublic
-                    ? `/api/users/${ctx.username}/tags`
-                    : `/api/tags/my-tags`;
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
-                const res = await fetch(url, { headers });
-                if (!res.ok) throw new Error('Failed tags');
-                const data = await res.json();
-
-                if (data.length === 0) {
-                    container.innerHTML = '<p>No tags yet.</p>';
-                    return;
-                }
-
-                const groupedTags = {};
-                data.forEach(item => {
-                    if (!groupedTags[item.tag_name]) groupedTags[item.tag_name] = [];
-                    groupedTags[item.tag_name].push(item);
-                });
-
-                container.innerHTML = '';
-                for (const [tagName, albums] of Object.entries(groupedTags)) {
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'tag-group';
-
-                    const title = document.createElement('h3');
-                    title.className = 'tag-group-title';
-                    title.textContent = `#${tagName} (${albums.length})`;
-
-                    const listDiv = document.createElement('div');
-                    listDiv.className = 'tag-albums-list';
-                    listDiv.style.maxHeight = '0px';
-
-                    albums.forEach(album => {
-                        const albumEl = document.createElement('div');
-                        albumEl.className = 'album-entry';
-                        albumEl.innerHTML = `
-                     <div class="album-entry-header">
-                        <div class="list-image">
-                            <img src="${album.cover_url || '/assets/album-placeholder.png'}"
-                                 alt="${album.title}" class="album-cover-small" />
-                        </div>
-                        <a href="/release/album/${album.slug}"
-                           style="color: inherit; text-decoration: none; display: flex; align-items: center; width: 100%;">
-                            <div class="album-details">
-                                <span class="title">${album.title}</span>
-                                <span class="artist-year">${album.artist_name || album.artist} (${new Date(album.release_date).getFullYear()})</span>
-                            </div>
-                        </a>
-                    </div>
-                `;
-                        listDiv.appendChild(albumEl);
-                    });
-
-                    title.addEventListener('click', () => {
-                        const isExpanded = groupDiv.classList.toggle('expanded');
-                        if (isExpanded) {
-                            listDiv.style.maxHeight = listDiv.scrollHeight + 'px';
-                        } else {
-                            listDiv.style.maxHeight = '0px';
-                        }
-                    });
-
-                    groupDiv.appendChild(title);
-                    groupDiv.appendChild(listDiv);
-                    container.appendChild(groupDiv);
-                }
-
-            } catch (err) {
-                console.error('Error loading tags:', err);
-                container.innerHTML = '<p style="color:red">Error loading tags</p>';
-            }
-        }
-
-        function triggerLoad(tabName, page = 1) {
-            currentPage[tabName] = page;
-
-            switch (tabName) {
-                case 'recent':
-                    // Если есть фильтр, грузим список, иначе гистограмму
-                    if (currentScoreFilter) {
-                        loadRatedAlbums(page, currentScoreFilter);
-                    } else {
-                        initHistogram();
-                    }
-                    break;
-
-                case 'albums': loadUserActions('listen', 'albums', page); break;
-                case 'liked': loadUserActions('like', 'liked', page); break;
-                case 'wishlist': loadUserActions('wishlist', 'wishlist', page); break;
-                case 'reviews': loadUserReviews(page); break;
-                case 'trackratings': loadAlbumsWithTrackRatings(); break;
-                case 'tags': loadUserTags(); break;
-            }
-        }
-
-        const tabs = document.querySelectorAll('.tab');
-        const contents = document.querySelectorAll('.tab-content');
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                contents.forEach(c => c.classList.remove('active'));
-
-                tab.classList.add('active');
-                const targetId = tab.dataset.tab;
-                document.getElementById(targetId).classList.add('active');
-
-                triggerLoad(targetId, 1);
-            });
+        };
+
+        // --- OVERLAY LOGIC ---
+        document.getElementById('close-overlay-btn').onclick = closeOverlay;
+        overlay.onclick = (e) => { if (e.target === overlay) closeOverlay(); };
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.style.display === 'block') closeOverlay();
         });
 
-        // Инициализация при загрузке (если активный таб recent)
-        const activeTab = document.querySelector('.tab.active');
-        if (activeTab && activeTab.dataset.tab === 'recent') {
-            triggerLoad('recent', 1);
+        function closeOverlay() {
+            overlay.style.display = 'none';
+            document.body.classList.remove('overlay-open');
+            document.getElementById('overlay-table-container').innerHTML = '';
+            document.getElementById('overlay-pagination-container').innerHTML = '';
         }
 
+        async function loadOverlayPage(page) {
+            const container = document.getElementById('overlay-table-container');
+            container.innerHTML = '<p style="color:var(--text-dim); padding: 20px;">Wczytywanie danych...</p>';
+
+            try {
+                const data = await overlayState.fetchFn(page, OVERLAY_LIMIT, overlayState.extra);
+                const items = data.items || data;
+                const meta = {
+                    total: data.total || items.length,
+                    page: page,
+                    limit: OVERLAY_LIMIT
+                };
+                renderSortableTable(container, items, overlayState.type);
+                pagination.renderPagination('overlay-pagination-container', meta, (targetPage) => {
+                    loadOverlayPage(targetPage);
+                }, { scrollToTop: false });
+
+            } catch (e) {
+                container.innerHTML = '<p style="color:red">Błąd pobierania danych.</p>';
+            }
+        }
+
+        function renderSortableTable(container, items, type) {
+            container.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'sort-table';
+
+            let headers = [
+                { label: '', key: null },
+                { label: type === 'lists' ? 'Nazwa' : 'Wydanie', key: type === 'lists' ? 'name' : 'title' }
+            ];
+
+            if (type === 'lists') {
+                headers.push({ label: 'Typ', key: 'type' }, { label: 'Elementy', key: 'items_count' }, { label: 'Utworzono', key: 'created_at' });
+            } else {
+                headers.push({ label: 'Wykonawca', key: 'artist' }, { label: 'Data wydania', key: 'release_date' });
+                if (type === 'reviews') headers.push({ label: 'Ocena', key: 'user_score' }, { label: 'Data', key: 'created_at' });
+                else if (type === 'tags') headers.push({ label: 'Tag', key: 'tag_name' });
+                else if (['tracks', 'rated', 'recent'].includes(type)) headers.push({ label: 'Ocena', key: 'score' });
+                else headers.push({ label: 'Dodano', key: 'created_at' });
+            }
+
+            const thead = document.createElement('thead');
+            const trH = document.createElement('tr');
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                if (h.key) {
+                    th.innerHTML = h.label + (currentSort.key === h.key ? (currentSort.asc ? ' ↑' : ' ↓') : '');
+                    th.onclick = () => {
+                        currentSort.asc = currentSort.key === h.key ? !currentSort.asc : true;
+                        currentSort.key = h.key;
+                        const sorted = [...items].sort((a, b) => {
+                            let valA = a[h.key] ?? '';
+                            let valB = b[h.key] ?? '';
+                            if (['release_date', 'created_at'].includes(h.key)) {
+                                valA = new Date(valA).getTime() || 0; valB = new Date(valB).getTime() || 0;
+                            } else if (!isNaN(valA) && valA !== '' && !isNaN(valB)) {
+                                valA = parseFloat(valA); valB = parseFloat(valB);
+                            } else {
+                                valA = valA.toString().toLowerCase(); valB = valB.toString().toLowerCase();
+                            }
+                            return currentSort.asc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+                        });
+                        renderSortableTable(container, sorted, type);
+                    };
+                } else th.textContent = h.label;
+                trH.appendChild(th);
+            });
+            thead.appendChild(trH);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            const { formatDate, getArtist, getStars } = window.TabsShared; // Użycie helperów
+
+            items.forEach(a => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row';
+                let rowHtml = `
+                    <td><img src="${a.cover_url || '/img/default-artist.png'}" class="table-cover"></td>
+                    <td><a href="${type==='lists' ? '/list.html?slug='+a.slug : '/release/album/'+a.slug}" class="table-link">${a.title || a.name || a.album_title || 'Nieznany'}</a></td>
+                    <td><span class="table-artist">${type==='lists' ? a.type : getArtist(a)}</span></td>
+                `;
+
+                if (type !== 'lists') {
+                    rowHtml += `<td style="color:var(--text-dim); font-size:0.85rem">${formatDate(a.release_date)}</td>`;
+                    if (type === 'reviews') rowHtml += `<td style="color:gold">${getStars(a.user_score)}</td><td>${formatDate(a.created_at)}</td>`;
+                    else if (['tracks', 'rated', 'recent'].includes(type)) rowHtml += `<td style="color:gold">${getStars(a.score || a.user_score)}</td>`;
+                    else if (type === 'tags') rowHtml += `<td style="color:var(--accent)">#${a.tag_name}</td>`;
+                    else rowHtml += `<td>${formatDate(a.created_at)}</td>`;
+
+                    if (type === 'tracks') rowHtml += `<td><button class="toggle-tracks-btn" data-id="${a.id}">Utwory</button></td>`;
+                } else {
+                    rowHtml += `<td style="color:var(--text-dim)">${a.items_count || 0} el.</td><td>${formatDate(a.created_at)}</td>`;
+                }
+
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+
+                if (type === 'tracks') {
+                    const tRow = document.createElement('tr');
+                    tRow.style.display = 'none';
+                    tRow.innerHTML = `<td colspan="6"><div class="track-list-dropdown" id="drop-overlay-${a.id}">Wczytywanie...</div></td>`;
+                    tbody.appendChild(tRow);
+                    tr.querySelector('.toggle-tracks-btn').onclick = function() {
+                        const isVis = tRow.style.display === 'table-row';
+                        tRow.style.display = isVis ? 'none' : 'table-row';
+                        this.textContent = isVis ? 'Utwory' : 'Ukryj';
+                        // Jeśli potrzeba, można wywołać logikę ładowania utworów, ale tutaj w Overlayu
+                        // prościej jest zostawić to, lub przenieść logikę toggleTracks do Shared
+                        if (!isVis && window.TabsShared.toggleTracks) {
+                            window.TabsShared.toggleTracks(a.id, this, `drop-overlay-${a.id}`);
+                        }
+                    };
+                }
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+
+        // Dodajemy helper toggleTracks do shared, bo jest używany w tabeli Overlay i w zakładce Tracks
+        window.TabsShared.toggleTracks = async (albumId, btn, dropId) => {
+            const drop = document.getElementById(dropId);
+            if (!drop.innerText.includes('Wczytywanie')) return;
+            try {
+                const { getUrl, getHeaders, getStars } = window.TabsShared;
+                const [albRes, scoRes] = await Promise.all([
+                    fetch(getUrl('album-details', albumId), { headers: getHeaders() }),
+                    fetch(getUrl('track-user-scores', albumId), { headers: getHeaders() })
+                ]);
+                const albData = await albRes.json();
+                const scoData = await scoRes.json();
+                const scoresMap = Array.isArray(scoData) ? scoData.reduce((acc, s) => ({ ...acc, [s.track_id || s.id]: s.score || s.rating }), {}) : scoData;
+                const tracks = albData.tracks || [];
+                if (!tracks.length) { drop.innerHTML = 'Brak utworów.'; return; }
+
+                drop.innerHTML = tracks.map(t => {
+                    const score = scoresMap[t.id];
+                    return `
+                    <div class="track-item">
+                        <span class="track-pos">${t.position || ''}</span>
+                        <span class="track-name">${t.title}</span>
+                        <span class="track-stars">${score ? getStars(score) : '<span style="opacity:0.1">☆☆☆☆☆</span>'}</span>
+                    </div>`;
+                }).join('');
+            } catch (e) { drop.innerHTML = 'Błąd wczytywania.'; }
+        };
+
+
+        // --- TAB SWITCHING & LOADING ---
+        const tabs = document.querySelectorAll('.tab');
+        const loadedTabs = new Set();
+
+        async function activateTab(tabEl) {
+            document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+            tabEl.classList.add('active');
+
+            const tabId = tabEl.dataset.tab;
+            document.getElementById(tabId).classList.add('active');
+
+            // Jeśli moduł nie był ładowany, załaduj go teraz
+            if (!loadedTabs.has(tabId)) {
+                const src = tabEl.dataset.src;
+                if (src && window.loadComponent) {
+                    await window.loadComponent(tabId, src);
+                    loadedTabs.add(tabId);
+                }
+            }
+        }
+
+        tabs.forEach(t => t.onclick = () => activateTab(t));
+
+        // Start: załaduj domyślny tab (recent)
+        const defaultTab = document.querySelector('.tab[data-tab="recent"]');
+        if (defaultTab) {
+            // Czekamy chwilę aż profileContext będzie ready (bezpiecznik)
+            const timer = setInterval(() => {
+                if (window.profileContext) {
+                    clearInterval(timer);
+                    activateTab(defaultTab);
+                }
+            }, 50);
+        }
     })();
 </script>

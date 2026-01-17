@@ -1,155 +1,43 @@
-<div class="avatar-wrapper">
-    <div class="avatar">
-        <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="User Avatar" />
-        <label for="avatarUpload" id="change-avatar-label" class="change-avatar-label" style="display:none;">Change Avatar</label>
-        <input type="file" id="avatarUpload" accept="image/*" style="display: none;" />
-    </div>
-</div>
-
 <div class="user-info-content">
+    <div class="avatar-wrapper">
+        <div class="avatar">
+            <img id="avatar-img" src="/assets/avatar-placeholder.png" alt="Avatar użytkownika" />
+            <label for="avatarUpload" id="change-avatar-label" class="change-avatar-label" style="display:none; cursor: pointer; font-size: 0.7rem; color: var(--accent); margin-top: 5px;">Zmień avatar</label>
+            <input type="file" id="avatarUpload" accept="image/*" style="display: none;" />
+        </div>
+    </div>
+
     <h1 id="nickname">...</h1>
-    <span><strong>Username:</strong> <span id="display-username">...</span></span>
-
+    <span class="username-sub">@<span id="display-username">...</span></span>
     <div id="info-fields"></div>
-    <div id="loading-error" style="color:red; margin-top: 10px; display:none;">Profile loading error. You might not be authorized or the API is not returning JSON.</div>
+    <div id="social-links" class="social-links-container" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
 
-    <div class="profile-actions" style="margin-top: 15px;">
-        <button id="editProfileButton" class="edit-button" style="display:none;">Edit Profile</button>
+    <div id="loading-error" style="color:#ff5555; font-size: 0.8rem; margin-top: 10px; display:none;">Błąd wczytywania profilu.</div>
 
-        <button id="followButton" class="follow-button" style="display:none;">Follow</button>
+    <div class="profile-actions">
+        <button id="editProfileButton" class="edit-button" style="display:none;">
+            <i class="fas fa-edit"></i> Edytuj profil
+        </button>
+        <button id="followButton" class="follow-button" style="display:none;">Obserwuj</button>
+        <button id="add-profile-to-list-btn" class="action-btn-styled">
+            <i class="fas fa-list"></i> Dodaj do listy
+        </button>
     </div>
 </div>
-
-<style>
-    .avatar-wrapper { text-align: center; margin-bottom: 20px; }
-    .avatar img { width: 150px; height: 150px; object-fit: cover; border-radius: 50%; }
-    .info-line { margin: 5px 0; color: #ccc; }
-    .change-avatar-label { cursor: pointer; color: #00ffcc; display: block; margin-top: 5px; font-size: 0.9em; }
-
-    /* Styles for the follow button */
-    .follow-button {
-        background-color: #00ffcc; color: #000; border: none; padding: 8px 16px;
-        cursor: pointer; font-weight: bold; border-radius: 4px;
-        transition: opacity 0.2s;
-    }
-    .follow-button:hover { opacity: 0.8; }
-    .follow-button.following {
-        background-color: #333; color: #fff; border: 1px solid #555;
-    }
-</style>
 
 <script>
-    (function() {
-        const ctx = window.profileContext;
-        const errorEl = document.getElementById('loading-error');
-
-        async function initUserInfo() {
-            // If it's the user's own profile:
-            if (!ctx.isPublic) {
-                document.getElementById('change-avatar-label').style.display = 'block';
-                const editBtn = document.getElementById('editProfileButton');
-                editBtn.style.display = 'inline-block';
-                editBtn.onclick = () => window.location.href = '/edit-profile.html';            }
-            // If it's another user's profile and we are logged in:
-            else if (ctx.token) {
-                checkFollowStatus();
-            }
-
-            try {
-                // FIX: Passing an empty string to get /api/users/:username or /api/users/me
-                const url = ctx.getApiUrl('');
-                const headers = (!ctx.isPublic && ctx.token) ? { 'Authorization': `Bearer ${ctx.token}` } : {};
-
-                const res = await fetch(url, { headers });
-
-                if (!res.ok) {
-                    // If status is not 200 (e.g., 404 or 500)
-                    throw new Error(`Profile fetch failed with status: ${res.status}`);
-                }
-
-                // Check Content-Type to ensure it's JSON
-                const contentType = res.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Received non-JSON response from profile API');
-                }
-
-                const data = await res.json();
-
-                errorEl.style.display = 'none';
-
-                document.getElementById('nickname').textContent = data.nickname || data.username;
-                document.getElementById('display-username').textContent = data.username;
-
-                if (data.profile_pic) {
-                    document.getElementById('avatar-img').src = data.profile_pic;
-                }
-
-                const fields = [
-                    { label: 'Age', value: data.age },
-                    { label: 'Country', value: data.country },
-                    { label: 'About Me', value: data.description, isBlock: true },
-                    { label: 'Music', value: data.music, isBlock: true }
-                ];
-
-                const fieldsContainer = document.getElementById('info-fields');
-                fieldsContainer.innerHTML = fields.map(f => {
-                    if (!f.value) return '';
-                    return `<div class="info-line"><strong>${f.label}:</strong> ${f.value}</div>`;
-                }).join('');
-
-            } catch (e) {
-                console.error("UserInfo Error:", e);
-                // If an error occurred (including JSON parsing error), show it to the user
-                errorEl.style.display = 'block';
-                errorEl.textContent = 'Profile loading error. You might not be authorized or the API is not returning JSON.';
-            }
-        }
-
-        // Follow button logic
-        async function checkFollowStatus() {
-            const btn = document.getElementById('followButton');
-            btn.style.display = 'inline-block';
-
-            try {
-                const res = await fetch(`/api/users/${ctx.username}/is-following`, {
-                    headers: { 'Authorization': `Bearer ${ctx.token}` }
-                });
-                const data = await res.json();
-                updateFollowButton(data.isFollowing);
-            } catch (e) { console.error(e); }
-
-            btn.onclick = async () => {
-                const isFollowing = btn.classList.contains('following');
-                const method = isFollowing ? 'DELETE' : 'POST';
-
-                try {
-                    const res = await fetch(`/api/users/${ctx.username}/follow`, {
-                        method: method,
-                        headers: { 'Authorization': `Bearer ${ctx.token}` }
-                    });
-                    if (res.ok) {
-                        updateFollowButton(!isFollowing);
-                        // Update the friends list on the right panel
-                        window.dispatchEvent(new CustomEvent('updateRightPanel'));
-                    }
-                } catch (e) { alert('Action Error'); }
-            };
-        }
-
-        function updateFollowButton(isFollowing) {
-            const btn = document.getElementById('followButton');
-            if (isFollowing) {
-                btn.textContent = 'Following (Unfollow)';
-                btn.classList.add('following');
-            } else {
-                btn.textContent = 'Follow';
-                btn.classList.remove('following');
-            }
-        }
-
-        // Avatar upload logic
-        document.getElementById('avatarUpload').addEventListener('change', async (e) => {
-            if (ctx.isPublic) return;
+    (async function() {
+        const ctx = window.profileContext || {};
+        const avatarInput = document.getElementById('avatarUpload');
+        const avatarImg = document.getElementById('avatar-img');
+        const addToListBtn = document.getElementById('add-profile-to-list-btn');
+        // Dodaj pomocniczą funkcję formatowania na początku script lub wewnątrz renderUserInfo
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '';
+            const [year, month, day] = dateStr.split('T')[0].split('-');
+            return `${day}.${month}.${year}`;
+        };
+        avatarInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -157,18 +45,182 @@
             formData.append('avatar', file);
 
             try {
-                const res = await fetch('/api/users/upload/avatar', {
+                const res = await fetch('/api/upload/avatar', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${ctx.token}` },
                     body: formData
                 });
-                const result = await res.json();
-                if (result.success && result.url) {
-                    document.getElementById('avatar-img').src = result.url + `?t=${Date.now()}`;
-                }
-            } catch (err) { console.error('Avatar upload error', err); }
-        });
 
-        initUserInfo();
+                const data = await res.json();
+                if (res.ok) {
+                    avatarImg.src = data.url + '?t=' + Date.now();
+                    alert('Avatar został pomyślnie zaktualizowany!');
+                } else {
+                    alert('Błąd przesyłania: ' + (data.error || 'Nieznany błąd'));
+                }
+            } catch (err) {
+                console.error('Błąd przesyłania:', err);
+                alert('Błąd podczas przesyłania pliku');
+            }
+        });
+        // Находим кнопку "Добавить в список"
+        addToListBtn.addEventListener('click', () => {
+            // 1. Проверяем, авторизован ли пользователь
+            if (!ctx.token) {
+                if (typeof App !== 'undefined' && App.utils && App.utils.toast) {
+                    App.utils.toast('Zaloguj się, aby dodać użytkownika do listy', 'error');
+                } else {
+                    alert('Zaloguj się, aby dodać użytkownika do listy');
+                }
+                return;
+            }
+
+            // 2. Вызываем ваше готовое окно
+            // ctx.targetId — это ID пользователя, профиль которого мы смотрим
+            // 'user' — тип сущности, который поддерживает ваше окно и бэкенд
+            if (typeof window.openListWindow === 'function') {
+                window.openListWindow(ctx.targetId, 'user');
+            } else {
+                console.error('Функция openListWindow не найдена. Проверьте подключение list-app-modal.js');
+            }
+        });
+        async function fetchProfileData() {
+            const url = ctx.isPublic ? `/api/users/${ctx.username || ctx.targetId}` : '/api/users/me';
+            const headers = ctx.token ? { 'Authorization': `Bearer ${ctx.token}` } : {};
+
+            try {
+                const res = await fetch(url, { headers });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Użytkownik nie znaleziony');
+
+                if (data.id && !ctx.targetId) ctx.targetId = data.id;
+                renderUserInfo(data);
+                document.dispatchEvent(new CustomEvent('profileDataLoaded', { detail: data }));
+            } catch (error) {
+                console.error('Błąd wczytywania profilu:', error);
+                document.getElementById('loading-error').style.display = 'block';
+            }
+        }
+
+        function renderUserInfo(user) {
+            document.getElementById('display-username').textContent = user.username;
+            document.getElementById('nickname').textContent = user.nickname || user.username;
+            avatarImg.src = user.profile_pic || '/assets/avatar-placeholder.png';
+
+            const infoFields = document.getElementById('info-fields');
+            infoFields.innerHTML = '';
+
+            const fields = [
+                { key: 'role', label: 'Rola' },
+                { key: 'location', label: 'Miasto' },
+                { key: 'country', label: 'Kraj' },
+                { key: 'birth_date', label: 'Wiek' },
+                { key: 'music', label: 'Muzyka'},
+                { key: 'movies', label: 'Filmy'},
+                { key: 'contact_email', label: 'Kontakt' }
+            ];
+
+            fields.forEach(field => {
+                if (user[field.key]) {
+                    let value = user[field.key];
+
+                    // Specjalna obsługa dla daty urodzenia
+                    if (field.key === 'birth_date') {
+                        value = formatDate(value);
+                    }
+
+                    infoFields.innerHTML += `
+        <div class="info-item">
+            <strong>${field.label}</strong>
+            <span>${value}</span>
+        </div>`;
+                }
+            });
+
+            const socialContainer = document.getElementById('social-links');
+            socialContainer.innerHTML = '';
+
+            if (user.social) {
+                let socialData = user.social;
+                if (typeof socialData === 'string') {
+                    try { socialData = JSON.parse(socialData); } catch(e) { socialData = {}; }
+                }
+
+                if (typeof socialData === 'object' && socialData !== null) {
+                    Object.entries(socialData).forEach(([platform, link]) => {
+                        if (link) {
+                            const a = document.createElement('a');
+                            a.href = link.startsWith('http') ? link : `https://${link}`;
+                            a.target = "_blank";
+                            a.className = "social-link-item";
+                            a.innerHTML = `<i class="fas fa-link"></i> ${platform}`;
+                            a.style = "padding: 5px 10px; background: rgba(255,255,255,0.1); border-radius: 4px; font-size: 0.8rem; color: var(--accent); text-decoration: none;";
+                            socialContainer.appendChild(a);
+                        }
+                    });
+                }
+            }
+
+            if (user.description) {
+                infoFields.innerHTML += `
+                <div class="info-item" style="flex-direction: column; gap: 4px; margin-top: 10px;">
+                    <strong>O mnie</strong>
+                    <span style="color: #999; line-height: 1.4;">${user.description}</span>
+                </div>`;
+            }
+
+            if (!ctx.isPublic) {
+                document.getElementById('editProfileButton').style.display = 'flex';
+                document.getElementById('editProfileButton').onclick = () => window.location.href = '/edit-profile.html';
+                document.getElementById('change-avatar-label').style.display = 'block';
+            } else {
+                checkAndDisplayFollowStatus(user.username);
+            }
+        }
+
+        async function checkAndDisplayFollowStatus(username) {
+            const followBtn = document.getElementById('followButton');
+            if (!ctx.isPublic || !ctx.token) return;
+            try {
+                const res = await fetch(`/api/users/${username}/is-following`, {
+                    headers: { 'Authorization': `Bearer ${ctx.token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    updateFollowButton(data.isFollowing);
+                    followBtn.style.display = 'flex';
+                    followBtn.onclick = () => handleFollowAction(username);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function handleFollowAction(username) {
+            const btn = document.getElementById('followButton');
+            const isFollowing = btn.classList.contains('following');
+            const method = isFollowing ? 'DELETE' : 'POST';
+            try {
+                const res = await fetch(`/api/users/${username}/follow`, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${ctx.token}` }
+                });
+                if (res.ok) updateFollowButton(!isFollowing);
+            } catch (e) { alert('Akcja nie powiodła się'); }
+        }
+
+        function updateFollowButton(isFollowing) {
+            const btn = document.getElementById('followButton');
+            btn.textContent = isFollowing ? 'Przestań obserwować' : 'Obserwuj';
+            if (isFollowing) {
+                btn.classList.add('following');
+                btn.style.background = 'rgba(255, 85, 85, 0.2)';
+                btn.style.color = '#ff5555';
+            } else {
+                btn.classList.remove('following');
+                btn.style.background = 'var(--accent)';
+                btn.style.color = '#000';
+            }
+        }
+
+        fetchProfileData();
     })();
 </script>

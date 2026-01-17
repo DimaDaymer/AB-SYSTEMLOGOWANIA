@@ -1,340 +1,383 @@
-/* E:\Desktop\java\версия 22.08 2\frontend\css\lists.css */
+/* --- Global Styles & Layout --- */
 
-/* --- Общие стили Dark Mode --- */
-body {
-    background-color: #121212;
-    color: #e0e0e0;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-}
-
-/* --- Стили для заголовков страниц и секций --- */
-.section-title {
-    font-size: 2em;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 15px;
-    color: #fff;
-    margin-top: 0;
-}
-
-/* Стили для list.html (детальная страница списка) */
 .content-wrapper {
-    max-width: 1000px;
+    max-width: 1300px;
     margin: 0 auto;
-}
-.list-header {
-    border-bottom: 1px solid #333;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-}
-.list-header h1 {
-    color: #fff;
-    margin: 0 0 10px 0;
-}
-.list-header p {
-    color: #888;
-}
-.list-description {
-    margin-top: 10px;
-    color: #aaa;
-    font-style: italic;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
 }
 
-/* Ссылки (например, на автора) */
-.author-link {
-    color: #00ffcc;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-/* --- Стили элементов управления (list.html) --- */
-.list-controls {
-    margin-bottom: 20px;
-    text-align: right;
+/* --- Hero Section (list.html) --- */
+/* Современный стиль с эффектом глубины и стеклянным морфизмом */
+.list-hero-section {
     display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 10px; /* Добавляем отступ между select и кнопкой */
-}
-.list-controls label {
-    margin-right: 10px;
-    color: #e0e0e0;
-}
-select {
-    background: #2a2a2a;
-    color: #fff;
-    padding: 8px;
-    border: 1px solid #444;
-    border-radius: 4px;
+    gap: 35px;
+    align-items: flex-start;
+
+    background: rgba(255, 255, 255, 0.03); /* Прозрачный фон */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Светлая граница для блика */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+    margin-bottom: 30px;
+
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
 }
 
-/* Стили для кнопки сохранения */
-#save-sort-btn {
-    background: #00ffcc;
-    color: #121212;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.2s, opacity 0.2s;
-}
-#save-sort-btn:hover:not(:disabled) {
-    background: #00e6b3;
-}
-#save-sort-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+/* Декоративная линия сверху Hero секции */
+.list-hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 204, 0.5), transparent);
+    opacity: 0.7;
 }
 
+.list-page-cover {
+    width: 260px;
+    height: 260px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease;
+}
 
-/* --- Контейнеры для карточек --- */
-.list-cards-container, .album-list {
+.list-page-cover:hover {
+    transform: scale(1.02);
+}
+
+.list-page-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.list-description {
+    flex: 1;
+    min-width: 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1.05em;
+    line-height: 1.7;
+    font-weight: 400;
+
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+}
+
+/* --- Global Lists Cards (global_lists.html) --- */
+
+/* Контейнер списка */
+.list-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
-/* --- Стили для карточек СПИСКОВ (list-card) --- */
-/* (Селектор .album-card удален отсюда) */
+/* Карточка списка - Стеклянный эффект */
 .list-card {
-    background-color: #1e1e1e;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    transition: transform 0.2s, background 0.2s;
-    border: 1px solid #1e1e1e;
-    position: relative;
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 20px;
+    gap: 25px;
     text-decoration: none;
     color: inherit;
-    display: flex;
-    flex-direction: row;
-    align-items: center; /* Сохраняем выравнивание по центру для .list-card */
-    min-height: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    min-width: 0;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* Эффект при наведении на карточку списка */
 .list-card:hover {
-    background-color: #252525;
-    transform: translateY(-2px);
-    border-color: #333;
+    transform: translateY(-5px);
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 255, 204, 0.4);
+    box-shadow:
+            0 20px 40px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(0, 255, 204, 0.15);
 }
 
-
-/* Новый стиль для Placeholder / Обложки списка */
+/* Обложка внутри списка списков */
 .list-cover-placeholder {
-    width: 100px;
-    min-width: 100px;
-    height: 100px;
-    border-radius: 4px;
-    background-color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #888;
-    font-size: 0.8em;
-    text-align: center;
-    padding: 5px;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .list-cover-placeholder img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 4px;
+    transition: transform 0.5s ease;
 }
 
-/* --- Внутренние стили карточек списков (list-card) --- */
-.list-card .list-content {
-    margin-left: 15px;
-    flex-grow: 1;
+.list-card:hover .list-cover-placeholder img {
+    transform: scale(1.08);
 }
 
-.list-name {
-    font-size: 1.2em;
-    margin: 0 0 2px 0;
-    color: #fff;
-    font-weight: bold;
-}
-.list-username {
-    color: #888;
-    font-size: 0.9em;
-    margin: 2px 0;
-    font-weight: normal;
-}
-#globalListCardsContainer .list-username {
-    color: #00ffcc;
-    font-weight: bold;
-}
-
-.list-meta {
-    font-size: 0.9em;
-    color: #777;
-    margin-top: 5px;
-    padding: 0;
-    border-top: none;
-}
-
-.list-desc {
-    display: none;
-}
-
-/* Стили для drag-and-drop (list.html) */
-.sortable-ghost {
-    opacity: 0.4;
-    background: #333;
-    border: 2px dashed #00ffcc;
-}
-
-/* --- Стили для сообщений --- */
-.empty-msg {
-    text-align: center;
-    color: #666;
-    padding: 40px;
-}
-.error {
-    color: #ff6b6b;
-    padding: 10px;
-    background: rgba(255,0,0,0.1);
-    border-radius: 4px;
-    text-align: center;
-}
-
-
-/* === НОВЫЕ СТИЛИ (скопированы из chart-page.html) === */
-
-/* Стили для карточки АЛЬБОМА (.album-card) */
-.album-card {
-    display: flex;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    align-items: flex-start; /* Выравнивание по верху! */
-    transition: box-shadow 0.5s ease, transform 0.3s ease;
-    position: relative;
-    border: 1px solid #2a2a2a; /* Добавлено для согласованности с :hover */
-}
-
-.album-card:hover {
-    background-color: #2f2f2f;
-    transform: translateY(-2px);
-    border-color: #333;
-}
-
-.album-card.highlighted {
-    box-shadow: 0 0 20px 5px rgba(0, 255, 204, 0.6);
-    border: 1px solid #00ffcc;
-    transform: scale(1.02);
-}
-
-/* Ссылка только на картинку */
-.album-cover-link {
-    display: block;
-    flex-shrink: 0;
-    margin-right: 15px;
-    text-decoration: none;
-}
-
-.album-cover-link img {
-    width: 120px;
-    height: 120px;
-    border-radius: 4px;
-    object-fit: cover;
-}
-
-/* Контейнер для текста и кнопок */
-.album-details-wrapper {
-    flex-grow: 1;
+.list-content {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    /* Добавлено, чтобы кнопки не выходили за пределы */
-    min-width: 0;
+    justify-content: flex-start;
 }
 
-/* Ссылка только на текст */
-.album-text-link {
-    text-decoration: none;
-    color: inherit;
-    display: block;
+/* Заголовок списка */
+.list-name {
+    margin: 0 0 8px 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    transition: color 0.2s ease;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-.album-text-link h2 {
-    font-size: 1.2em;
-    margin: 0 0 5px 0;
-    color: #e0e0e0;
-    transition: color 0.2s;
-    /* Для переноса длинных названий */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.album-text-link:hover h2 {
+.list-card:hover .list-name {
     color: #00ffcc;
 }
 
-.album-text-link p {
+/* Имя автора */
+.list-username {
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 12px 0;
+    font-style: italic;
+}
+
+/* Описание в превью */
+.list-card-description {
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: auto;
+    line-height: 1.5;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Мета-информация (внизу карточки) */
+.list-meta {
+    margin-top: 15px;
     font-size: 0.85em;
-    color: #b0b0b0;
-    margin: 0;
-    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 12px;
+}
+
+/* Стиль для бейджика типа списка */
+.list-type-badge {
+    background-color: rgba(0, 255, 204, 0.15);
+    backdrop-filter: blur(4px);
+    color: #00ffcc;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    letter-spacing: 0.5px;
+}
+
+/* --- Адаптивность --- */
+@media (max-width: 768px) {
+    .list-hero-section {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 20px;
+    }
+
+    .list-page-cover {
+        width: 200px;
+        height: 200px;
+    }
+
+    .list-card {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .list-cover-placeholder {
+        width: 100%;
+        height: 200px;
+    }
+
+    .list-content {
+        width: 100%;
+    }
+}
+
+.content-glass-container {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    padding: 40px;
+    border-radius: 20px;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+
+    margin-top: 20px;
+}
+
+/* Адаптивность для мобилок */
+@media (max-width: 768px) {
+    .content-glass-container {
+        padding: 20px;
+        background: rgba(10, 10, 10, 0.7); /* Чуть темнее для контраста */
+    }
+}
+
+#dynamic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 600px;
+    background-size: cover;
+    background-position: center;
+    filter: blur(25px) brightness(0.4);
+    z-index: -1;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+}
+
+/* --- Similar Items Grid (3x2) --- */
+
+.similar-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 колонки */
+    gap: 15px;
+    width: 100%;
+}
+
+.grid-item-card {
+    display: flex;
+    flex-direction: column; /* Обложка сверху, текст снизу */
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.grid-item-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-5px);
+    border-color: rgba(0, 255, 204, 0.3);
+}
+
+.grid-img-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Квадратная обложка */
+    overflow: hidden;
+}
+
+.grid-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.grid-item-card:hover .grid-img-box img {
+    transform: scale(1.1);
+}
+
+.grid-type-tag {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00ffcc;
+    font-size: 0.65em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+.grid-content-box {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.grid-item-title {
+    font-size: 0.9em;
+    font-weight: 700;
+    color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.rating-info {
-    display: flex;
-    align-items: center;
-    font-size: 0.9em;
-    color: #b0b0b0;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    gap: 10px;
+.grid-item-card:hover .grid-item-title {
+    color: #00ffcc;
 }
 
-.rating-info span {
-    margin-right: 5px;
+.grid-item-subtitle {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.rating-info .score {
-    font-weight: bold;
-    color: #f5c518;
-    margin-right: 15px;
+.grid-item-extra {
+    font-size: 0.75em;
+    color: #00ffcc;
+    margin-top: 4px;
+    font-weight: 500;
 }
 
-/* Блок кнопок */
-.album-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    position: relative;
-    z-index: 2;
+/* Адаптация для маленьких экранов (переход в 2 колонки или 1) */
+@media (max-width: 992px) {
+    .similar-grid-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
-.action-button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    background-color: #444;
-    color: #f0f0f0;
-    cursor: pointer;
-    font-size: 0.85em;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.action-button:hover {
-    background-color: #555;
-}
-
-/* Стили активной кнопки */
-.action-button.active {
-    background-color: #00ffcc;
-    color: #1a1a1a;
-    font-weight: bold;
-    box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+@media (max-width: 480px) {
+    .similar-grid-layout {
+        grid-template-columns: 1fr;
+    }
 }

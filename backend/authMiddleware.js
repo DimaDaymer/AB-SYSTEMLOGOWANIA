@@ -4,7 +4,7 @@ const { pool } = require('./db');
 
 module.exports = async function authenticate(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Требуется авторизация' });
+    if (!token) return res.status(401).json({ error: 'Wymagana autoryzacja' });
 
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
@@ -14,13 +14,13 @@ module.exports = async function authenticate(req, res, next) {
         );
 
         if (users.length === 0) {
-            return res.status(401).json({ error: 'Пользователь не найден' });
+            return res.status(401).json({ error: 'Użytkownik nie został znaleziony' });
         }
 
         req.user = users[0];
         next();
     } catch (err) {
-        console.error('Ошибка аутентификации:', err);
-        res.status(401).json({ error: 'Неверный токен' });
+        console.error('Błąd uwierzytelniania:', err);
+        res.status(401).json({ error: 'Nieprawidłowy token' });
     }
 };

@@ -1,0 +1,108 @@
+<div id="entity-lists-wrapper" style="padding-top: 15px; margin-top: 10px;">
+    <h3 id="entity-lists-title" style="margin-bottom: 15px; font-size: 1.1em; color: #ccc; display: none;">Występuje na listach</h3>
+
+    <div id="entity-lists-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px;">
+        <p style="color: #888; font-size: 0.9em;">Ładowanie list...</p>
+    </div>
+
+    <div id="entity-lists-pagination" style="padding-top: 15px; text-align: center; display: flex; justify-content: center; gap: 5px;"></div>
+</div>
+
+<script>
+    (async function() {
+        const container = document.getElementById('entity-lists-container');
+        const footer = document.getElementById('entity-lists-pagination');
+        const titleEl = document.getElementById('entity-lists-title');
+
+        let currentPage = 1;
+
+        // Определяем контекст (тип сущности и лимиты)
+        function getEntityContext() {
+            if (window.currentAlbumId) return { id: window.currentAlbumId, type: 'album', limit: 6 };
+            if (window.currentTrackId) return { id: window.currentTrackId, type: 'track', limit: 8 };
+            if (window.currentArtistId) return { id: window.currentArtistId, type: 'artist', limit: 6 };
+            return null;
+        }
+
+        async function loadEntityLists() {
+            const context = getEntityContext();
+            if (!context) {
+                // Если ID еще не прокинут в window, пробуем подождать
+                setTimeout(loadEntityLists, 200);
+                return;
+            }
+
+            if (!window.ListApp || !window.ListApp.utils) {
+                container.innerHTML = '<p class="error" style="color:#ff4d4d; font-size: 0.85em;">Błąd systemowy: brak ListApp.</p>';
+                return;
+            }
+
+            const offset = (currentPage - 1) * context.limit;
+            const endpoint = `/api/user-lists/for-${context.type}/${context.id}?limit=${context.limit}&offset=${offset}`;
+
+            try {
+                const data = await window.ListApp.utils.fetchAPI(endpoint);
+                const lists = data.lists || [];
+                const total = data.total || 0;
+
+                container.innerHTML = '';
+
+                if (lists.length === 0) {
+                    if (currentPage === 1) {
+                        container.innerHTML = '<p style="color: #666; font-size: 0.9em;">Ta pozycja nie została jeszcze dodana do żadnej listy.</p>';
+                        titleEl.style.display = 'none';
+                    }
+                    return;
+                }
+
+                titleEl.style.display = 'block';
+
+                lists.forEach(list => {
+                    const card = document.createElement('a');
+                    card.href = `/list.html?slug=${list.slug}`;
+                    card.style.cssText = `text-decoration: none; color: inherit; display: flex; flex-direction: column;`;
+
+                    const coverUrl = list.cover_url || '/img/default_list_cover.jpg';
+                    const itemsText = list.items_count === 1 ? '1 element' : `${list.items_count} elementów`;
+
+                    card.innerHTML = `
+                        <div class="list-cover" style="width: 100%; aspect-ratio: 1/1; background: #222 url('${coverUrl}') no-repeat center center; background-size: cover; border-radius: 4px; margin-bottom: 5px;"></div>
+                        <div class="list-info" style="overflow: hidden;">
+                            <h4 style="margin: 0; font-size: 0.85em; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${list.name}">${list.name}</h4>
+                            <p style="margin: 0; font-size: 0.75em; color: #888;">${itemsText}</p>
+                            <p style="margin: 0; font-size: 0.75em; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">by ${list.username}</p>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+                // Użycie centralnego modułu paginacji zamiast ręcznej pętli
+                try {
+                    const { renderPagination } = await import('/js/pagination.js');
+
+                    renderPagination(
+                        footer,
+                        {
+                            total: total,
+                            page: currentPage,
+                            limit: context.limit
+                        },
+                        (newPage) => {
+                            currentPage = newPage;
+                            loadEntityLists();
+                        },
+                        { showInfo: false }
+                    );
+                } catch (err) {
+                    console.error("Błąd ładowania modułu paginacji:", err);
+                }
+
+            } catch (e) {
+                console.error('Error loading entity lists:', e);
+                container.innerHTML = `<p style="color:#ff4d4d; font-size: 0.8em;">❌ Błąd ładowania list.</p>`;
+            }
+        }
+
+        loadEntityLists();
+    })();
+</script>

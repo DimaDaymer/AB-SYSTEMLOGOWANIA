@@ -1,39 +1,38 @@
 /**
-/frontend/js/StarRating.js
+ /frontend/js/StarRating.js
  */
 class StarRating {
     constructor(container, options = {}) {
         this.container = container;
         this.options = {
             showValue: options.showValue !== undefined ? options.showValue : true,
+            showCount: options.showCount !== undefined ? options.showCount : true,
             clearableText: options.clearableText || '×'
         };
         this.value = 0;
+        this.count = 0;
         this.render();
         this.attachEvents();
     }
 
     render() {
-        // 1. Создаем базовую HTML-структуру с оберткой для анимации
         this.container.innerHTML = `
             <div class="star-rating-wrapper" data-has-value="false">
                 ${this.options.showValue ? '<span class="rating-value">0.0</span>' : ''}
+                ${this.options.showCount ? '<span class="rating-count"></span>' : ''}
                 <div class="rating-clear-wrapper">
-                    <span class="rating-clear-btn" title="Clear rating">${this.options.clearableText}</span>
+                    <span class="rating-clear-btn" title="Wyczyść ocenę">${this.options.clearableText}</span>
                 </div>
-                <div 
-                class="rating-stars">
-                    </div>
+                <div class="rating-stars"></div>
             </div>
         `;
 
-        // 2. Находим ключевые элементы
         const starsContainer = this.container.querySelector('.rating-stars');
         this.valueEl = this.container.querySelector('.rating-value');
+        this.countEl = this.container.querySelector('.rating-count');
         this.clearBtn = this.container.querySelector('.rating-clear-btn');
         this.wrapper = this.container.querySelector('.star-rating-wrapper');
 
-        // 3. Генерируем звезды (от 5 до 0.5)
         let starsHtml = '';
         for (let i = 5; i >= 0.5; i -= 0.5) {
             const value = i;
@@ -50,7 +49,6 @@ class StarRating {
         }
         starsContainer.innerHTML = starsHtml;
 
-        // 4. Сохраняем ссылки на DOM-элементы для событий
         this.labels = Array.from(starsContainer.querySelectorAll('label'));
         this.inputs = Array.from(starsContainer.querySelectorAll('input'));
     }
@@ -58,7 +56,6 @@ class StarRating {
     attachEvents() {
         const starsContainer = this.container.querySelector('.rating-stars');
 
-        // События для каждой звезды
         this.labels.forEach(label => {
             const input = this.container.querySelector('#' + label.htmlFor);
             const ratingValue = parseFloat(input.value);
@@ -68,22 +65,18 @@ class StarRating {
 
             label.addEventListener('click', (ev) => {
                 ev.preventDefault();
-                this.setValue(ratingValue, true); // Установить значение и оповестить
+                this.setValue(ratingValue, true);
             });
         });
 
-        // События для контейнера звезд (для сброса ховера)
         starsContainer.addEventListener('mouseleave', () => this.clearHover());
         starsContainer.addEventListener('touchend', () => this.clearHover());
         starsContainer.addEventListener('touchcancel', () => this.clearHover());
 
-        // Событие для кнопки "Очистить"
         this.clearBtn.addEventListener('click', () => {
-            this.setValue(0, true); // Установить 0 и оповестить
+            this.setValue(0, true);
         });
     }
-
-    // --- Приватные методы ---
 
     hoverTo(rating) {
         this.labels.forEach(l => {
@@ -97,25 +90,25 @@ class StarRating {
     }
 
     updateVisuals() {
-        // 1. Обновляем текст (если он есть)
         if (this.valueEl) {
             this.valueEl.textContent = this.value.toFixed(1);
         }
 
-        // 2. Обновляем 'active' классы на звездах
+        if (this.countEl) {
+            this.countEl.textContent = this.count > 0 ? `(${this.count})` : '';
+        }
+
         this.labels.forEach(l => {
             const v = parseFloat(this.container.querySelector('#' + l.htmlFor).value);
             l.classList.toggle('active', v <= this.value && this.value !== 0);
         });
 
-        // 3. Обновляем input (для CSS :checked селекторов, если нужны)
         const checkedInput = this.inputs.find(i => Math.abs(parseFloat(i.value) - this.value) < 0.1);
         this.inputs.forEach(i => i.checked = false);
         if (checkedInput) {
             checkedInput.checked = true;
         }
 
-        // 4. Устанавливаем data-атрибут для CSS-анимации кнопки "×"
         this.wrapper.dataset.hasValue = (this.value > 0).toString();
     }
 
@@ -129,6 +122,11 @@ class StarRating {
                 bubbles: true
             }));
         }
+    }
+
+    setCount(count) {
+        this.count = parseInt(count) || 0;
+        this.updateVisuals();
     }
 
     getValue() {

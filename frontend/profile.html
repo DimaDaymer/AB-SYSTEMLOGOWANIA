@@ -1,42 +1,46 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль пользователя</title>
+    <title>Profil użytkownika | Platforma Muzyczna</title>
     <link rel="stylesheet" href="/css/profile.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/comments.css">
 </head>
 <body>
-
-<div id="navbar-container" role="navigation"></div>
+<div id="dynamic-background"></div>
+<div id="navbar-container"></div>
 
 <div class="container">
-    <div id="user-info-component" class="left-panel">
-        <div class="loading-placeholder">Загрузка профиля...</div>
-    </div>
-
-    <div id="tabs-component" class="tab-panel">
-        <div class="loading-placeholder">Загрузка вкладок...</div>
-    </div>
-
-    <div class="right-panel">
-        <div id="right-panel-component">
-            <div class="loading-placeholder">Загрузка статистики...</div>
+    <aside class="left-panel">
+        <div id="user-info-component">
+            <div class="loading-placeholder">Ładowanie profilu...</div>
         </div>
+    </aside>
 
-        <div id="user-lists-component" style="margin-top: 20px;">
-            <div class="loading-placeholder">Загрузка списков...</div>
+    <main class="tab-panel">
+        <div id="tabs-component">
+            <div class="loading-placeholder">Ładowanie zawartości...</div>
         </div>
+        <div id="comment-box-component"></div>
+    </main>
 
-        <div id="comment-box-component" style="margin-top: 30px;">
-            <div class="loading-placeholder">Загрузка комментариев...</div>
+    <aside class="right-panel">
+        <div id="right-panel-component"></div>
+
+        <div class="side-card" id="soulmates-section" style="display: none;">
+            <div id="similar-users-container" class="similar-grid-vertical"></div>
         </div>
-    </div>
+    </aside>
 </div>
-<script src="/js/comments-core.js"></script>
-<script src="/js/list-app-core.js"></script>
-<script src="/js/profile.js"></script>
 
+<script src="/js/comments-core.js"></script>
+<script src="/js/loadnavbar.js"></script>
+<script src="/js/list-app-core.js"></script>
+<script src="/js/list-app-modal.js"></script>
+<script src="/js/similar-loader.js"></script>
+<script src="/js/profile.js"></script>
 </body>
 </html>

@@ -33,7 +33,7 @@
 .artist-card-sticky {
     position: sticky;
     top: 80px; /* Assuming navbar is approx 60px */
-    background: #1a1a1a;
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 12px;
     padding: 25px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.3);
@@ -46,7 +46,7 @@
     height: 200px;
     object-fit: cover;
     border-radius: 50%;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
     margin-bottom: 20px;
     border: 4px solid #2a2a2a;
 }
@@ -82,12 +82,17 @@
     font-size: 0.95rem;
 }
 
-.meta-row {
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+/* Делаем ссылку в блоке страны серой, как и остальной текст */
+.meta-row a {
+    color: #adff2f; /* Тот же цвет, что у .artist-meta-block */
+    text-decoration: none; /* Убираем подчеркивание, если оно есть */
+    transition: color 0.2s;
+}
+
+/* Эффект при наведении, чтобы пользователь понимал, что это ссылка */
+.meta-row a:hover {
+    color: #00ffcc; /* Бирюзовый акцент при наведении */
+    text-decoration: underline;
 }
 
 /* Score Block (Similar to Album ratings) */
@@ -117,28 +122,39 @@
     color: #777;
     font-size: 0.9rem;
 }
+/* artist.css - Fragment dotyczący przycisku Follow */
 
-.btn-secondary {
-    background: #333;
-    color: #ccc;
-    border: none;
-}
-.btn-secondary:hover {
-    background: #444;
-    color: #fff;
+/* Убеждаемся, что форма сохраняется */
+.btn.btn-outline {
+    border: 2px solid var(--accent-primary); /* Используем переменную из common.css */
+    border-radius: 8px; /* Явное указание формы */
+    padding: 12px 24px;
+    display: block;
+    width: 100%;
+    font-weight: 600;
+    background: transparent;
+    color: var(--accent-primary);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
-/* Follow Button States */
+/* Stan: Obserwujesz (following) */
 #follow-button.following {
-    background-color: transparent;
-    border-color: #555;
-    color: #888;
+    background-color: rgba(0, 255, 204, 0.1) !important;
+    border-color: #555 !important;
+    color: #00ffcc !important;
 }
 
+/* Efekt najechania (Unfollow) */
 #follow-button.following:hover {
-    border-color: #ff5555;
-    color: #ff5555;
-    content: "Unfollow";
+    border-color: #ff5555 !important;
+    color: #ff5555 !important;
+    background-color: rgba(255, 85, 85, 0.1) !important;
+}
+
+/* Текст 'Unfollow' при наведении (опционально) */
+#follow-button.following:hover {
+    content: "Unfollow"; /* Это сработает, если использовать псевдоэлементы, но для простоты оставим текст через JS */
 }
 
 
@@ -149,12 +165,11 @@
 
 /* Tabs from albums.css/profile.css */
 .tabs {
-    background: #1a1a1a;
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     display: flex;
     margin-bottom: 25px;
     overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .tab {
@@ -166,15 +181,15 @@
     border-bottom: 3px solid transparent;
 }
 
+/* Активная вкладка (текст и полоска снизу) */
+.tab.active {
+    color: #00ffcc;           /* Цвет текста */
+    border-bottom-color: #00ffcc; /* Цвет линии под вкладкой */
+    background: rgba(0, 0, 0, 0.1); /* Полупрозрачный темный фон */
+}
 .tab:hover {
     color: #fff;
     background: #252525;
-}
-
-.tab.active {
-    color: #00ffcc;
-    border-bottom-color: #00ffcc;
-    background: #222;
 }
 
 .tab-content { display: none; }
@@ -201,7 +216,7 @@
 }
 
 .album-card {
-    background: #1a1a1a;
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     padding: 15px;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -212,13 +227,12 @@
 
 .album-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,255,204, 0.15); /* Teal glow */
+    box-shadow: 0 8px 15px rgba(3, 255, 209, 0.15); /* Teal glow */
 }
 
 .album-link {
     text-decoration: none;
     color: inherit;
-    /* Убедимся, что ссылка занимает доступное место, чтобы действия были под ней */
     display: flex;
     flex-direction: column;
     flex-grow: 1;
@@ -304,7 +318,7 @@
 
 /* Info Box */
 .info-box {
-    background: #1a1a1a;
+    background: rgba(0, 0, 0, 0.4); /* Полупрозрачный темный фон */
     padding: 25px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -312,7 +326,7 @@
 }
 .info-box h3 {
     margin-top: 0;
-    color: #00ffcc;
+    color: #ffffff;
     border-bottom: 1px solid #333;
     padding-bottom: 10px;
 }
@@ -324,7 +338,7 @@
 
 /* Modal Overlay (z-index fix) */
 .modal-overlay {
-    background: rgba(0,0,0,0.85);
+    background: rgba(0, 0, 0, 0.4); /* Полупрозрачный темный фон */
     backdrop-filter: blur(5px);
     z-index: 2000;
 }
@@ -449,3 +463,83 @@ a.genre-tag:hover {
     padding: 5px 0;
 }
 .text-btn:hover { color: #aaa; }
+
+/* Контейнер управления сортировкой */
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sort-controls label {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Стилизация выпадающего списка */
+.form-control {
+    background-color: #1a1a1a;
+    color: #eee;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.form-control:hover {
+    border-color: #00ffcc;
+    background-color: #222;
+}
+
+.form-control:focus {
+    border-color: #00ffcc;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.2);
+}
+
+/* Стилизация опций внутри (работает в Chrome/Edge/Safari частично) */
+.form-control option {
+    background: #1a1a1a;
+    color: #eee;
+    padding: 10px;
+}
+
+/* Когда кнопка активна, окрашиваем SVG в фиолетовый через фильтр */
+.action-button[data-action="wishlist"].active img {
+    /* Этот фильтр превращает черный в фиолетовый #8a2be2 */
+    filter: invert(24%) sepia(91%) saturate(5436%) hue-rotate(269deg) brightness(93%) contrast(92%);
+}
+
+/* Опционально: эффект при наведении, если кнопка не активна (бирюзовый) */
+.action-button[data-action="wishlist"]:hover img {
+    filter: invert(72%) sepia(74%) saturate(1637%) hue-rotate(124deg) brightness(103%) contrast(104%);
+}
+
+.action-button img {
+    /* Увеличиваем размер */
+    width: 1.4rem;
+    height: 1.4rem;
+
+    /* Центрирование */
+    vertical-align: middle;
+    display: inline-block;
+
+    /* Плавность при наведении (опционально) */
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* Эффект легкого увеличения при наведении на кнопку */
+.action-button:hover img {
+    transform: scale(1.1);
+}

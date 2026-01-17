@@ -8,11 +8,8 @@
         update: function(albumData) {
             const albumCover = document.getElementById('album-cover');
             if (albumCover) {
-                albumCover.src = albumData.cover_url || '/public/uploads/placeholder.jpg';
-
-                // Добавляем обработчик для установки правильных пропорций
+                albumCover.src = albumData.cover_url || '/img/default-artist.png';
                 albumCover.onload = function() {
-                    // Для не-квадратных изображений
                     if (this.naturalWidth !== this.naturalHeight) {
                         this.style.aspectRatio = `${this.naturalWidth}/${this.naturalHeight}`;
                     }

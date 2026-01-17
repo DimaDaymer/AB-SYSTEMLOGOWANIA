@@ -1,23 +1,23 @@
 // frontend/js/list-app-modal.js
 
-// Assuming list-app-core.js is already loaded and ListApp exists
 (function(App) {
 
-    // === ADDITION MODULE (Existing) ===
+    // === MODUŁ DODAWANIA ===
     App.modal = {
-        async open(albumId) {
+        async open(entityId, entityType = 'album') {
             if (!App.utils.getCurrentUser()) {
-                return App.utils.toast('Please log in first', 'error');
+                return App.utils.toast('Zaloguj się najpierw', 'error');
             }
 
-            App.state.currentAlbumId = albumId;
+            App.state.currentEntityId = entityId;
+            App.state.currentEntityType = entityType;
+
             let overlay = document.getElementById('list-overlay');
 
-            // Loading the modal window HTML if it's not already there
             if (!overlay) {
                 try {
                     const resp = await fetch('/components/lists/list_window.html');
-                    if (!resp.ok) throw new Error('Failed to load window');
+                    if (!resp.ok) throw new Error('Nie udało się załadować okna');
                     const html = await resp.text();
 
                     const parser = new DOMParser();
@@ -25,7 +25,6 @@
                     const style = doc.querySelector('style');
                     const modalHtml = doc.querySelector('.overlay');
 
-                    // Adding styles and the HTML itself to the DOM
                     if (style && !document.getElementById('list-window-styles')) {
                         style.id = 'list-window-styles';
                         document.head.appendChild(style);
@@ -38,11 +37,34 @@
                     }
                 } catch (e) {
                     console.error(e);
-                    return App.utils.toast('Interface error', 'error');
+                    return App.utils.toast('Błąd interfejsu', 'error');
                 }
             }
 
-            // Loading user lists and showing the window
+            // Konfiguracja interfejsu tworzenia nowej listy
+            const typeSelect = document.getElementById('new-list-type');
+            if (!typeSelect) {
+                const form = document.querySelector('#new-list-form');
+                if(form) {
+                    const select = document.createElement('select');
+                    select.id = 'new-list-type';
+                    select.className = 'form-input';
+                    select.innerHTML = `
+                        <option value="album">Lista albumów</option>
+                        <option value="track">Lista utworów</option>
+                        <option value="artist">Lista artystów</option>
+                        <option value="user">Lista użytkowników</option>
+                     `;
+                    const btn = form.querySelector('.create-button');
+                    if(btn) form.insertBefore(select, btn);
+                }
+            }
+
+            if (document.getElementById('new-list-type')) {
+                document.getElementById('new-list-type').value = App.state.currentEntityType;
+                document.getElementById('new-list-type').disabled = true;
+            }
+
             this.loadUserLists();
             overlay.style.display = 'flex';
             document.body.classList.add('no-scroll');
@@ -52,13 +74,13 @@
             const overlay = document.getElementById('list-overlay');
             if (overlay) overlay.style.display = 'none';
             document.body.classList.remove('no-scroll');
-            App.state.currentAlbumId = null;
+            App.state.currentEntityId = null;
             const addButton = document.querySelector('#existing-lists .add-button');
             if (addButton) addButton.setAttribute('disabled', 'disabled');
         },
 
         initEvents(overlay) {
-            overlay.querySelectorAll('.cancel-button').forEach(b => b.onclick = this.close);
+            overlay.querySelectorAll('.cancel-button').forEach(b => b.onclick = () => this.close());
 
             const tabs = overlay.querySelectorAll('.list-tab-button');
             tabs.forEach(tab => {
@@ -70,6 +92,12 @@
                     if(target) target.style.display = 'block';
                 };
             });
+
+            const createBtn = overlay.querySelector('.create-button');
+            if(createBtn) createBtn.onclick = () => this.createNew();
+
+            const addBtn = overlay.querySelector('#existing-lists .add-button');
+            if(addBtn) addBtn.onclick = () => this.addItem();
         },
 
         async loadUserLists() {
@@ -78,25 +106,28 @@
             const existingTab = document.querySelector('[data-target="existing-lists"]');
             const newTab = document.querySelector('[data-target="new-list-form"]');
 
-            container.innerHTML = 'Loading...';
+            container.innerHTML = 'Ładowanie...';
             if (addButton) addButton.setAttribute('disabled', 'disabled');
 
             try {
                 const lists = await App.utils.fetchAPI('/api/user-lists/my-lists');
                 container.innerHTML = '';
 
-                if (lists.length === 0) {
+                const compatibleLists = lists.filter(l => l.type === App.state.currentEntityType);
+
+                if (compatibleLists.length === 0) {
                     if(newTab) newTab.click();
-                    container.innerHTML = '<p>No lists. Create the first one!</p>';
+                    const translatedType = App.catalog.translateType(App.state.currentEntityType).toLowerCase();
+                    container.innerHTML = `<p>Nie znaleziono list typu "${translatedType}". Stwórz nową!</p>`;
                     return;
                 }
 
                 if(existingTab) existingTab.click();
 
-                lists.forEach(list => {
+                compatibleLists.forEach(list => {
                     const div = document.createElement('div');
                     div.className = 'list-item';
-                    div.textContent = `${list.name} (${list.albums_count})`;
+                    div.textContent = `${list.name} (${list.items_count || 0})`;
                     div.dataset.listId = list.id;
 
                     div.onclick = () => {
@@ -110,26 +141,29 @@
                     container.appendChild(div);
                 });
             } catch (e) {
-                container.innerHTML = 'Loading error';
+                console.error(e);
+                container.innerHTML = 'Błąd ładowania';
             }
         },
 
         async createNew() {
             const name = document.getElementById('list-name').value;
             const desc = document.getElementById('list-description').value;
+            let type = App.state.currentEntityType || 'album';
+            const typeSelect = document.getElementById('new-list-type');
+            if(typeSelect) type = typeSelect.value;
 
             try {
                 const res = await App.utils.fetchAPI('/api/user-lists', {
                     method: 'POST',
-                    body: JSON.stringify({ name, description: desc })
+                    body: JSON.stringify({ name, description: desc, type })
                 });
-                App.utils.toast('List created');
+                App.utils.toast('Lista utworzona');
 
-                if (App.state.currentAlbumId) {
-                    await this.addAlbum(res.listId);
+                if (App.state.currentEntityId) {
+                    await this.addItem(res.listId);
                 } else {
                     this.close();
-                    // Перезагружаем каталог "Мои списки", если он отображен
                     if(document.getElementById('listCardsContainer') && App.catalog) App.catalog.init('listCardsContainer', false);
                 }
             } catch (e) {
@@ -137,22 +171,22 @@
             }
         },
 
-        async addAlbum(specificListId = null) {
+        async addItem(specificListId = null) {
             let listId = specificListId;
             if (!listId) {
                 const selected = document.querySelector('.list-item.selected');
-                if (!selected) return App.utils.toast('Select a list', 'error');
+                if (!selected) return App.utils.toast('Wybierz listę', 'error');
                 listId = selected.dataset.listId;
             }
 
-            if (!App.state.currentAlbumId) return App.utils.toast('Error: no album ID', 'error');
+            if (!App.state.currentEntityId) return App.utils.toast('Błąd: brak ID encji', 'error');
 
             try {
                 await App.utils.fetchAPI(`/api/user-lists/${listId}/add`, {
                     method: 'POST',
-                    body: JSON.stringify({ albumId: App.state.currentAlbumId })
+                    body: JSON.stringify({ entityId: App.state.currentEntityId })
                 });
-                App.utils.toast('Album added!');
+                App.utils.toast('Dodano!');
                 this.close();
             } catch (e) {
                 App.utils.toast(e.message, 'error');
@@ -160,28 +194,21 @@
         }
     };
 
-    // === NEW EDITING MODULE ===
+    // === MODAL EDYCJI ===
     App.editModal = {
         currentListId: null,
-
         async open(listData) {
             this.currentListId = listData.id;
             let overlay = document.getElementById('list-edit-overlay');
-
-            // Loading the edit modal window HTML if it's not already there
             if (!overlay) {
                 try {
                     const resp = await fetch('/components/lists/edit_list_window.html');
-                    if (!resp.ok) throw new Error('Failed to load edit window');
+                    if (!resp.ok) throw new Error('Nie udało się załadować okna edycji');
                     const html = await resp.text();
-
-                    // Поскольку HTML содержит стили, используем DOMParser
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
                     const style = doc.querySelector('style');
                     const modalHtml = doc.querySelector('.overlay');
-
-                    // Добавление стилей и самого HTML в DOM
                     if (style && !document.getElementById('list-edit-styles')) {
                         style.id = 'list-edit-styles';
                         document.head.appendChild(style);
@@ -192,74 +219,56 @@
                         overlay = modalHtml;
                     }
                 } catch (e) {
-                    console.error(e);
-                    return App.utils.toast('Editing interface error', 'error');
+                    return App.utils.toast('Błąd interfejsu edycji', 'error');
                 }
             }
 
-            // Filling fields with data
             document.getElementById('edit-list-name').value = listData.name || '';
             document.getElementById('edit-list-description').value = listData.description || '';
             document.getElementById('edit-list-cover-url').value = listData.cover_url || '';
 
-            // Binding the delete function to the button (since it's in the modal HTML)
             const deleteBtn = document.getElementById('delete-list-btn');
             if (deleteBtn) {
-                // Убедимся, что ID списка установлен в App.state
                 App.state.listId = this.currentListId;
                 deleteBtn.onclick = () => App.details.deleteList();
             }
 
+            const saveBtn = overlay.querySelector('.save-button');
+            if(saveBtn) saveBtn.onclick = () => this.saveChanges();
 
-            // Showing the window
             overlay.style.display = 'flex';
             document.body.classList.add('no-scroll');
         },
-
         close() {
             const overlay = document.getElementById('list-edit-overlay');
             if (overlay) overlay.style.display = 'none';
             document.body.classList.remove('no-scroll');
             this.currentListId = null;
         },
-
         async saveChanges() {
             const name = document.getElementById('edit-list-name').value;
             const description = document.getElementById('edit-list-description').value;
             let cover_url = document.getElementById('edit-list-cover-url').value;
 
-            if (!name) {
-                return App.utils.toast('Title cannot be empty', 'error');
-            }
+            if (!name) return App.utils.toast('Tytuł nie może być pusty', 'error');
 
-            // If the cover field is cleared, send null to reset it in the database, allowing the first album logic to work
-            if (cover_url.trim() === '') {
+            if (!cover_url || cover_url.trim() === '') {
                 cover_url = null;
             }
 
-
-            const updateData = {
-                name: name,
-                description: description,
-                cover_url: cover_url
-            };
-
+            const updateData = { name, description, cover_url };
             try {
-                // Using the update function from the list details module
                 await App.details.updateList(this.currentListId, updateData);
                 this.close();
-
             } catch (e) {
-                // Error is already handled in App.details.updateList
+                // Błąd jest obsługiwany wewnątrz App.details.updateList
             }
         }
     };
 
-
-    // === GLOBAL BINDINGS ===
-    window.openListWindow = (albumId) => App.modal.open(albumId);
+    // === GLOBALNE POWIĄZANIA ===
+    window.openListWindow = (entityId, type = 'album') => App.modal.open(entityId, type);
     window.closeListWindow = () => App.modal.close();
     window.saveNewList = () => App.modal.createNew();
     window.showListEditModal = (listData) => App.editModal.open(listData);
-
 })(window.ListApp);

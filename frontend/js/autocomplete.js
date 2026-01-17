@@ -1,4 +1,4 @@
-// frontend/js/autocomplete.js - Универсальный класс для автодополнения
+// frontend/js/autocomplete.js - Uniwersalna klasa do autouzupełniania
 
 class Autocomplete {
     constructor(inputElement, suggestionsContainer, apiEndpoint, debounceDelay = 300) {
@@ -14,14 +14,14 @@ class Autocomplete {
         this.input.addEventListener('input', this.handleInput.bind(this));
         this.suggestions.addEventListener('click', this.handleSelection.bind(this));
 
-        // Скрытие при клике вне области
+        // Ukrywanie po kliknięciu poza obszarem
         document.addEventListener('click', (e) => {
             if (e.target !== this.input && !this.suggestions.contains(e.target)) {
                 this.suggestions.style.display = 'none';
             }
         });
 
-        // Показываем предложения при фокусе, если есть результаты
+        // Pokazywanie sugestii przy ustawieniu fokusu, jeśli są wyniki
         this.input.addEventListener('focus', () => {
             if (this.suggestions.children.length > 0) {
                 this.suggestions.style.display = 'block';
@@ -44,15 +44,15 @@ class Autocomplete {
 
     async fetchSuggestions(query) {
         try {
-            // Используем Fetch API для получения предложений
+            // Używamy Fetch API do pobierania sugestii
             const res = await fetch(`${this.apiEndpoint}?q=${encodeURIComponent(query)}`);
-            if (!res.ok) throw new Error('Network response was not ok');
+            if (!res.ok) throw new Error('Odpowiedź sieciowa nie była poprawna');
 
             const data = await res.json();
             this.renderSuggestions(data);
 
         } catch (error) {
-            console.error('Autocomplete fetch error:', error);
+            console.error('Błąd pobierania autouzupełniania:', error);
             this.suggestions.innerHTML = '';
             this.suggestions.style.display = 'none';
         }
@@ -65,10 +65,10 @@ class Autocomplete {
                 const div = document.createElement('div');
                 div.className = 'suggestion-item';
                 div.textContent = item;
-                // Стилизацию лучше перенести в CSS
+                // Stylizację najlepiej przenieść do pliku CSS
                 div.style.padding = '5px 8px';
                 div.style.cursor = 'pointer';
-                div.onmouseover = () => { div.style.backgroundColor = '#444'; }; // Dark theme hover
+                div.onmouseover = () => { div.style.backgroundColor = '#444'; }; // Najechanie kursorem (ciemny motyw)
                 div.onmouseout = () => { div.style.backgroundColor = 'transparent'; };
 
                 this.suggestions.appendChild(div);
@@ -87,5 +87,5 @@ class Autocomplete {
     }
 }
 
-// Экспортируем для использования в других модулях (например, members.js)
+// Eksportujemy do użytku w innych modułach (np. members.js)
 window.Autocomplete = Autocomplete;

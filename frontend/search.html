@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Wyniki wyszukiwania - MelodyRater</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #eee;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding-bottom: 50px;
+        }
+
+        .search-results-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        h1 { font-size: 2em; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        h2 { color: #fff; margin-top: 40px; font-size: 1.5em; border-left: 4px solid #3b82f6; padding-left: 10px; }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            transition: transform 0.2s, background 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            background: #2a2a2a;
+        }
+
+        .result-card img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            background-color: #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .result-card.round-img img { border-radius: 50%; }
+
+        .result-card .title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .result-card .subtitle {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .tracks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .track-item {
+            background: #1e1e1e;
+            padding: 12px 20px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+        .track-item:hover { background: #2a2a2a; }
+
+        .track-left { display: flex; align-items: center; gap: 15px; }
+        .track-img { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
+        .track-info { display: flex; flex-direction: column; }
+        .track-title { font-weight: 600; font-size: 1em; }
+        .track-artist { font-size: 0.9em; color: #888; }
+
+        .no-results-msg {
+            font-size: 1.2em;
+            color: #777;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        #loading { text-align: center; margin-top: 40px; color: #888; }
+    </style>
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+<script src="/js/loadnavbar.js"></script>
+
+<div class="search-results-container">
+    <h1>Wyniki wyszukiwania dla "<span id="search-query-text"></span>"</h1>
+
+    <div id="loading">Wyszukiwanie...</div>
+    <div id="no-results" class="no-results-msg" style="display: none;">Nie znaleziono wyników.</div>
+
+    <section id="section-artists" style="display:none">
+        <h2>Artyści</h2>
+        <div class="results-grid" id="artists-results"></div>
+    </section>
+
+    <section id="section-albums" style="display:none">
+        <h2>Albumy</h2>
+        <div class="results-grid" id="albums-results"></div>
+    </section>
+
+    <section id="section-tracks" style="display:none">
+        <h2>Utwory</h2>
+        <div class="tracks-list" id="tracks-results"></div>
+    </section>
+
+    <section id="section-lists" style="display:none">
+        <h2>Listy</h2>
+        <div class="results-grid" id="lists-results"></div>
+    </section>
+
+    <section id="section-users" style="display:none">
+        <h2>Użytkownicy</h2>
+        <div class="results-grid" id="users-results"></div>
+    </section>
+</div>
+
+<script>
+    async function performSearch() {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get('q');
+
+        const queryText = document.getElementById('search-query-text');
+        const loading = document.getElementById('loading');
+        const noResults = document.getElementById('no-results');
+
+        if (!query) {
+            queryText.innerText = "...";
+            loading.style.display = 'none';
+            return;
+        }
+
+        queryText.innerText = query;
+        loading.style.display = 'block';
+
+        try {
+            const response = await fetch(`/api/search/full?q=${encodeURIComponent(query)}`);
+            loading.style.display = 'none';
+
+            if (!response.ok) throw new Error('Wyszukiwanie nie powiodło się');
+
+            const data = await response.json();
+            let hasAnyResult = false;
+
+            const renderSection = (id, containerId, items, mapFn) => {
+                const section = document.getElementById(id);
+                const container = document.getElementById(containerId);
+                if (items && items.length > 0) {
+                    hasAnyResult = true;
+                    section.style.display = 'block';
+                    container.innerHTML = items.map(mapFn).join('');
+                } else {
+                    section.style.display = 'none';
+                }
+            };
+
+            renderSection('section-artists', 'artists-results', data.artists, art => `
+                <a href="/artist.html?slug=${art.slug}" class="result-card round-img">
+                    <img src="${art.picture_url || '/img/default-artist.png'}" onerror="this.src='/img/default-artist.png'">
+                    <span class="title">${art.name}</span>
+                    <small class="subtitle">${art.artist_type}</small>
+                </a>
+            `);
+
+            renderSection('section-albums', 'albums-results', data.albums, alb => `
+                <a href="/release/album/${alb.slug}" class="result-card">
+                    <img src="${alb.cover_url || '/img/default-artist.png'}" onerror="this.src='/img/default-artist.png'">
+                    <span class="title">${alb.title}</span>
+                    <small class="subtitle">${alb.artist_name || 'Nieznany'}</small>
+                </a>
+            `);
+
+            renderSection('section-tracks', 'tracks-results', data.tracks, tr => `
+                <a href="/track/${tr.slug}" class="track-item" style="text-decoration: none; color: inherit;">
+                    <div class="track-left">
+                        <img src="${tr.cover_url || '/img/default-artist.png'}" class="track-img" onerror="this.src='/img/default-artist.png'">
+                        <div class="track-info">
+                            <span class="track-title">${tr.title}</span>
+                            <span class="track-artist">${tr.artist_name} • ${tr.album_title}</span>
+                        </div>
+                    </div>
+                    <span style="color:#777; font-size:0.9em;">${tr.duration || '--:--'}</span>
+                </a>
+            `);
+
+            renderSection('section-lists', 'lists-results', data.lists, list => `
+                <a href="/list.html?slug=${list.slug}" class="result-card">
+                    <img src="${list.cover_url || '/img/default-artist.png'}" onerror="this.src='/img/default-artist.png'">
+                    <span class="title">${list.name}</span>
+                    <small class="subtitle">autor: ${list.username}</small>
+                </a>
+            `);
+
+            renderSection('section-users', 'users-results', data.users, user => `
+                <a href="/user/${user.username}" class="result-card round-img">
+                    <img src="${user.profile_pic || '/img/default-artist.png'}" onerror="this.src='/img/default-artist.png'">
+                    <span class="title">${user.username}</span>
+                </a>
+            `);
+
+            if (!hasAnyResult) {
+                noResults.style.display = 'block';
+            }
+
+        } catch (err) {
+            loading.style.display = 'none';
+            console.error("Błąd wyszukiwania:", err);
+            noResults.innerText = "Wystąpił błąd podczas wyszukiwania.";
+            noResults.style.display = 'block';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', performSearch);
+</script>
+</body>
+</html>

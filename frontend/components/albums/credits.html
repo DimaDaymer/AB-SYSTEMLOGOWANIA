@@ -1,272 +1,183 @@
-<div class="credits-module">
-    <div class="credits-header">
-        <h3>Album Credits</h3>
-        <button id="btn-edit-credits" class="icon-btn" style="display: none;" title="Edit Credits">✎</button>
+<link rel="stylesheet" href="/css/credits-members.css">
+
+<div class="cm-module" id="album-credits-module">
+    <div class="cm-header">
+        <h3 id="credits-title">Twórcy albumu</h3>
+        <button id="btn-edit-credits" class="icon-btn" style="display: none;" title="Edytuj twórców">✎</button>
     </div>
 
-    <div id="credits-list" class="credits-list">
-        <div class="loading-placeholder">Loading credits...</div>
+    <div id="credits-list" class="cm-list">
+        <div class="cm-placeholder">Ładowanie twórców...</div>
     </div>
 
-    <div id="credits-editor" class="credits-editor" style="display: none;">
+    <div id="credits-editor" class="cm-editor" style="display: none;">
         <div class="editor-row">
-            <input type="text" id="credit-artist-input" placeholder="Artist Name..." autocomplete="off">
-            <div id="artist-suggestions" class="suggestions-box"></div>
+            <div class="input-wrapper">
+                <input type="text" id="credit-artist-input" class="cm-input" placeholder="Nazwa artysty..." autocomplete="off">
+                <div id="credit-artist-suggestions" class="suggestions-box"></div>
+            </div>
 
-            <input type="text" id="credit-role-input" placeholder="Role (e.g. Guitar)..." autocomplete="off">
-            <div id="role-suggestions" class="suggestions-box"></div>
-
-            <button id="btn-add-credit" class="button-small">Add</button>
+            <div class="input-wrapper">
+                <input type="text" id="credit-role-input" class="cm-input" placeholder="Rola (np. Gitara)..." autocomplete="off">
+                <div id="credit-role-suggestions" class="suggestions-box"></div>
+            </div>
         </div>
-        <button id="btn-close-editor" class="text-btn">Done Editing</button>
+
+        <div class="editor-row" style="justify-content: flex-end;">
+            <button id="btn-add-credit" class="cm-btn-add">Dodaj</button>
+        </div>
+        <button id="btn-close-credits-editor" class="cm-btn-close">Zakończ edycję</button>
     </div>
 </div>
 
-<style>
-    .credits-module {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .credits-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 5px;
-    }
-    .credits-header h3 { margin: 0; font-size: 1.1rem; color: #fff; }
-
-    .credits-list { display: flex; flex-direction: column; gap: 8px; }
-    .credit-item { display: flex; align-items: center; font-size: 0.9rem; }
-    .credit-role { color: #aaa; width: 120px; text-align: right; margin-right: 15px; font-style: italic; }
-    .credit-artist a { color: #ADFF2F; text-decoration: none; font-weight: 600; }
-    .credit-artist a:hover { text-decoration: underline; }
-
-    .delete-credit-btn {
-        background: none; border: none; color: #ff5555; cursor: pointer;
-        margin-left: auto; font-size: 1.2rem; line-height: 1; padding: 0 5px;
-    }
-    .delete-credit-btn:hover { color: #ff0000; }
-
-    /* Editor Styles */
-    .credits-editor { margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; }
-    .editor-row { display: flex; gap: 10px; position: relative; margin-bottom: 10px; }
-    .editor-row input {
-        flex: 1; padding: 5px 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff;
-    }
-    .suggestions-box {
-        position: absolute; top: 100%; left: 0; right: 0;
-        background: #333; border: 1px solid #555; z-index: 10;
-        max-height: 150px; overflow-y: auto; display: none;
-    }
-    .suggestion-item { padding: 5px 10px; cursor: pointer; border-bottom: 1px solid #444; }
-    .suggestion-item:hover { background: #444; }
-
-    .icon-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.2rem; }
-    .icon-btn:hover { color: #fff; }
-    .button-small { background: #ADFF2F; border: none; color: #000; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .text-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 0.8rem; text-decoration: underline; }
-    .text-btn:hover { color: #aaa; }
-</style>
-
 <script>
+    // frontend/js/album-credits.js
     (function() {
-        const container = document.querySelector('.credits-module');
-        // Получаем текущий ID альбома из глобальной переменной, если она уже установлена
-        let albumId = window.currentAlbumId || null;
+        let albumId = null;
         let isEditing = false;
-        let isAdminCache = false;
+        let currentCredits = [];
+        const token = localStorage.getItem('token');
 
-        // === API Helpers ===
+        // Główna funkcja inicjalizacji (wywoływana z handleAlbumAction.js lub renderAlbums.js)
+        window.initCreditsModule = async (id) => {
+            albumId = id;
+            currentCredits = await fetchCredits(albumId);
+            renderCredits(currentCredits);
 
-        const fetchCredits = async () => {
-            if (!albumId) return [];
-            try {
-                const res = await fetch(`/api/credits/album/${albumId}`);
-                return res.ok ? await res.json() : [];
-            } catch (e) { console.error(e); return []; }
+            await setupAdminFeatures();
         };
 
-        const addCredit = async (artistName, roleName) => {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/credits', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ albumId, artistName, roleName })
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Failed');
+        const fetchCredits = async (id) => {
+            try {
+                const res = await fetch(`/api/credits/album/${id}`);
+                return res.ok ? await res.json() : [];
+            } catch (e) {
+                console.error(e);
+                return [];
             }
         };
 
-        const deleteCredit = async (id) => {
-            const token = localStorage.getItem('token');
-            await fetch(`/api/credits/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-        };
-
-        const searchAPI = async (endpoint, query) => {
-            try {
-                const res = await fetch(`/api/credits/${endpoint}?q=${encodeURIComponent(query)}`);
-                return res.ok ? await res.json() : [];
-            } catch (e) { return []; }
-        };
-
-        // === Проверка админа (ИСПРАВЛЕНО) ===
-        // Теперь мы делаем запрос к /api/users/me, как в albums1.js, что надежнее
-        const checkAdmin = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return false;
-            try {
-                const res = await fetch('/api/users/me', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) return false;
-                const user = await res.json();
-                // Проверяем роль
-                return user.role === 'admin';
-            } catch(e) {
-                console.error('Admin check failed:', e);
-                return false;
-            }
-        };
-
-        // === Рендер UI ===
-
-        const renderList = (credits) => {
-            const listEl = container.querySelector('#credits-list');
-            if (!credits || credits.length === 0) {
-                listEl.innerHTML = '<div style="color:#666; font-style:italic; padding:10px;">No credits added yet.</div>';
+        const renderCredits = (data) => {
+            const listEl = document.getElementById('credits-list');
+            if (!data || data.length === 0) {
+                listEl.innerHTML = '<div class="cm-placeholder">Brak informacji o twórcach.</div>';
                 return;
             }
 
-            listEl.innerHTML = credits.map(c => `
-            <div class="credit-item">
-                <span class="credit-role">${c.role_name}</span>
-                <span class="credit-artist">
+            listEl.innerHTML = data.map(c => `
+            <div class="cm-item">
+                <span class="cm-artist-name">
                     <a href="/artist.html?slug=${c.artist_slug}">${c.artist_name}</a>
                 </span>
-                ${isEditing ? `<button class="delete-credit-btn" data-id="${c.id}" title="Remove">×</button>` : ''}
+                <span class="cm-role">${c.role_name || 'Nieznana rola'}</span>
+                ${isEditing ? `<button class="delete-btn" onclick="window.deleteAlbumCredit(${c.id})">×</button>` : ''}
             </div>
         `).join('');
-
-            // Навешиваем события удаления
-            if (isEditing) {
-                listEl.querySelectorAll('.delete-credit-btn').forEach(btn => {
-                    btn.onclick = async (e) => {
-                        e.stopPropagation();
-                        if(confirm('Remove this credit?')) {
-                            await deleteCredit(btn.dataset.id);
-                            initCredits(); // Перезагрузить список
-                        }
-                    };
-                });
-            }
         };
 
-        const setupAutocomplete = (inputId, listId, apiEndpoint) => {
-            const input = container.querySelector(inputId);
-            const list = container.querySelector(listId);
+        const setupAdminFeatures = async () => {
+            if (!token) return;
+            try {
+                const userRes = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
+                if (!userRes.ok) return;
+                const user = await userRes.json();
+
+                if (user.role === 'admin') {
+                    const btnEdit = document.getElementById('btn-edit-credits');
+                    const btnClose = document.getElementById('btn-close-credits-editor');
+                    const editor = document.getElementById('credits-editor');
+                    const btnAdd = document.getElementById('btn-add-credit');
+
+                    btnEdit.style.display = 'block';
+
+                    const toggleEditor = () => {
+                        isEditing = !isEditing;
+                        editor.style.display = isEditing ? 'block' : 'none';
+                        renderCredits(currentCredits); // Ponowne renderowanie, aby pokazać/ukryć przyciski usuwania
+                    };
+
+                    btnEdit.onclick = toggleEditor;
+                    btnClose.onclick = toggleEditor;
+
+                    // Konfiguracja autouzupełniania
+                    setupAutocomplete('credit-artist-input', 'credit-artist-suggestions', 'search-artists');
+                    setupAutocomplete('credit-role-input', 'credit-role-suggestions', 'search-roles');
+
+                    // Dodawanie twórcy
+                    btnAdd.onclick = async () => {
+                        const artistName = document.getElementById('credit-artist-input').value;
+                        const roleName = document.getElementById('credit-role-input').value;
+
+                        if(!artistName || !roleName) return alert('Proszę wypełnić oba pola');
+
+                        const res = await fetch('/api/credits', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ albumId, artistName, roleName })
+                        });
+
+                        if (res.ok) {
+                            document.getElementById('credit-artist-input').value = '';
+                            document.getElementById('credit-role-input').value = '';
+                            currentCredits = await fetchCredits(albumId);
+                            renderCredits(currentCredits);
+                        } else {
+                            alert('Błąd podczas dodawania twórcy');
+                        }
+                    };
+                }
+            } catch (e) { console.error("Weryfikacja uprawnień nie powiodła się", e); }
+        };
+
+        // Funkcja autouzupełniania
+        const setupAutocomplete = (inputId, suggId, endpoint) => {
+            const input = document.getElementById(inputId);
+            const suggestionsBox = document.getElementById(suggId);
+            if (!input || !suggestionsBox) return;
+
             let timeout;
 
             input.oninput = () => {
                 clearTimeout(timeout);
-                const val = input.value.trim();
-                if (val.length < 2) { list.style.display = 'none'; return; }
+                const q = input.value.trim();
+                if (q.length < 2) { suggestionsBox.style.display = 'none'; return; }
 
                 timeout = setTimeout(async () => {
-                    const results = await searchAPI(apiEndpoint, val);
-                    if (results.length) {
-                        list.innerHTML = results.map(r => `<div class="suggestion-item">${r.name}</div>`).join('');
-                        list.style.display = 'block';
-                        list.querySelectorAll('.suggestion-item').forEach(item => {
-                            item.onclick = () => {
-                                input.value = item.textContent;
-                                list.style.display = 'none';
+                    const res = await fetch(`/api/credits/${endpoint}?q=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        suggestionsBox.innerHTML = data.map(item => `<div class="suggestion-item">${item.name}</div>`).join('');
+                        suggestionsBox.style.display = 'block';
+                        suggestionsBox.querySelectorAll('.suggestion-item').forEach(el => {
+                            el.onclick = () => {
+                                input.value = el.textContent;
+                                suggestionsBox.style.display = 'none';
                             };
                         });
-                    } else {
-                        list.style.display = 'none';
-                    }
+                    } else { suggestionsBox.style.display = 'none'; }
                 }, 300);
             };
 
+            // Zamykanie przy kliknięciu poza polem
             document.addEventListener('click', (e) => {
-                if (!input.contains(e.target) && !list.contains(e.target)) list.style.display = 'none';
+                if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
             });
         };
 
-        // === Инициализация ===
-
-        async function initCredits() {
-            const data = await fetchCredits();
-            renderList(data);
-        }
-
-        function toggleEditMode() {
-            isEditing = !isEditing;
-            const editor = container.querySelector('#credits-editor');
-            const editBtn = container.querySelector('#btn-edit-credits');
-
-            editor.style.display = isEditing ? 'block' : 'none';
-            editBtn.style.color = isEditing ? '#ADFF2F' : '#ccc';
-
-            // Перерисовываем список, чтобы появились/исчезли крестики удаления
-            initCredits();
-        }
-
-        window.initCreditsModule = async (id) => {
-            if(id) albumId = id;
-            if(!albumId) return; // Если ID нет, выходим
-
-            // 1. Загружаем данные
-            await initCredits();
-
-            // 2. Проверяем права админа
-            isAdminCache = await checkAdmin();
-            const editBtn = container.querySelector('#btn-edit-credits');
-
-            if (isAdminCache) {
-                editBtn.style.display = 'block'; // Показываем кнопку только админу
-                editBtn.onclick = toggleEditMode;
-
-                // Настраиваем автокомплит и кнопку добавления только если админ
-                setupAutocomplete('#credit-artist-input', '#artist-suggestions', 'search-artists');
-                setupAutocomplete('#credit-role-input', '#role-suggestions', 'search-roles');
-
-                const addBtn = container.querySelector('#btn-add-credit');
-                addBtn.onclick = async () => {
-                    const art = container.querySelector('#credit-artist-input').value;
-                    const role = container.querySelector('#credit-role-input').value;
-                    if(art && role) {
-                        try {
-                            addBtn.textContent = 'Adding...';
-                            await addCredit(art, role);
-                            container.querySelector('#credit-artist-input').value = '';
-                            container.querySelector('#credit-role-input').value = '';
-                            await initCredits();
-                        } catch(e) {
-                            alert('Error: ' + e.message);
-                        } finally {
-                            addBtn.textContent = 'Add';
-                        }
-                    }
-                };
-
-                container.querySelector('#btn-close-editor').onclick = toggleEditMode;
+        // Globalna funkcja usuwania
+        window.deleteAlbumCredit = async (id) => {
+            if (!confirm('Czy na pewno chcesz usunąć te informacje?')) return;
+            const res = await fetch(`/api/credits/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (res.ok) {
+                currentCredits = await fetchCredits(albumId);
+                renderCredits(currentCredits);
             }
         };
-
-        // Авто-запуск, если ID уже есть (на случай гонки скриптов)
-        if (window.currentAlbumId) {
-            window.initCreditsModule(window.currentAlbumId);
-        }
     })();
+
 </script>

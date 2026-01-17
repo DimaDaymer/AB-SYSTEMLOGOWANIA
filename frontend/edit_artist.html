@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактирование исполнителя | MelodyRater</title>
+    <title>Edycja wykonawcy | MelodyRater</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/album_edit.css">
@@ -11,10 +11,10 @@
 <body>
 <div class="form-container">
     <div class="form-card edit-form-accent">
-        <h1>Редактирование исполнителя</h1>
+        <h1>Edycja wykonawcy</h1>
         <div id="picture-preview" style="text-align: center; margin-bottom: 20px;">
-            <img id="current-picture" src="" alt="Artist Picture" style="display: none; max-width: 200px; height: auto; border-radius: 5px;">
-            <p id="no-picture-text">No picture available</p>
+            <img id="current-picture" src="" alt="Zdjęcie wykonawcy" style="display: none; max-width: 200px; height: auto; border-radius: 5px;">
+            <p id="no-picture-text">Brak zdjęcia</p>
         </div>
 
         <form id="editArtistForm">
@@ -22,44 +22,38 @@
             <input type="hidden" id="artist-id" name="artist-id">
 
             <div class="form-group">
-                <label for="name">Имя исполнителя*</label>
-                <input type="text" id="name" name="name" class="form-control" required placeholder="Enter artist name">
+                <label for="name">Nazwa wykonawcy*</label>
+                <input type="text" id="name" name="name" class="form-control" required placeholder="Wpisz nazwę wykonawcy">
             </div>
 
             <div class="form-group">
-                <label for="artist_type">Тип исполнителя</label>
+                <label for="artist_type">Typ wykonawcy</label>
                 <select id="artist_type" name="artist_type" class="form-control">
-                    <option value="solo">Solo Artist (Person)</option>
-                    <option value="group">Group / Band</option>
+                    <option value="solo">Artysta solowy (Osoba)</option>
+                    <option value="group">Zespół / Grupa</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="picture_url">Picture URL</label>
-                <input type="text" id="picture_url" name="picture_url" class="form-control" placeholder="Image link">
+                <label for="picture_url">URL zdjęcia</label>
+                <input type="text" id="picture_url" name="picture_url" class="form-control" placeholder="Link do zdjęcia">
             </div>
 
             <div class="form-group">
-                <label for="formed_year">Год образования / Рождения</label>
-                <input type="text" id="formed_year" name="formed_year" class="form-control" placeholder="YYYY">
+                <label for="formed_year">Rok założenia / urodzenia</label>
+                <input type="text" id="formed_year" name="formed_year" class="form-control" placeholder="RRRR">
             </div>
 
             <div class="form-group">
-                <label for="origin_country">Страна</label>
-                <input type="text" id="origin_country" name="origin_country" class="form-control" placeholder="Country">
+                <label for="locations">Lokalizacje (oddzielone przecinkami)</label>
+                <input type="text" id="locations" name="locations" class="form-control" placeholder="Londyn, Wielka Brytania, Warszawa">
             </div>
 
             <div class="form-group">
-                <label for="bio">Биография</label>
-                <textarea id="bio" name="bio" class="form-control" rows="8" placeholder="Enter artist biography (Markdown supported)"></textarea>
+                <label for="bio">Biografia</label>
+                <textarea id="bio" name="bio" class="form-control" rows="8" placeholder="Wpisz biografię (obsługa Markdown)"></textarea>
             </div>
-
-            <div class="form-group">
-                <label for="description">Описание (Ключевые слова/метаданные)</label>
-                <textarea id="description" name="description" class="form-control" placeholder="Keywords, previous band names, etc. (for admin use)"></textarea>
-            </div>
-
-            <button type="submit" class="button">Сохранить изменения</button>
+            <button type="submit" class="button">Zapisz zmiany</button>
         </form>
     </div>
 </div>
@@ -69,16 +63,16 @@
         async function enforceAdminAccess() {
             const token = localStorage.getItem('token');
             if (!token) {
-                alert('Для редактирования необходима авторизация.');
+                alert('Autoryzacja jest wymagana do edycji.');
                 window.location.href = '/login.html';
                 return false;
             }
             try {
                 const res = await fetch('/api/users/me', { headers: { 'Authorization': `Bearer ${token}` }});
-                if (!res.ok) throw new Error('Failed to fetch user data');
+                if (!res.ok) throw new Error('Nie udało się pobrać danych użytkownika');
                 const user = await res.json();
                 if (user.role !== 'admin') {
-                    alert('Нет прав администратора.');
+                    alert('Brak uprawnień administratora.');
                     window.location.href = '/';
                     return false;
                 }
@@ -115,14 +109,15 @@
                     document.getElementById('artist-identifier').value = artist.slug;
                     artistIdInput.value = artist.id;
                     document.getElementById('name').value = artist.name || '';
-                    // Загрузка типа
                     document.getElementById('artist_type').value = artist.artist_type || 'solo';
-
                     pictureUrlInput.value = artist.picture_url || '';
                     document.getElementById('formed_year').value = artist.formed_year || '';
-                    document.getElementById('origin_country').value = artist.origin_country || '';
+
+                    if (artist.locations && Array.isArray(artist.locations)) {
+                        document.getElementById('locations').value = artist.locations.join(', ');
+                    }
+
                     document.getElementById('bio').value = artist.bio || '';
-                    document.getElementById('description').value = artist.description || '';
 
                     if (artist.picture_url) {
                         currentPictureImg.src = artist.picture_url;
@@ -130,11 +125,11 @@
                         noPictureText.style.display = 'none';
                     }
                 } else {
-                    alert('Исполнитель не найден.');
+                    alert('Wykonawca nie został znaleziony.');
                     window.location.href = '/';
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
+                console.error('Błąd pobierania:', error);
             }
         }
 
@@ -154,7 +149,7 @@
         if (slug) {
             loadArtistData(slug);
         } else {
-            alert('Не указан идентификатор.');
+            alert('Brak identyfikatora.');
             window.location.href = '/';
         }
 
@@ -164,14 +159,18 @@
             const id = artistIdInput.value;
             const token = localStorage.getItem('token');
 
+            const locationsRaw = formData.get('locations');
+            const locationsArray = locationsRaw
+                ? locationsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0)
+                : [];
+
             const artistData = {
                 name: formData.get('name'),
-                artist_type: formData.get('artist_type'), // Отправляем тип
+                artist_type: formData.get('artist_type'),
                 picture_url: formData.get('picture_url'),
                 formed_year: formData.get('formed_year'),
-                origin_country: formData.get('origin_country'),
+                locations: locationsArray,
                 bio: formData.get('bio'),
-                description: formData.get('description'),
             };
 
             try {
@@ -186,14 +185,15 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    alert('Исполнитель успешно обновлен!');
+                    alert('Wykonawca pomyślnie zaktualizowany!');
                     window.location.href = `/artist/${data.slug || slug}`;
                 } else {
-                    alert('Ошибка при обновлении.');
+                    const err = await response.json();
+                    alert('Błąd aktualizacji: ' + (err.error || 'Nieznany błąd'));
                 }
             } catch (error) {
                 console.error(error);
-                alert('Ошибка сети.');
+                alert('Błąd sieci.');
             }
         });
     });

@@ -16,7 +16,6 @@
     }
     .track-info { flex-grow: 1; }
 
-    /* Стили для ссылки трека - эти стили можно удалить, но оставляю на случай, если они используются где-то еще, кроме ссылки */
     .track-title {
         font-size: 16px;
         color: #ADFF2F;
@@ -38,7 +37,6 @@
         align-items: center;
         gap: 8px;
     }
-    /* Специфичный стиль для цифры "X.X/5" в списке треков */
     .track-rating-value {
         font-size: 16px;
         font-weight: bold;
@@ -50,60 +48,38 @@
 
 <script>
     window.components = window.components || {};
+
     window.components.trackRatingsTab = {
         update: function (tracks, userRatings) {
             const container = document.getElementById('track-ratings-container');
             if (!container) return;
             container.innerHTML = '';
 
-            if (typeof StarRating === 'undefined') {
-                console.error('StarRating class not loaded for tracks!');
-                return;
-            }
-
             tracks.forEach(track => {
-                const trackRating = userRatings[track.id] || 0;
-
-                // Удаляем переменную trackUrl и ее использование
-                // const trackUrl = track.slug ? `/track/${track.slug}` : '#';
+                const score = userRatings[track.id] || 0;
 
                 const trackItem = document.createElement('li');
                 trackItem.className = 'track-rating-item';
-                trackItem.dataset.trackId = track.id;
-
                 trackItem.innerHTML = `
-                    <div class="track-info">
-                        <div class="track-title">
-                            ${track.track_number}.
-                            <span>${track.title}</span>
-                        </div>
-                        <div class="track-duration">${track.duration || ''}</div>
-                    </div>
-                    <div class="track-rating">
-                        <div class="track-rating-value">${trackRating ? trackRating.toFixed(1) : '0.0'}/5</div>
-                        <div class="track-star-rating-host"></div>
-                    </div>
-                `;
+                <div class="track-info">
+                    <div class="track-title">${track.track_number}. ${track.title}</div>
+                </div>
+                <div class="track-rating">
+                    <div class="track-rating-value">${score > 0 ? score.toFixed(1) : '0.0'}/5</div>
+                    <div class="track-star-rating-host"></div>
+                </div>
+            `;
 
                 const starHost = trackItem.querySelector('.track-star-rating-host');
                 const valueEl = trackItem.querySelector('.track-rating-value');
 
-                const trackRatingInstance = new StarRating(starHost, {
-                    showValue: false,
-                    clearableText: '×'
-                });
+                const ratingInstance = new StarRating(starHost, { showValue: false });
+                ratingInstance.setValue(score);
 
-                trackRatingInstance.setValue(trackRating);
-
-                trackRatingInstance.container.addEventListener('ratingChanged', (e) => {
-                    const newRating = e.detail.rating;
-                    valueEl.textContent = `${newRating.toFixed(1)}/5`;
-
-                    if (newRating === 0) {
-                        clearTrackRating(track.id);
-                    } else {
-                        saveTrackRating(track.id, newRating);
-                    }
+                ratingInstance.container.addEventListener('ratingChanged', (e) => {
+                    const newScore = e.detail.rating;
+                    valueEl.textContent = `${newScore.toFixed(1)}/5`;
+                    newScore === 0 ? clearTrackRating(track.id) : saveTrackRating(track.id, newScore);
                 });
 
                 container.appendChild(trackItem);
@@ -115,7 +91,7 @@
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.showMessage('Please log in to rate tracks', true);
+                window.showMessage('Zaloguj się, aby oceniać utwory', true);
                 return;
             }
             const res = await fetch(`/api/track-ratings/${trackId}`, {
@@ -126,14 +102,14 @@
                 },
                 body: JSON.stringify({ rating })
             });
-            if (!res.ok) throw new Error('Failed to save');
-            window.showMessage('Track rating saved!');
+            if (!res.ok) throw new Error('Nie udało się zapisać');
+            window.showMessage('Ocena utworu została zapisana!');
             window.dispatchEvent(new CustomEvent('trackRatingUpdated', {
                 detail: { trackId: trackId, rating: rating }
             }));
         } catch (err) {
-            console.error('Error:', err);
-            window.showMessage('Error saving rating', true);
+            console.error('Błąd:', err);
+            window.showMessage('Błąd podczas zapisywania oceny', true);
         }
     }
 
@@ -141,21 +117,21 @@
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.showMessage('Please log in to clear rating', true);
+                window.showMessage('Zaloguj się, aby usunąć ocenę', true);
                 return;
             }
             const res = await fetch(`/api/track-ratings/${trackId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error('Failed to clear');
-            window.showMessage('Track rating cleared!');
+            if (!res.ok) throw new Error('Nie udało się usunąć');
+            window.showMessage('Ocena utworu została usunięta!');
             window.dispatchEvent(new CustomEvent('trackRatingUpdated', {
                 detail: { trackId: trackId, rating: 0 }
             }));
         } catch (err) {
-            console.error('Error:', err);
-            window.showMessage('Error clearing rating', true);
+            console.error('Błąd:', err);
+            window.showMessage('Błąd podczas usuwania oceny', true);
         }
     }
 </script>

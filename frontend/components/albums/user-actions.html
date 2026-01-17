@@ -1,47 +1,53 @@
 <div class="user-actions">
-    <div data-action="listen">🎧 Listen</div>
-    <div data-action="wishlist">❤️ Wishlist</div>
-    <div data-action="like">⭐ Like</div>
-    <div data-action="add-to-list" onclick="window.openListWindow(window.currentAlbumId)">➕ Add to List</div>
-    <div onclick="window.openTagWindow(window.currentAlbumId)">🏷️ Tag</div>
-
-
+    <div data-action="listen" class="action-item">
+        <i class="icon-listen"></i> Słucham
+    </div>
+    <div data-action="wishlist" class="action-item">
+        <i class="icon-wish"></i> Chcę posłuchać
+    </div>
+    <div data-action="like" class="action-item">
+        <i class="icon-like"></i> Lubię to
+    </div>
+    <div data-action="add-to-list" onclick="window.openListWindow(window.currentAlbumId)" class="action-item">
+        <i class="icon-list"></i> Dodaj do listy
+    </div>
+    <div onclick="window.openTagWindow(window.currentAlbumId)" class="action-item">
+        <i class="icon-review"></i> Dodaj tag
+    </div>
 </div>
 
 <style>
     .user-actions {
-        background: #1a1a1a;
+        background: rgba(0, 0, 0, 0.4);
         border-radius: 8px;
         padding: 15px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
 
-    .user-actions div {
+    .user-actions .action-item {
         background: #2a2a2a;
         padding: 10px;
-        margin-bottom: 8px;
         border-radius: 6px;
         text-align: center;
         cursor: pointer;
         font-weight: 600;
         color: #ddd;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
     }
 
-    .user-actions div:last-child {
-        margin-bottom: 0;
-    }
-
-    .user-actions div:hover {
+    .user-actions .action-item:hover {
         background: #3a3a3a;
         color: #fff;
     }
 
-    .user-actions div.active {
-        background: #00ffcc;
-        color: #1a1a1a;
-        font-weight: 700;
-        transform: scale(1.05);
-        box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
-    }
+    .user-actions .action-item.active[data-action="listen"] { border-left: 4px solid #ADFF2F; color: #ADFF2F; }
+    .user-actions .action-item.active[data-action="wishlist"] { border-left: 4px solid #00e5ff; color: #00e5ff; }
+    .user-actions .action-item.active[data-action="like"] { border-left: 4px solid #ff4081; color: #ff4081; }
 </style>

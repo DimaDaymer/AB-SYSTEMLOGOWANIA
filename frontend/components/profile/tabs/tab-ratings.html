@@ -1,0 +1,133 @@
+<div id="histogram-wrapper"></div>
+<div class="view-all-wrapper" id="all-ratings-btn-wrap" style="margin-top: 20px; display: none; flex-direction: column; align-items: center; gap: 10px;">
+    <button class="view-all-btn" id="show-all-rated-btn">WSZYSTKIE OCENIONE ALBUMY</button>
+    <div id="histogram-full-list-btn-wrap"></div>
+</div>
+
+<div id="rated-albums-list" style="display: none;">
+    <button id="back-to-histogram" class="back-to-stats-btn">← Powrót do statystyk</button>
+    <h3 id="current-filter-title" style="color: #fff; margin-bottom: 15px; font-size: 1.1em;"></h3>
+    <div id="rated-albums-container"></div>
+    <div class="view-all-wrapper" id="tab-ratings-inner-view-all" style="margin-top: 20px;"></div>
+</div>
+
+<script type="module">
+    (function() {
+        const { getUrl, getHeaders, getStars, getArtist, openOverlay, PREVIEW_LIMIT } = window.TabsShared;
+
+        // Вспомогательная функция для создания кнопки, чтобы не зависеть от порядка .view-all-wrapper
+        function renderCustomOpenAllBtn(containerId, total, title, scoreValue) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return;
+            wrap.innerHTML = '';
+
+            if (total > PREVIEW_LIMIT) {
+                const btn = document.createElement('button');
+                btn.className = 'view-all-btn';
+                btn.textContent = `OTWÓRZ PEŁNĄ LISTĘ (${total})`;
+                btn.onclick = () => {
+                    openOverlay(
+                        title,
+                        'rated',
+                        (p, l) => fetchRatedApi(p, l, scoreValue)
+                    );
+                };
+                wrap.appendChild(btn);
+            }
+        }
+
+        async function fetchRatedApi(page, limit, score) {
+            const sParam = score ? `&score=${score}` : '';
+            const res = await fetch(`${getUrl('rated-albums')}?page=${page}&limit=${limit}${sParam}`, { headers: getHeaders() });
+            return await res.json();
+        }
+
+        async function loadStats() {
+            const wrap = document.getElementById('histogram-wrapper');
+            const mainBtnWrap = document.getElementById('all-ratings-btn-wrap');
+            const histFullBtnWrap = document.getElementById('histogram-full-list-btn-wrap');
+
+            wrap.innerHTML = 'Wczytywanie statystyk...';
+            try {
+                const res = await fetch(getUrl('stats'), { headers: getHeaders() });
+                const data = await res.json();
+                const stats = data.stats || {};
+
+                wrap.innerHTML = `<div class="histogram-container"><div id="histogram-rows"></div></div>`;
+                const rows = wrap.querySelector('#histogram-rows');
+                const values = Object.values(stats);
+                const max = Math.max(...values, 1);
+                const totalCount = values.reduce((a, b) => a + b, 0);
+
+                if (values.length > 0) {
+                    mainBtnWrap.style.display = 'flex';
+                    // Создаем кнопку полной версии сразу для гистограммы
+                    renderCustomOpenAllBtn('histogram-full-list-btn-wrap', totalCount, 'Wszystkie oceny', null);
+                }
+
+                Object.keys(stats).sort((a,b) => b-a).forEach(score => {
+                    const count = stats[score];
+                    const row = document.createElement('div');
+                    row.className = 'hist-row';
+                    row.innerHTML = `
+                        <div class="hist-score">${score}</div>
+                        <div class="hist-bar-area"><div class="hist-bar-fill" style="width:${(count/max)*100}%"></div></div>
+                        <div class="hist-count">${count}</div>
+                        <div class="hist-stars">${getStars(score)}</div>`;
+                    row.onclick = () => loadRatedAlbums(score);
+                    rows.appendChild(row);
+                });
+            } catch (e) {
+                wrap.innerHTML = 'Brak statystyk.';
+            }
+        }
+
+        async function loadRatedAlbums(score) {
+            const container = document.getElementById('rated-albums-container');
+            const innerViewAllWrap = document.getElementById('tab-ratings-inner-view-all');
+
+            document.getElementById('histogram-wrapper').style.display = 'none';
+            document.getElementById('all-ratings-btn-wrap').style.display = 'none';
+            document.getElementById('rated-albums-list').style.display = 'block';
+
+            const titleText = score ? `Albumy ocenione na ${score}` : 'Wszystkie ocenione albumy';
+            document.getElementById('current-filter-title').textContent = titleText;
+
+            try {
+                const data = await fetchRatedApi(1, PREVIEW_LIMIT, score);
+                container.innerHTML = data.items.map(a => `
+                    <div class="album-entry">
+                        <img src="${a.cover_url || '/img/default-artist.png'}" class="album-cover-small">
+                        <div class="album-details">
+                            <a href="/release/album/${a.slug}" class="title">${a.title}</a>
+                            <span class="artist-info">${getArtist(a)}</span>
+                        </div>
+                        <div style="color:gold">${getStars(a.score || a.user_score)}</div>
+                    </div>`).join('');
+
+                // Отрисовываем кнопку во внутреннем контейнере списка
+                renderCustomOpenAllBtn(
+                    'tab-ratings-inner-view-all',
+                    data.total,
+                    score ? `Ocena: ${score}` : 'Wszystkie oceny',
+                    score
+                );
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = 'Błąd wczytywania albumów.';
+            }
+        }
+
+        document.getElementById('show-all-rated-btn').onclick = () => loadRatedAlbums(null);
+
+        document.getElementById('back-to-histogram').onclick = () => {
+            document.getElementById('rated-albums-list').style.display = 'none';
+            document.getElementById('histogram-wrapper').style.display = 'block';
+            document.getElementById('all-ratings-btn-wrap').style.display = 'flex';
+            // Очищаем кнопку внутреннего списка при возврате
+            document.getElementById('tab-ratings-inner-view-all').innerHTML = '';
+        };
+
+        loadStats();
+    })();
+</script>
