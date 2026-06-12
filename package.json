@@ -1,26 +1,33 @@
 {
-  "name": "rym-clone",
+  "name": "system-muzyczny",
   "version": "1.0.0",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "bcryptjs": "^3.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
+    "@faker-js/faker": "^10.3.0",
+    "argon2": "^0.44.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
     "joi": "^18.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.0",
-    "mysql2": "^3.9.7",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.4",
     "node-cache": "^5.1.2",
+    "nodemailer": "^7.0.12",
+    "otplib": "^13.4.1",
+    "qrcode": "^1.5.4",
+    "react-easy-crop": "^5.5.7",
     "slugify": "^1.6.6",
+    "speakeasy": "^2.0.0",
     "sqlite3": "^5.1.7",
     "transliteration": "^2.3.5"
   },
   "devDependencies": {
+    "autocannon": "^8.0.0",
+    "jest": "^30.4.2",
     "nodemon": "^3.1.0"
   }
 }
